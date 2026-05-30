@@ -1,2 +1,11 @@
-import ElectricalEstimator from './ElectricalEstimator';
-export default function App() { return <ElectricalEstimator />; }
+import React from 'react';
+
+function App() {
+  return (
+    <div>
+      <h1>VoltQuote Loading...</h1>
+    </div>
+  );
+}
+
+export default App;
