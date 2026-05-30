@@ -1,5 +1,5 @@
 import React from 'react';
-import ElectricalEstimator from './electrical-estimator(1)';
+import ElectricalEstimator from './electrical-estimator';
 
 function App() {
   return <ElectricalEstimator />;
