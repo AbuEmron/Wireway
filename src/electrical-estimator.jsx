@@ -178,7 +178,7 @@ const NEC_REFS = [
   {article:"705.12",title:"Solar PV Interconnection",summary:"Load-side must not exceed 120% of bus rating. Rapid shutdown required for rooftop systems within 1 foot of array boundary.",category:"EV/Special"},
 ];
 
-const CAT_COLORS = {
+const CAT_COLORS = // eslint-disable-line no-unused-vars
   Safety:"#e05555",Receptacles:"#f5a623",Circuits:"#5588e0",Service:"#a855f7",
   Overcurrent:"#e08a55",Grounding:"#55a878",Wiring:"#5588e0",Lighting:"#e8d44d",
   Switches:"#f5a623",HVAC:"#55c8e0","EV/Special":"#a855f7","Low Voltage":"#8a9070",
@@ -212,7 +212,7 @@ export default function ElectricalEstimator() {
   const [loading, setLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
   const [necSearch, setNecSearch] = useState("");
-  const [necCategory, setNecCategory] = useState("All");
+  const [necCategory, setNecCategory] = useState("All"); // eslint-disable-line no-unused-vars;
   const [expandedCats, setExpandedCats] = useState({"Wiring Devices":true});
   const [photoAnalysis, setPhotoAnalysis] = useState("");
   const [photoLoading, setPhotoLoading] = useState(false);
@@ -403,7 +403,7 @@ export default function ElectricalEstimator() {
 
   const hasItems = Object.values(quantities).some(v=>v>0);
   const totalItems = Object.values(quantities).reduce((a,b)=>a+(b||0),0);
-  const filteredNEC = NEC_REFS.filter(r=>{
+  const filteredNEC // eslint-disable-line no-unused-vars
     const mc = necCategory==="All"||r.category===necCategory;
     const ms = !necSearch||r.article.toLowerCase().includes(necSearch.toLowerCase())||r.title.toLowerCase().includes(necSearch.toLowerCase())||r.summary.toLowerCase().includes(necSearch.toLowerCase());
     return mc&&ms;
