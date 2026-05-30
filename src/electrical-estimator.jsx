@@ -155,34 +155,7 @@ const CONDITION_ADJUSTMENTS = {
   hazmat:{label:"Asbestos / hazmat present",labelEs:"Asbesto / materiales peligrosos",multiplier:1.4,icon:"☣️",color:"#e05555"},
 };
 
-const NEC_REFS = [
-  {article:"210.8",title:"GFCI Protection",summary:"GFCI protection required in bathrooms, garages, outdoors, crawl spaces, unfinished basements, kitchens (within 6ft of sink), boathouses, bathtub/shower areas, laundry areas.",category:"Safety"},
-  {article:"210.12",title:"AFCI Protection",summary:"Arc-fault protection required for all 120V, 15A and 20A branch circuits in bedrooms, family rooms, dining rooms, living rooms, parlors, libraries, dens, sunrooms, rec rooms, closets, hallways, laundry areas.",category:"Safety"},
-  {article:"210.52",title:"Dwelling Unit Receptacle Outlets",summary:"Receptacles every 12 feet along walls, within 6 feet of any wall break. Kitchen: 2 small appliance circuits, countertop receptacles every 4 feet. Bathroom: at least 1 within 3 feet of each basin.",category:"Receptacles"},
-  {article:"210.11",title:"Branch Circuit Requirements",summary:"At least two 20A small-appliance branch circuits for kitchen/dining. One 20A for laundry. One 20A for bathroom(s). These circuits cannot serve other outlets.",category:"Circuits"},
-  {article:"230.67",title:"Surge Protection (NEW 2023)",summary:"NEW in NEC 2023: Surge-protective devices now required on all services for dwelling units. Must be Type 1 or Type 2 SPD installed at or near the service entrance.",category:"Service"},
-  {article:"230.79",title:"Rating of Service Disconnecting Means",summary:"Single-family dwelling service must be rated at least 100A. Recommend 200A for modern homes. 400A may be needed for large homes with EV charging or solar.",category:"Service"},
-  {article:"240.6",title:"Standard Ampere Ratings",summary:"Standard sizes: 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 110, 125, 150, 175, 200, 225, 250, 300, 350, 400A.",category:"Overcurrent"},
-  {article:"250.50",title:"Grounding Electrode System",summary:"All electrodes present must be bonded: metal underground water pipe, metal building frame, concrete-encased electrode, ground ring, rod/pipe/plate electrodes.",category:"Grounding"},
-  {article:"250.122",title:"Equipment Grounding Conductor Sizing",summary:"15A=14AWG, 20A=12AWG, 30-60A=10AWG, 100A=8AWG, 200A=6AWG. Match EGC to circuit breaker rating.",category:"Grounding"},
-  {article:"310.12",title:"Conductor Sizing",summary:"120V 15A: 14 AWG. 120V 20A: 12 AWG. 240V 30A dryer: 10 AWG. 240V 50A range: 6 AWG. Always match conductor ampacity to breaker size.",category:"Wiring"},
-  {article:"314.16",title:"Box Fill Calculations",summary:"Each conductor = 1 volume unit. Each device (switch/outlet) = 2. Equipment grounding conductors group as 1. Box must have sufficient cubic inch volume.",category:"Wiring"},
-  {article:"314.27",title:"Outlet Boxes for Lighting",summary:"Ceiling boxes support fixtures up to 50 lbs. Over 35 lbs needs listed box. Fan-rated boxes required for ceiling fans — standard light boxes cannot support fan vibration.",category:"Lighting"},
-  {article:"404.2",title:"Switch Connections",summary:"Switches must interrupt the hot conductor. Neutral must be available at switch locations for smart switches. Use 3-way switches for multi-location control.",category:"Switches"},
-  {article:"406.12",title:"Tamper-Resistant Receptacles",summary:"All 125V, 15A and 20A receptacles in dwelling units must be tamper-resistant. Applies to all rooms including garages and outdoors.",category:"Receptacles"},
-  {article:"410.116",title:"Recessed Luminaire Installation",summary:"IC-rated fixtures required when in contact with insulation. Non-IC fixtures need 3-inch clearance. Thermal protection required on all recessed luminaires.",category:"Lighting"},
-  {article:"440.62",title:"A/C Disconnecting Means",summary:"A/C units need a readily accessible disconnect within sight, within 50 feet. Dedicated circuits sized per nameplate data.",category:"HVAC"},
-  {article:"625.40",title:"EV Charging Branch Circuit",summary:"Dedicated branch circuit required. Level 2 (240V) typically needs 40-50A with 6 AWG. GFCI protection required.",category:"EV/Special"},
-  {article:"680.26",title:"Pool Equipotential Bonding",summary:"All metal parts of pools must be bonded. 8 AWG solid copper minimum. Bonding is separate from grounding.",category:"EV/Special"},
-  {article:"702.12",title:"Standby Generator Systems",summary:"Transfer equipment required to prevent interconnection. Interlock kits or transfer switches acceptable. Proper grounding required.",category:"EV/Special"},
-  {article:"705.12",title:"Solar PV Interconnection",summary:"Load-side must not exceed 120% of bus rating. Rapid shutdown required for rooftop systems within 1 foot of array boundary.",category:"EV/Special"},
-];
-
-const CAT_COLORS = { ...all the content... }; // eslint-disable-line no-unused-vars
-  Safety:"#e05555",Receptacles:"#f5a623",Circuits:"#5588e0",Service:"#a855f7",
-  Overcurrent:"#e08a55",Grounding:"#55a878",Wiring:"#5588e0",Lighting:"#e8d44d",
-  Switches:"#f5a623",HVAC:"#55c8e0","EV/Special":"#a855f7","Low Voltage":"#8a9070",
-};
+// NEC references moved to NECReference.js component
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -212,7 +185,7 @@ export default function ElectricalEstimator() {
   const [loading, setLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
   const [necSearch, setNecSearch] = useState("");
-  const [necCategory, setNecCategory] = useState("All"); // eslint-disable-line no-unused-vars;
+  const [necCategory, setNecCategory] = useState("All"); // eslint-disable-line no-unused-vars
   const [expandedCats, setExpandedCats] = useState({"Wiring Devices":true});
   const [photoAnalysis, setPhotoAnalysis] = useState("");
   const [photoLoading, setPhotoLoading] = useState(false);
@@ -403,12 +376,6 @@ export default function ElectricalEstimator() {
 
   const hasItems = Object.values(quantities).some(v=>v>0);
   const totalItems = Object.values(quantities).reduce((a,b)=>a+(b||0),0);
-  const filteredNEC // eslint-disable-line no-unused-vars
-    const mc = necCategory==="All"||r.category===necCategory;
-    const ms = !necSearch||r.article.toLowerCase().includes(necSearch.toLowerCase())||r.title.toLowerCase().includes(necSearch.toLowerCase())||r.summary.toLowerCase().includes(necSearch.toLowerCase());
-    return mc&&ms;
-  });
-  const necCats = ["All",...new Set(NEC_REFS.map(r=>r.category))];
 
   // ── LANDING PAGE ──────────────────────────────────────────────────────────
   if (view==="landing") return (
