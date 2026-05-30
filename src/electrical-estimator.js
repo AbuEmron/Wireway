@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
@@ -236,7 +236,7 @@ export default function ElectricalEstimator() {
   const [desiredProfit, setDesiredProfit] = useState(25);
   // Invoice
   const [invoiceClient, setInvoiceClient] = useState("");
-  const [invoiceAddress, setInvoiceAddress] = useState("");
+  const [invoiceAddress, setInvoiceAddress] = useState(""); // eslint-disable-line no-unused-vars
   const [invoiceNotes, setInvoiceNotes] = useState("");
   const [invoiceDue, setInvoiceDue] = useState(30);
 
