@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="38" fill="#0d0d1a"/>
+  <circle cx="96" cy="96" r="80" fill="#1a1a2e"/>
+  <circle cx="96" cy="96" r="80" fill="none" stroke="#f5a623" stroke-width="6" opacity="0.7"/>
+  <defs>
+    <linearGradient id="bolt192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f9c846"/>
+      <stop offset="100%" style="stop-color:#e07c0a"/>
+    </linearGradient>
+  </defs>
+  <polygon points="107,34 69,103 92,103 84,157 126,88 99,88" fill="url(#bolt192)"/>
+</svg>
