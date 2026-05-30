@@ -184,7 +184,7 @@ export default function ElectricalEstimator() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
-  const [necSearch, setNecSearch] = useState("");
+  const [necSearch, setNecSearch] = useState(""); // eslint-disable-line no-unused-vars
   const [necCategory, setNecCategory] = useState("All"); // eslint-disable-line no-unused-vars
   const [expandedCats, setExpandedCats] = useState({"Wiring Devices":true});
   const [photoAnalysis, setPhotoAnalysis] = useState("");
