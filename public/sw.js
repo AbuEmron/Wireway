@@ -1,5 +1,47 @@
-// VoltQuote Service Worker — Offline Support
-const CACHE_NAME = 'voltquote-v1';
+// VoltQuote Service Worker — v5
+// Simplified to prevent Safari caching issues
+const CACHE_NAME = 'voltquote-v5';
+
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) =>
+      Promise.all(cacheNames.map((name) => caches.delete(name)))
+    )
+  );
+  self.clients.claim();
+});
+
+// Network first — always get fresh content
+self.addEventListener('fetch', (event) => {
+  // Skip non-GET and API calls
+  if (event.request.method !== 'GET') return;
+  if (event.request.url.includes('api.anthropic.com')) return;
+  if (event.request.url.includes('/api/')) return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful responses
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, clone);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Offline fallback
+        return caches.match(event.request).then((cached) => {
+          return cached || caches.match('/index.html');
+        });
+      })
+  );
+});
 const STATIC_ASSETS = [
   '/',
   '/index.html',
