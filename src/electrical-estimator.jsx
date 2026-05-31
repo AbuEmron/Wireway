@@ -415,7 +415,7 @@ export default function ElectricalEstimator() {
 
   // ── LANDING PAGE ──────────────────────────────────────────────────────────
   if (view==="landing") return (
-    <div style={{minHeight:"100vh",minHeight:"-webkit-fill-available",background:"#0a0a0f",fontFamily:"Georgia,serif",color:"#e8e0d0"}}>
+    <div style={{minHeight:"100shv",background:"#0a0a0f",fontFamily:"Georgia,serif",color:"#e8e0d0"}}>
       <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse at 20% 40%,#1a1a2e 0%,transparent 55%),radial-gradient(ellipse at 80% 10%,#16213e 0%,transparent 50%)",pointerEvents:"none"}}/>
       <div style={{position:"relative",zIndex:1}}>
         {/* Nav */}
@@ -495,7 +495,7 @@ export default function ElectricalEstimator() {
 
   // ── INVOICE VIEW ──────────────────────────────────────────────────────────
   if (showInvoice && result) return (
-    <div style={{minHeight:"100vh",minHeight:"-webkit-fill-available",background:"#0a0a0f",fontFamily:"Georgia,serif",color:"#e8e0d0"}}>
+    <div style={{minHeight:"100shv",background:"#0a0a0f",fontFamily:"Georgia,serif",color:"#e8e0d0"}}>
       <div style={{maxWidth:640,margin:"0 auto"}}>
         <div style={{background:"#1a1a2e",color:"white",borderRadius:"12px 12px 0 0",padding:"28px 32px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
