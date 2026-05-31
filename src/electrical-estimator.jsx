@@ -415,77 +415,123 @@ export default function ElectricalEstimator() {
 
   // ── LANDING PAGE ──────────────────────────────────────────────────────────
   if (view==="landing") return (
-    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 20% 40%,#1a1a2e 0%,#0a0a0f 55%),radial-gradient(ellipse at 80% 10%,#16213e 0%,#0a0a0f 50%)",color:"#e8e0d0",fontFamily:"Georgia,serif"}}>
+    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#0c0c18 0%,#080810 50%,#0c0a10 100%)",color:"#d4c8b0",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>
         {/* Nav */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 32px",borderBottom:"1px solid rgba(245,166,35,0.15)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#f5a623,#e8860a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,boxShadow:"0 0 20px rgba(245,166,35,0.4)"}}>⚡</div>
-            <span style={{fontSize:18,fontWeight:700}}><span style={{color:"#f5a623"}}>VOLT</span><span style={{color:"rgba(245,166,35,0.4)",margin:"0 3px"}}>●</span><span style={{color:"#fff",fontWeight:400}}>QUOTE</span></span>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 32px",borderBottom:"1px solid rgba(180,140,80,0.12)",background:"rgba(8,8,16,0.8)",backdropFilter:"blur(20px)",position:"sticky",top:0,zIndex:100}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#b48c50,#7a5e30)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,boxShadow:"0 0 28px rgba(180,140,80,0.35)",border:"1px solid rgba(180,140,80,0.3)"}}>⚡</div>
+            <div>
+              <div style={{fontSize:8,letterSpacing:5,color:"#7a5e30",fontFamily:"'DM Mono','Courier New',monospace",textTransform:"uppercase",lineHeight:1}}>Professional Tool</div>
+              <span style={{fontSize:20,fontWeight:600,letterSpacing:-0.5}}><span style={{color:"#b48c50"}}>VOLT</span><span style={{color:"rgba(180,140,80,0.25)",margin:"0 4px",fontSize:12}}>◆</span><span style={{color:"#d4c8b0",fontWeight:300}}>QUOTE</span></span>
+            </div>
           </div>
           <div style={{display:"flex",gap:12,alignItems:"center"}}>
-            <button onClick={()=>setLang(lang==="en"?"es":"en")} style={{...ghostBtn,fontSize:11}}>{T.langToggle}</button>
-            <button onClick={()=>setView("app")} style={{background:"linear-gradient(135deg,#f5a623,#e8860a)",border:"none",borderRadius:8,padding:"10px 22px",color:"#0a0a0f",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"monospace",letterSpacing:1}}>Try Free →</button>
+            <button onClick={()=>setLang(lang==="en"?"es":"en")} style={{...ghostBtn,fontSize:11,padding:"7px 14px"}}>{T.langToggle}</button>
+            <button className="vq-primary-btn" onClick={()=>setView("app")} style={{background:"linear-gradient(135deg,#b48c50,#8a6830)",border:"none",borderRadius:6,padding:"10px 24px",color:"#080810",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:1,transition:"all 0.2s ease",boxShadow:"0 2px 16px rgba(180,140,80,0.3)"}}>Try Free →</button>
           </div>
         </div>
+
         {/* Hero */}
-        <div style={{maxWidth:700,margin:"0 auto",textAlign:"center",padding:"80px 24px 60px"}}>
-          <div style={{fontSize:11,letterSpacing:5,color:"#f5a623",fontFamily:"monospace",textTransform:"uppercase",marginBottom:20}}>Built for the trades</div>
-          <h1 style={{fontSize:"clamp(32px,6vw,58px)",fontWeight:700,lineHeight:1.15,margin:"0 0 24px",color:"#fff"}}>
-            Professional electrical estimates<br/><span style={{color:"#f5a623"}}>in under 5 minutes.</span>
-          </h1>
-          <p style={{fontSize:16,color:"#8a8070",lineHeight:1.8,maxWidth:520,margin:"0 auto 40px"}}>
-            Location-adjusted pricing for 55+ US cities. NEC 2023 code reference built in. AI-powered quote summaries. Made for residential electricians who work from the truck.
-          </p>
-          <div style={{display:"flex",gap:14,justifyContent:"center",flexWrap:"wrap"}}>
-            <button onClick={()=>setView("app")} style={{background:"linear-gradient(135deg,#f5a623,#e8860a)",border:"none",borderRadius:10,padding:"16px 36px",color:"#0a0a0f",fontWeight:700,fontSize:15,cursor:"pointer",boxShadow:"0 4px 30px rgba(245,166,35,0.4)"}}>⚡ Start Free Estimate</button>
-            <button onClick={()=>{setView("app");setActiveTab("nec");}} style={{...ghostBtn,padding:"16px 28px",fontSize:14}}>📖 Browse NEC 2023</button>
+        <div style={{maxWidth:720,margin:"0 auto",textAlign:"center",padding:"100px 24px 70px"}}>
+          {/* Badge */}
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(180,140,80,0.06)",border:"1px solid rgba(180,140,80,0.2)",borderRadius:30,padding:"6px 16px",marginBottom:32}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:"#b48c50",boxShadow:"0 0 8px rgba(180,140,80,0.8)"}}/>
+            <span style={{fontSize:11,letterSpacing:3,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace",textTransform:"uppercase"}}>Built for the trades · 2026 pricing</span>
           </div>
-          <p style={{fontSize:11,color:"#3a3040",fontFamily:"monospace",marginTop:20,letterSpacing:1}}>FREE · NO SIGNUP · WORKS OFFLINE</p>
+
+          <h1 style={{fontSize:"clamp(36px,6vw,64px)",fontWeight:300,lineHeight:1.1,margin:"0 0 8px",color:"#f0e8d8",letterSpacing:-1}}>
+            Professional electrical
+          </h1>
+          <h1 style={{fontSize:"clamp(36px,6vw,64px)",fontWeight:600,lineHeight:1.1,margin:"0 0 28px",background:"linear-gradient(135deg,#d4a96a,#b48c50,#8a6830)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",letterSpacing:-1}}>
+            estimates in minutes.
+          </h1>
+
+          <p style={{fontSize:18,color:"#6a6050",lineHeight:1.9,maxWidth:520,margin:"0 auto 48px",fontWeight:300}}>
+            Location-adjusted pricing for 55+ US cities. NEC 2023 reference built in. AI-powered quote summaries. Made for electricians who work from the truck.
+          </p>
+
+          <div style={{display:"flex",gap:14,justifyContent:"center",flexWrap:"wrap",marginBottom:24}}>
+            <button className="vq-primary-btn" onClick={()=>setView("app")} style={{background:"linear-gradient(135deg,#b48c50,#8a6830)",border:"none",borderRadius:8,padding:"18px 42px",color:"#080810",fontWeight:600,fontSize:16,cursor:"pointer",boxShadow:"0 4px 32px rgba(180,140,80,0.35)",transition:"all 0.2s ease",letterSpacing:0.5}}>⚡ Start Free Estimate</button>
+            <button className="vq-ghost-btn" onClick={()=>{setView("app");setActiveTab("nec");}} style={{...ghostBtn,padding:"18px 30px",fontSize:14}}>Browse NEC 2023 →</button>
+          </div>
+          <p style={{fontSize:10,color:"#2a2020",fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:2,textTransform:"uppercase"}}>Free · No signup · Works offline</p>
         </div>
-        {/* Features grid */}
-        <div style={{maxWidth:900,margin:"0 auto",padding:"0 24px 80px",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:20}}>
-          {[
-            {icon:"📍",title:"Location-Based Pricing",desc:"Rates auto-adjust for 55+ cities across every US state. Binghamton to San Francisco."},
-            {icon:"⚡",title:"60+ Line Items",desc:"Every residential job type — panels, rewires, EV chargers, pools, generators and more."},
-            {icon:"📷",title:"Photo Analysis",desc:"Upload a room photo. AI identifies what electrical work is needed and suggests items."},
-            {icon:"📖",title:"NEC 2023 Built In",desc:"22 key residential code articles with plain-English summaries. Always at your fingertips."},
-            {icon:"💬",title:"AI Electrician Chat",desc:"Ask code questions, get pricing advice, clarify scope. Context-aware for your estimate."},
-            {icon:"👤",title:"Customer View & Invoice",desc:"Professional quote the customer sees. One-click invoice. Copy or export instantly."},
-            {icon:"📊",title:"Overhead Calculator",desc:"Know your real break-even rate. Enter your monthly costs and let VoltQuote do the math."},
-            {icon:"🌐",title:"English & Español",desc:"Full bilingual support. Switch languages in one tap — built for the whole workforce."},
-          ].map((f,i)=>(
-            <div key={i} style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(245,166,35,0.12)",borderRadius:12,padding:22}}>
-              <div style={{fontSize:28,marginBottom:10}}>{f.icon}</div>
-              <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:6}}>{f.title}</div>
-              <div style={{fontSize:12,color:"#6a6055",lineHeight:1.7}}>{f.desc}</div>
-            </div>
-          ))}
-        </div>
-        {/* Pricing */}
-        <div style={{maxWidth:700,margin:"0 auto",padding:"0 24px 80px",textAlign:"center"}}>
-          <div style={{fontSize:11,letterSpacing:4,color:"#f5a623",fontFamily:"monospace",textTransform:"uppercase",marginBottom:16}}>Simple pricing</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,maxWidth:500,margin:"0 auto"}}>
-            {[
-              {name:"Free",price:"$0",desc:"5 estimates/month\nAll core features\nNEC 2023 reference"},
-              {name:"Pro",price:"$9.99/mo",desc:"Unlimited estimates\nSaved history\nInvoice generator\nPriority support",highlight:true},
-            ].map(p=>(
-              <div key={p.name} style={{background:p.highlight?"rgba(245,166,35,0.08)":"rgba(255,255,255,0.02)",border:`1px solid ${p.highlight?"rgba(245,166,35,0.4)":"rgba(255,255,255,0.08)"}`,borderRadius:12,padding:24}}>
-                <div style={{fontSize:14,fontWeight:700,color:p.highlight?"#f5a623":"#fff",marginBottom:8}}>{p.name}</div>
-                <div style={{fontSize:26,fontWeight:700,color:"#fff",marginBottom:12}}>{p.price}</div>
-                <div style={{fontSize:11,color:"#6a6055",lineHeight:2,whiteSpace:"pre-line"}}>{p.desc}</div>
+
+        {/* Stats bar */}
+        <div style={{maxWidth:800,margin:"0 auto 80px",padding:"0 24px"}}>
+          <div style={{background:"rgba(180,140,80,0.04)",border:"1px solid rgba(180,140,80,0.12)",borderRadius:12,padding:"28px 40px",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:20}}>
+            {[["55+","US Cities"],["60+","Line Items"],["NEC 2023","Code Reference"],["$0","To Start"]].map(([val,lbl],i)=>(
+              <div key={i} style={{textAlign:"center",borderRight:i<3?"1px solid rgba(180,140,80,0.1)":"none",paddingRight:i<3?20:0}}>
+                <div style={{fontSize:22,fontWeight:600,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:4}}>{val}</div>
+                <div style={{fontSize:10,color:"#4a4038",letterSpacing:2,textTransform:"uppercase",fontFamily:"'DM Mono','Courier New',monospace"}}>{lbl}</div>
               </div>
             ))}
           </div>
         </div>
-        {/* CTA */}
-        <div style={{textAlign:"center",padding:"0 24px 80px"}}>
-          <button onClick={()=>setView("app")} style={{background:"linear-gradient(135deg,#f5a623,#e8860a)",border:"none",borderRadius:10,padding:"18px 48px",color:"#0a0a0f",fontWeight:700,fontSize:16,cursor:"pointer",boxShadow:"0 4px 30px rgba(245,166,35,0.35)"}}>
-            ⚡ Start Your First Estimate — Free
-          </button>
-          <p style={{fontSize:11,color:"#3a3040",fontFamily:"monospace",marginTop:16,letterSpacing:1}}>NO CREDIT CARD · NO SIGNUP · INSTANT ACCESS</p>
+
+        {/* Features grid */}
+        <div style={{maxWidth:900,margin:"0 auto",padding:"0 24px 80px",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16}}>
+          {[
+            {icon:"📍",title:"Location-Based Pricing",desc:"Rates auto-adjust for 55+ cities. Binghamton to San Francisco — accurate to your market."},
+            {icon:"⚡",title:"60+ Line Items",desc:"Every residential job — panels, rewires, EV chargers, pools, generators and more."},
+            {icon:"📷",title:"Photo Analysis",desc:"Upload a room photo. AI identifies what electrical work is needed instantly."},
+            {icon:"📖",title:"NEC 2023 Built In",desc:"60+ residential code articles with plain-English summaries and AI code chat."},
+            {icon:"💬",title:"AI Electrician Chat",desc:"Ask code questions, get pricing advice. Context-aware for your active estimate."},
+            {icon:"📄",title:"Invoice Generator",desc:"Turn any estimate into a professional invoice in one tap. Customer-ready instantly."},
+            {icon:"📊",title:"Overhead Calculator",desc:"Know your real break-even rate. Enter monthly costs, get your true hourly number."},
+            {icon:"🌐",title:"English & Español",desc:"Full bilingual support built in. Switch in one tap — made for the whole workforce."},
+          ].map((f,i)=>(
+            <div key={i} className="vq-feature-card" style={{background:"rgba(14,14,28,0.8)",border:"1px solid rgba(180,140,80,0.1)",borderRadius:10,padding:"24px 20px",cursor:"default"}}>
+              <div style={{fontSize:24,marginBottom:14,filter:"grayscale(20%)"}}>{f.icon}</div>
+              <div style={{fontSize:15,fontWeight:600,color:"#d4c8b0",marginBottom:8,letterSpacing:-0.3}}>{f.title}</div>
+              <div style={{fontSize:13,color:"#4a4038",lineHeight:1.75,fontWeight:300}}>{f.desc}</div>
+            </div>
+          ))}
         </div>
-        <div style={{textAlign:"center",padding:"20px",borderTop:"1px solid rgba(255,255,255,0.04)"}}>
-          <p style={{fontSize:10,color:"#2a2030",fontFamily:"monospace",margin:0}}>VoltQuote · The electrician's estimating tool · voltquote.app</p>
+
+        {/* Pricing */}
+        <div style={{maxWidth:600,margin:"0 auto",padding:"0 24px 90px",textAlign:"center"}}>
+          <div style={{fontSize:10,letterSpacing:5,color:"#7a5e30",fontFamily:"'DM Mono','Courier New',monospace",textTransform:"uppercase",marginBottom:8}}>Pricing</div>
+          <h2 style={{fontSize:32,fontWeight:300,color:"#f0e8d8",marginBottom:40,letterSpacing:-0.5}}>Simple. Transparent. Fair.</h2>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+            {[
+              {name:"Free",price:"$0",period:"forever",desc:["5 estimates/month","All core features","NEC 2023 reference","Works offline"],highlight:false},
+              {name:"Pro",price:"$9.99",period:"per month",desc:["Unlimited estimates","Saved history","Invoice generator","AI chat + photo analysis"],highlight:true},
+            ].map(p=>(
+              <div key={p.name} style={{background:p.highlight?"rgba(180,140,80,0.06)":"rgba(14,14,28,0.8)",border:`1px solid ${p.highlight?"rgba(180,140,80,0.35)":"rgba(180,140,80,0.1)"}`,borderRadius:12,padding:"28px 20px",position:"relative",overflow:"hidden"}}>
+                {p.highlight&&<div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#b48c50,transparent)"}}/>}
+                <div style={{fontSize:11,letterSpacing:3,color:p.highlight?"#b48c50":"#4a4038",fontFamily:"'DM Mono','Courier New',monospace",textTransform:"uppercase",marginBottom:16}}>{p.name}</div>
+                <div style={{fontSize:36,fontWeight:300,color:"#f0e8d8",lineHeight:1,marginBottom:4}}>{p.price}</div>
+                <div style={{fontSize:11,color:"#4a4038",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:24}}>{p.period}</div>
+                <div style={{borderTop:"1px solid rgba(180,140,80,0.1)",paddingTop:20}}>
+                  {p.desc.map((d,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                      <div style={{width:4,height:4,borderRadius:"50%",background:"#b48c50",flexShrink:0}}/>
+                      <span style={{fontSize:13,color:"#6a6050",fontWeight:300}}>{d}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div style={{textAlign:"center",padding:"0 24px 100px"}}>
+          <div style={{maxWidth:500,margin:"0 auto",background:"rgba(180,140,80,0.04)",border:"1px solid rgba(180,140,80,0.15)",borderRadius:16,padding:"48px 40px",position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(180,140,80,0.5),transparent)"}}/>
+            <div style={{fontSize:11,letterSpacing:4,color:"#7a5e30",fontFamily:"'DM Mono','Courier New',monospace",textTransform:"uppercase",marginBottom:16}}>Get started</div>
+            <h2 style={{fontSize:28,fontWeight:300,color:"#f0e8d8",marginBottom:8,letterSpacing:-0.5}}>Your first estimate</h2>
+            <h2 style={{fontSize:28,fontWeight:600,color:"#b48c50",marginBottom:28,letterSpacing:-0.5}}>is free. Always.</h2>
+            <button className="vq-primary-btn" onClick={()=>setView("app")} style={{background:"linear-gradient(135deg,#b48c50,#8a6830)",border:"none",borderRadius:8,padding:"18px 48px",color:"#080810",fontWeight:600,fontSize:16,cursor:"pointer",boxShadow:"0 4px 32px rgba(180,140,80,0.3)",transition:"all 0.2s ease",display:"block",width:"100%",marginBottom:14}}>
+              ⚡ Start Free Estimate
+            </button>
+            <p style={{fontSize:10,color:"#2a2020",fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:2,textTransform:"uppercase",margin:0}}>No credit card · No signup · Instant access</p>
+          </div>
+        </div>
+
+        <div style={{textAlign:"center",padding:"24px",borderTop:"1px solid rgba(180,140,80,0.08)"}}>
+          <p style={{fontSize:10,color:"#2a2020",fontFamily:"'DM Mono','Courier New',monospace",margin:0,letterSpacing:2,textTransform:"uppercase"}}>VoltQuote · voltquote.app · 2026</p>
         </div>
     </div>
   );
@@ -494,35 +540,35 @@ export default function ElectricalEstimator() {
   if (showInvoice && result) return (
     <div style={{minHeight:"100vh",background:"#f4f1ea",fontFamily:"Georgia,serif",color:"#1a1a1a",padding:"32px 16px"}}>
       <div style={{maxWidth:640,margin:"0 auto"}}>
-        <div style={{background:"#1a1a2e",color:"white",borderRadius:"12px 12px 0 0",padding:"28px 32px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{background:"#0e0e1c",color:"white",borderRadius:"12px 12px 0 0",padding:"28px 32px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
-            <div style={{fontSize:10,letterSpacing:4,color:"#f5a623",fontFamily:"monospace",marginBottom:4}}>INVOICE</div>
+            <div style={{fontSize:10,letterSpacing:4,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:4}}>INVOICE</div>
             <div style={{fontSize:20,fontWeight:700}}>{contractorName||"VoltQuote Contractor"}</div>
-            {contractorPhone&&<div style={{fontSize:12,color:"#c0b89a",marginTop:2}}>📞 {contractorPhone}</div>}
-            {contractorEmail&&<div style={{fontSize:12,color:"#c0b89a"}}>✉️ {contractorEmail}</div>}
-            {contractorLicense&&<div style={{fontSize:11,color:"#f5a623",marginTop:4}}>License #{contractorLicense}</div>}
+            {contractorPhone&&<div style={{fontSize:12,color:"#a89878",marginTop:2}}>📞 {contractorPhone}</div>}
+            {contractorEmail&&<div style={{fontSize:12,color:"#a89878"}}>✉️ {contractorEmail}</div>}
+            {contractorLicense&&<div style={{fontSize:11,color:"#b48c50",marginTop:4}}>License #{contractorLicense}</div>}
           </div>
           <div style={{textAlign:"right"}}>
-            <div style={{fontSize:10,color:"#8a7a60",fontFamily:"monospace"}}>INVOICE #</div>
-            <div style={{fontSize:15,fontWeight:700,color:"#f5a623",fontFamily:"monospace"}}>{result.id}</div>
-            <div style={{fontSize:10,color:"#8a7a60",fontFamily:"monospace",marginTop:6}}>DATE</div>
+            <div style={{fontSize:10,color:"#8a7a60",fontFamily:"'DM Mono','Courier New',monospace"}}>INVOICE #</div>
+            <div style={{fontSize:15,fontWeight:700,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace"}}>{result.id}</div>
+            <div style={{fontSize:10,color:"#8a7a60",fontFamily:"'DM Mono','Courier New',monospace",marginTop:6}}>DATE</div>
             <div style={{fontSize:12,color:"white"}}>{result.date}</div>
-            <div style={{fontSize:10,color:"#8a7a60",fontFamily:"monospace",marginTop:4}}>DUE</div>
+            <div style={{fontSize:10,color:"#8a7a60",fontFamily:"'DM Mono','Courier New',monospace",marginTop:4}}>DUE</div>
             <div style={{fontSize:12,color:"white"}}>Net {invoiceDue} days</div>
           </div>
         </div>
         <div style={{background:"white",border:"1px solid #e0d8c8",borderTop:"none",borderRadius:"0 0 12px 12px",padding:"28px 32px"}}>
           {invoiceClient&&<div style={{marginBottom:20,paddingBottom:16,borderBottom:"1px solid #f0ebe0"}}>
-            <div style={{fontSize:10,color:"#8a8070",fontFamily:"monospace",letterSpacing:2,marginBottom:4}}>BILL TO</div>
+            <div style={{fontSize:10,color:"#8a8070",fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:2,marginBottom:4}}>BILL TO</div>
             <div style={{fontSize:14,fontWeight:600}}>{invoiceClient}</div>
             {invoiceAddress&&<div style={{fontSize:12,color:"#6a6055"}}>{invoiceAddress}</div>}
           </div>}
           <table style={{width:"100%",borderCollapse:"collapse",marginBottom:20}}>
             <thead>
-              <tr style={{borderBottom:"2px solid #1a1a2e"}}>
-                <th style={{textAlign:"left",fontSize:10,fontFamily:"monospace",letterSpacing:2,color:"#8a8070",padding:"0 0 8px",fontWeight:400}}>DESCRIPTION</th>
-                <th style={{textAlign:"center",fontSize:10,fontFamily:"monospace",letterSpacing:2,color:"#8a8070",padding:"0 0 8px",fontWeight:400}}>QTY</th>
-                <th style={{textAlign:"right",fontSize:10,fontFamily:"monospace",letterSpacing:2,color:"#8a8070",padding:"0 0 8px",fontWeight:400}}>AMOUNT</th>
+              <tr style={{borderBottom:"2px solid #0e0e1c"}}>
+                <th style={{textAlign:"left",fontSize:10,fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:2,color:"#8a8070",padding:"0 0 8px",fontWeight:400}}>DESCRIPTION</th>
+                <th style={{textAlign:"center",fontSize:10,fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:2,color:"#8a8070",padding:"0 0 8px",fontWeight:400}}>QTY</th>
+                <th style={{textAlign:"right",fontSize:10,fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:2,color:"#8a8070",padding:"0 0 8px",fontWeight:400}}>AMOUNT</th>
               </tr>
             </thead>
             <tbody>
@@ -530,23 +576,23 @@ export default function ElectricalEstimator() {
                 <tr key={i} style={{borderBottom:"1px solid #f0ebe0"}}>
                   <td style={{padding:"10px 0",fontSize:12,color:"#1a1a1a"}}>{item.label}</td>
                   <td style={{padding:"10px 0",fontSize:12,color:"#6a6055",textAlign:"center"}}>{item.qty||"—"}</td>
-                  <td style={{padding:"10px 0",fontSize:12,fontFamily:"monospace",textAlign:"right",color:"#1a1a2e",fontWeight:600}}>{fmtRange(item.low,item.high)}</td>
+                  <td style={{padding:"10px 0",fontSize:12,fontFamily:"'DM Mono','Courier New',monospace",textAlign:"right",color:"#0e0e1c",fontWeight:600}}>{fmtRange(item.low,item.high)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div style={{display:"flex",justifyContent:"flex-end",marginBottom:24}}>
             <div style={{minWidth:220}}>
-              <div style={{display:"flex",justifyContent:"space-between",padding:"12px 0",borderTop:"2px solid #1a1a2e"}}>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"12px 0",borderTop:"2px solid #0e0e1c"}}>
                 <span style={{fontSize:15,fontWeight:700}}>Total</span>
-                <span style={{fontSize:18,fontWeight:700,color:"#1a1a2e",fontFamily:"monospace"}}>
+                <span style={{fontSize:18,fontWeight:700,color:"#0e0e1c",fontFamily:"'DM Mono','Courier New',monospace"}}>
                   {result.pricingMode==="tm"?fmt(result.tmTotal):`${fmt(result.totalLow)}–${fmt(result.totalHigh)}`}
                 </span>
               </div>
             </div>
           </div>
           {invoiceNotes&&<div style={{background:"#f8f4ec",borderRadius:8,padding:14,marginBottom:20}}>
-            <div style={{fontSize:10,color:"#8a8070",fontFamily:"monospace",letterSpacing:2,marginBottom:6}}>NOTES</div>
+            <div style={{fontSize:10,color:"#8a8070",fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:2,marginBottom:6}}>NOTES</div>
             <div style={{fontSize:12,color:"#3a3030",lineHeight:1.7}}>{invoiceNotes}</div>
           </div>}
           <div style={{fontSize:10,color:"#aaa",textAlign:"center",lineHeight:1.8}}>
@@ -555,7 +601,7 @@ export default function ElectricalEstimator() {
           </div>
         </div>
         <div style={{display:"flex",gap:10,marginTop:16,justifyContent:"center",flexWrap:"wrap"}}>
-          <button onClick={()=>window.print()} style={{background:"#1a1a2e",color:"white",border:"none",borderRadius:8,padding:"12px 24px",cursor:"pointer",fontSize:13}}>🖨️ Print / Save PDF</button>
+          <button onClick={()=>window.print()} style={{background:"#0e0e1c",color:"white",border:"none",borderRadius:8,padding:"12px 24px",cursor:"pointer",fontSize:13}}>🖨️ Print / Save PDF</button>
           <button onClick={()=>setShowInvoice(false)} style={{...ghostBtn,padding:"12px 20px",fontSize:13}}>← Back</button>
         </div>
       </div>
@@ -567,13 +613,13 @@ export default function ElectricalEstimator() {
   if (showCustomer && result) return (
     <div style={{minHeight:"100vh",background:"#f4f1ea",fontFamily:"Georgia,serif",color:"#1a1a1a",padding:"32px 16px"}}>
       <div style={{maxWidth:620,margin:"0 auto"}}>
-        <div style={{background:"#1a1a2e",color:"white",borderRadius:"12px 12px 0 0",padding:28}}>
-          <div style={{fontSize:10,letterSpacing:3,color:"#f5a623",fontFamily:"monospace",marginBottom:4}}>VOLT●QUOTE ESTIMATE</div>
+        <div style={{background:"#0e0e1c",color:"white",borderRadius:"12px 12px 0 0",padding:28}}>
+          <div style={{fontSize:10,letterSpacing:3,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:4}}>VOLT●QUOTE ESTIMATE</div>
           <div style={{fontSize:19,fontWeight:700}}>{contractorName||"Professional Electrician"}</div>
-          {contractorPhone&&<div style={{fontSize:12,color:"#c0b89a",marginTop:3}}>📞 {contractorPhone}</div>}
-          {contractorEmail&&<div style={{fontSize:12,color:"#c0b89a"}}>✉️ {contractorEmail}</div>}
-          {contractorLicense&&<div style={{fontSize:11,color:"#f5a623",marginTop:4}}>License #{contractorLicense}</div>}
-          <div style={{fontSize:11,color:"#5a5060",marginTop:8,fontFamily:"monospace"}}>{result.date} · {result.region}</div>
+          {contractorPhone&&<div style={{fontSize:12,color:"#a89878",marginTop:3}}>📞 {contractorPhone}</div>}
+          {contractorEmail&&<div style={{fontSize:12,color:"#a89878"}}>✉️ {contractorEmail}</div>}
+          {contractorLicense&&<div style={{fontSize:11,color:"#b48c50",marginTop:4}}>License #{contractorLicense}</div>}
+          <div style={{fontSize:11,color:"#5a5060",marginTop:8,fontFamily:"'DM Mono','Courier New',monospace"}}>{result.date} · {result.region}</div>
         </div>
         <div style={{background:"white",border:"1px solid #e0d8c8",borderTop:"none",borderRadius:"0 0 12px 12px",padding:28}}>
           {result.lineItems.filter(i=>i.qty).map((item,i)=>(
@@ -582,23 +628,23 @@ export default function ElectricalEstimator() {
                 <div style={{fontSize:13,fontWeight:500}}>{item.label}</div>
                 <div style={{fontSize:11,color:"#8a8070"}}>Qty: {item.qty}</div>
               </div>
-              <div style={{fontSize:13,fontFamily:"monospace",fontWeight:600,color:"#1a1a2e"}}>{fmtRange(item.low,item.high)}</div>
+              <div style={{fontSize:13,fontFamily:"'DM Mono','Courier New',monospace",fontWeight:600,color:"#0e0e1c"}}>{fmtRange(item.low,item.high)}</div>
             </div>
           ))}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 0",borderTop:"2px solid #1a1a2e",marginTop:4}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 0",borderTop:"2px solid #0e0e1c",marginTop:4}}>
             <div>
               <div style={{fontSize:14,fontWeight:700}}>Total Estimate</div>
               <div style={{fontSize:11,color:"#8a8070"}}>~{result.totalHours} labor hours</div>
             </div>
-            <div style={{fontSize:22,fontWeight:700,color:"#1a1a2e",fontFamily:"monospace"}}>
+            <div style={{fontSize:22,fontWeight:700,color:"#0e0e1c",fontFamily:"'DM Mono','Courier New',monospace"}}>
               {result.pricingMode==="tm"?fmt(result.tmTotal):`${fmt(result.totalLow)}–${fmt(result.totalHigh)}`}
             </div>
           </div>
-          {aiSummary&&<div style={{background:"#f8f4ec",borderRadius:8,padding:16,fontSize:12,lineHeight:1.8,color:"#3a3030",borderLeft:"3px solid #f5a623",marginBottom:16}}>{aiSummary}</div>}
+          {aiSummary&&<div style={{background:"#f8f4ec",borderRadius:8,padding:16,fontSize:12,lineHeight:1.8,color:"#3a3030",borderLeft:"3px solid #b48c50",marginBottom:16}}>{aiSummary}</div>}
           <div style={{fontSize:10,color:"#aaa",textAlign:"center",lineHeight:1.8}}>Estimate valid 30 days · Final price subject to on-site inspection<br/>All work performed to NEC 2023 standards</div>
         </div>
         <div style={{display:"flex",gap:10,marginTop:14,justifyContent:"center",flexWrap:"wrap"}}>
-          <button onClick={()=>{setShowInvoice(true);setShowCustomer(false);}} style={{background:"#1a1a2e",color:"white",border:"none",borderRadius:8,padding:"11px 20px",cursor:"pointer",fontSize:12}}>📄 Convert to Invoice</button>
+          <button onClick={()=>{setShowInvoice(true);setShowCustomer(false);}} style={{background:"#0e0e1c",color:"white",border:"none",borderRadius:8,padding:"11px 20px",cursor:"pointer",fontSize:12}}>📄 Convert to Invoice</button>
           <button onClick={()=>setShowCustomer(false)} style={{...ghostBtn,padding:"11px 18px",fontSize:12}}>← Back</button>
         </div>
       </div>
@@ -607,30 +653,33 @@ export default function ElectricalEstimator() {
 
   // ── MAIN APP ──────────────────────────────────────────────────────────────
   const tabBtn = (t,label) => (
-    <button onClick={()=>setActiveTab(t)} style={{
-      padding:"10px 14px",cursor:"pointer",fontSize:11,fontFamily:"monospace",
-      letterSpacing:1.5,textTransform:"uppercase",border:"none",whiteSpace:"nowrap",
-      background:activeTab===t?"rgba(245,166,35,0.15)":"transparent",
-      color:activeTab===t?"#f5a623":"#5a5555",
-      borderBottom:activeTab===t?"2px solid #f5a623":"2px solid transparent",transition:"all 0.2s"
+    <button onClick={()=>setActiveTab(t)} className="vq-tab-btn" style={{
+      padding:"10px 13px",cursor:"pointer",fontSize:9,
+      fontFamily:"'DM Mono','Courier New',monospace",
+      letterSpacing:2,textTransform:"uppercase",border:"none",whiteSpace:"nowrap",
+      background:"transparent",
+      color:activeTab===t?"#b48c50":"#3a3428",
+      borderBottom:activeTab===t?"2px solid #b48c50":"2px solid transparent",
+      transition:"all 0.2s ease",
+      fontWeight:activeTab===t?"500":"400",
     }}>{label}</button>
   );
 
   return (
-    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 20% 50%,#1a1a2e 0%,#0a0a0f 60%),radial-gradient(ellipse at 80% 20%,#16213e 0%,#0a0a0f 50%)",fontFamily:"Georgia,serif",color:"#e8e0d0"}}>
+    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#0c0c18 0%,#080810 40%,#0a0810 100%)",fontFamily:"'Cormorant Garamond',Georgia,serif",color:"#d4c8b0"}}>
       {/* Header */}
-      <div style={{borderBottom:"1px solid rgba(245,166,35,0.3)",padding:"18px 18px 0",background:"linear-gradient(180deg,#0d0d1a 0%,transparent 100%)"}}>
+      <div style={{borderBottom:"1px solid rgba(180,140,80,0.15)",padding:"16px 20px 0",background:"linear-gradient(180deg,rgba(12,12,24,0.98) 0%,rgba(8,8,16,0.95) 100%)",backdropFilter:"blur(10px)"}}>
         <div style={{maxWidth:860,margin:"0 auto"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
             <button onClick={()=>setView("landing")} style={{background:"none",border:"none",cursor:"pointer",padding:0}}>
-              <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#f5a623,#e8860a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,boxShadow:"0 0 20px rgba(245,166,35,0.45)"}}>⚡</div>
+              <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#b48c50,#8a6830)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,boxShadow:"0 0 22px rgba(180,140,80,0.3)",border:"1px solid rgba(180,140,80,0.25)"}}>⚡</div>
             </button>
             <div style={{flex:1}}>
-              <div style={{fontSize:9,letterSpacing:4,color:"#f5a623",fontFamily:"monospace",textTransform:"uppercase"}}>{T.appTagline}</div>
-              <div style={{fontSize:18,fontWeight:700,lineHeight:1}}><span style={{color:"#f5a623"}}>VOLT</span><span style={{color:"rgba(245,166,35,0.35)",margin:"0 3px",fontSize:12}}>●</span><span style={{color:"#fff",fontWeight:400}}>QUOTE</span></div>
+              <div style={{fontSize:8,letterSpacing:5,color:"#7a5e30",fontFamily:"'DM Mono','Courier New',monospace",textTransform:"uppercase",marginBottom:1}}>{T.appTagline}</div>
+              <div style={{fontSize:17,fontWeight:600,lineHeight:1,letterSpacing:-0.5}}><span style={{color:"#b48c50"}}>VOLT</span><span style={{color:"rgba(180,140,80,0.25)",margin:"0 3px",fontSize:10}}>◆</span><span style={{color:"#d4c8b0",fontWeight:300}}>QUOTE</span></div>
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              {totalItems>0&&<div style={{background:"rgba(245,166,35,0.18)",border:"1px solid rgba(245,166,35,0.35)",borderRadius:20,padding:"3px 10px",fontSize:10,color:"#f5a623",fontFamily:"monospace"}}>{totalItems}</div>}
+              {totalItems>0&&<div style={{background:"rgba(180,140,80,0.12)",border:"1px solid rgba(180,140,80,0.3)",borderRadius:20,padding:"3px 10px",fontSize:10,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace"}}>{totalItems}</div>}
               <button onClick={()=>setLang(lang==="en"?"es":"en")} style={{...ghostBtn,fontSize:10,padding:"5px 10px"}}>{T.langToggle}</button>
               <button onClick={handleShare} style={{...ghostBtn,fontSize:10,padding:"5px 10px"}}>🔗 {showShare?"Copied!":"Share"}</button>
             </div>
@@ -654,7 +703,7 @@ export default function ElectricalEstimator() {
         {activeTab==="estimator"&&<>
           {photoAnalysis&&(
             <div style={{background:"rgba(85,168,120,0.07)",border:"1px solid rgba(85,168,120,0.28)",borderRadius:10,padding:14,marginBottom:18}}>
-              <div style={{fontSize:9,letterSpacing:3,color:"#55a878",fontFamily:"monospace",marginBottom:6,textTransform:"uppercase"}}>📷 Photo Analysis</div>
+              <div style={{fontSize:9,letterSpacing:3,color:"#55a878",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:6,textTransform:"uppercase"}}>📷 Photo Analysis</div>
               <p style={{margin:0,fontSize:12,color:"#b0c89a",lineHeight:1.7,whiteSpace:"pre-wrap"}}>{photoAnalysis}</p>
               <button onClick={()=>setPhotoAnalysis("")} style={{marginTop:8,fontSize:10,color:"#4a4a4a",background:"none",border:"none",cursor:"pointer"}}>✕ Dismiss</button>
             </div>
@@ -662,22 +711,22 @@ export default function ElectricalEstimator() {
           <Sec title={"01 — "+T.region}>
             <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginBottom:10}}>
               <select value={region} onChange={e=>setRegion(e.target.value)} style={sel}>{Object.keys(REGION_MULTIPLIERS).map(r=><option key={r} value={r}>{r}</option>)}</select>
-              <div style={{background:"rgba(245,166,35,0.09)",border:"1px solid rgba(245,166,35,0.28)",borderRadius:8,padding:"8px 12px",textAlign:"center",flexShrink:0}}>
-                <div style={{fontSize:9,color:"#6a6055",fontFamily:"monospace"}}>RATE</div>
-                <div style={{fontSize:15,fontWeight:700,color:"#f5a623",fontFamily:"monospace"}}>{regionMultiplier.toFixed(2)}x</div>
-                <div style={{fontSize:8,color:"#4a4040",fontFamily:"monospace",marginTop:2}}>prices live</div>
+              <div style={{background:"rgba(180,140,80,0.09)",border:"1px solid rgba(180,140,80,0.28)",borderRadius:8,padding:"8px 12px",textAlign:"center",flexShrink:0}}>
+                <div style={{fontSize:9,color:"#6a6055",fontFamily:"'DM Mono','Courier New',monospace"}}>RATE</div>
+                <div style={{fontSize:15,fontWeight:700,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace"}}>{regionMultiplier.toFixed(2)}x</div>
+                <div style={{fontSize:8,color:"#4a4040",fontFamily:"'DM Mono','Courier New',monospace",marginTop:2}}>prices live</div>
               </div>
             </div>
             <div style={{display:"flex",gap:8}}>
               {[[" flat",T.flatRate],["tm",T.timeAndMat]].map(([v,l])=>(
-                <button key={v} onClick={()=>setPricingMode(v.trim())} style={{flex:1,padding:"9px",borderRadius:8,cursor:"pointer",fontSize:12,fontFamily:"monospace",background:pricingMode===v.trim()?"rgba(245,166,35,0.13)":"rgba(255,255,255,0.02)",border:`1px solid ${pricingMode===v.trim()?"rgba(245,166,35,0.45)":"rgba(255,255,255,0.07)"}`,color:pricingMode===v.trim()?"#f5a623":"#5a5555",fontWeight:pricingMode===v.trim()?700:400}}>{l}</button>
+                <button key={v} onClick={()=>setPricingMode(v.trim())} style={{flex:1,padding:"9px",borderRadius:8,cursor:"pointer",fontSize:12,fontFamily:"'DM Mono','Courier New',monospace",background:pricingMode===v.trim()?"rgba(180,140,80,0.13)":"rgba(255,255,255,0.02)",border:`1px solid ${pricingMode===v.trim()?"rgba(180,140,80,0.45)":"rgba(255,255,255,0.07)"}`,color:pricingMode===v.trim()?"#b48c50":"#5a5555",fontWeight:pricingMode===v.trim()?700:400}}>{l}</button>
               ))}
             </div>
             {pricingMode==="tm"&&(
               <div style={{marginTop:10,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8,padding:"12px 14px"}}>
-                <div style={{fontSize:11,color:"#7a7060",marginBottom:7}}>{T.hourlyRate}: <span style={{color:"#f5a623",fontWeight:700}}>${hourlyRate}/hr</span></div>
-                <input type="range" min={50} max={200} value={hourlyRate} onChange={e=>setHourlyRate(Number(e.target.value))} style={{width:"100%",accentColor:"#f5a623"}}/>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#3a3040",fontFamily:"monospace",marginTop:3}}><span>$50</span><span>$125</span><span>$200</span></div>
+                <div style={{fontSize:11,color:"#7a7060",marginBottom:7}}>{T.hourlyRate}: <span style={{color:"#b48c50",fontWeight:700}}>${hourlyRate}/hr</span></div>
+                <input type="range" min={50} max={200} value={hourlyRate} onChange={e=>setHourlyRate(Number(e.target.value))} style={{width:"100%",accentColor:"#b48c50"}}/>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#3a3040",fontFamily:"'DM Mono','Courier New',monospace",marginTop:3}}><span>$50</span><span>$125</span><span>$200</span></div>
               </div>
             )}
           </Sec>
@@ -685,28 +734,28 @@ export default function ElectricalEstimator() {
           <Sec title={"02 — "+T.scopeTitle}>
             {Object.entries(JOB_CATEGORIES).map(([cat,items])=>(
               <div key={cat} style={{marginBottom:7}}>
-                <button onClick={()=>setExpandedCats(e=>({...e,[cat]:!e[cat]}))} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(255,255,255,0.025)",border:"1px solid rgba(245,166,35,0.15)",borderRadius:expandedCats[cat]?"8px 8px 0 0":"8px",padding:"10px 13px",cursor:"pointer",color:"#e8e0d0",fontSize:13,fontWeight:600}}>
+                <button onClick={()=>setExpandedCats(e=>({...e,[cat]:!e[cat]}))} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(255,255,255,0.025)",border:"1px solid rgba(180,140,80,0.15)",borderRadius:expandedCats[cat]?"8px 8px 0 0":"8px",padding:"10px 13px",cursor:"pointer",color:"#d4c8b0",fontSize:13,fontWeight:600}}>
                   <span>{cat}</span>
                   <div style={{display:"flex",alignItems:"center",gap:7}}>
-                    {Object.keys(items).some(k=>quantities[k]>0)&&<span style={{fontSize:9,background:"rgba(245,166,35,0.18)",color:"#f5a623",borderRadius:10,padding:"2px 7px",fontFamily:"monospace"}}>{Object.keys(items).filter(k=>quantities[k]>0).length} sel.</span>}
-                    <span style={{color:"#f5a623",fontSize:13}}>{expandedCats[cat]?"▲":"▼"}</span>
+                    {Object.keys(items).some(k=>quantities[k]>0)&&<span style={{fontSize:9,background:"rgba(180,140,80,0.18)",color:"#b48c50",borderRadius:10,padding:"2px 7px",fontFamily:"'DM Mono','Courier New',monospace"}}>{Object.keys(items).filter(k=>quantities[k]>0).length} sel.</span>}
+                    <span style={{color:"#b48c50",fontSize:13}}>{expandedCats[cat]?"▲":"▼"}</span>
                   </div>
                 </button>
                 {expandedCats[cat]&&(
-                  <div style={{border:"1px solid rgba(245,166,35,0.15)",borderTop:"none",borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
+                  <div style={{border:"1px solid rgba(180,140,80,0.15)",borderTop:"none",borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
                     {Object.entries(items).map(([key,item],idx)=>(
-                      <div key={key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 13px",background:quantities[key]>0?"rgba(245,166,35,0.04)":idx%2===0?"rgba(255,255,255,0.01)":"transparent",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+                      <div key={key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 13px",background:quantities[key]>0?"rgba(180,140,80,0.04)":idx%2===0?"rgba(255,255,255,0.01)":"transparent",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"#e0d8c8"}}>{item.label}</div>
+                          <div style={{fontSize:12,color:"#d4c8b0"}}>{item.label}</div>
                           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:2}}>
-                            <span style={{fontSize:10,color:"#4a4848",fontFamily:"monospace"}}>${Math.round(item.low*regionMultiplier)}–${Math.round(item.high*regionMultiplier)}/{item.unit}</span>
-                            <span style={{fontSize:10,color:"#4a5448",fontFamily:"monospace"}}>~{item.hours}h</span>
-                            {item.nec&&<span style={{fontSize:9,background:"rgba(85,136,224,0.1)",color:"#7aa8f0",borderRadius:3,padding:"1px 5px",fontFamily:"monospace",cursor:"pointer"}} onClick={()=>{setActiveTab("nec");setNecSearch(item.nec);}}>§{item.nec}</span>}
+                            <span style={{fontSize:10,color:"#4a4848",fontFamily:"'DM Mono','Courier New',monospace"}}>${Math.round(item.low*regionMultiplier)}–${Math.round(item.high*regionMultiplier)}/{item.unit}</span>
+                            <span style={{fontSize:10,color:"#4a5448",fontFamily:"'DM Mono','Courier New',monospace"}}>~{item.hours}h</span>
+                            {item.nec&&<span style={{fontSize:9,background:"rgba(85,136,224,0.1)",color:"#7aa8f0",borderRadius:3,padding:"1px 5px",fontFamily:"'DM Mono','Courier New',monospace",cursor:"pointer"}} onClick={()=>{setActiveTab("nec");setNecSearch(item.nec);}}>§{item.nec}</span>}
                           </div>
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
                           <button onClick={()=>setQuantities(q=>({...q,[key]:Math.max(0,(q[key]||0)-1)}))} style={qBtn}>−</button>
-                          <span style={{minWidth:24,textAlign:"center",fontSize:14,fontWeight:700,color:quantities[key]>0?"#f5a623":"#2a2a3a"}}>{quantities[key]||0}</span>
+                          <span style={{minWidth:24,textAlign:"center",fontSize:14,fontWeight:700,color:quantities[key]>0?"#b48c50":"#2a2a3a"}}>{quantities[key]||0}</span>
                           <button onClick={()=>setQuantities(q=>({...q,[key]:(q[key]||0)+1}))} style={qBtn}>+</button>
                         </div>
                       </div>
@@ -720,11 +769,11 @@ export default function ElectricalEstimator() {
           <Sec title={"03 — "+T.conditions}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
               {Object.entries(CONDITION_ADJUSTMENTS).map(([key,cond])=>(
-                <label key={key} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",background:conditions[key]?"rgba(245,166,35,0.05)":"rgba(255,255,255,0.02)",border:`1px solid ${conditions[key]?"rgba(245,166,35,0.32)":"rgba(255,255,255,0.05)"}`,borderRadius:8,padding:"9px 11px",transition:"all 0.2s"}}>
-                  <input type="checkbox" checked={!!conditions[key]} onChange={e=>setConditions(c=>({...c,[key]:e.target.checked}))} style={{accentColor:"#f5a623",width:14,height:14}}/>
+                <label key={key} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",background:conditions[key]?"rgba(180,140,80,0.05)":"rgba(255,255,255,0.02)",border:`1px solid ${conditions[key]?"rgba(245,166,35,0.32)":"rgba(255,255,255,0.05)"}`,borderRadius:8,padding:"9px 11px",transition:"all 0.2s"}}>
+                  <input type="checkbox" checked={!!conditions[key]} onChange={e=>setConditions(c=>({...c,[key]:e.target.checked}))} style={{accentColor:"#b48c50",width:14,height:14}}/>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:11,color:"#e0d8c8"}}>{cond.icon} {lang==="es"?cond.labelEs:cond.label}</div>
-                    <div style={{fontSize:10,color:cond.color,fontFamily:"monospace"}}>{cond.multiplier>1?"+":""}{Math.round((cond.multiplier-1)*100)}%</div>
+                    <div style={{fontSize:11,color:"#d4c8b0"}}>{cond.icon} {lang==="es"?cond.labelEs:cond.label}</div>
+                    <div style={{fontSize:10,color:cond.color,fontFamily:"'DM Mono','Courier New',monospace"}}>{cond.multiplier>1?"+":""}{Math.round((cond.multiplier-1)*100)}%</div>
                   </div>
                 </label>
               ))}
@@ -734,59 +783,59 @@ export default function ElectricalEstimator() {
           <Sec title={"04 — "+T.pricingOpts}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
               {[{label:T.includeMat,state:includeMaterials,set:setIncludeMaterials},{label:T.includePermit,state:includePermit,set:setIncludePermit}].map(opt=>(
-                <label key={opt.label} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",background:opt.state?"rgba(245,166,35,0.05)":"rgba(255,255,255,0.02)",border:`1px solid ${opt.state?"rgba(245,166,35,0.28)":"rgba(255,255,255,0.05)"}`,borderRadius:8,padding:"10px 13px",transition:"all 0.2s"}}>
-                  <input type="checkbox" checked={opt.state} onChange={e=>opt.set(e.target.checked)} style={{accentColor:"#f5a623",width:14,height:14}}/>
-                  <span style={{fontSize:12,color:"#b8b09a"}}>{opt.label}</span>
+                <label key={opt.label} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",background:opt.state?"rgba(180,140,80,0.05)":"rgba(255,255,255,0.02)",border:`1px solid ${opt.state?"rgba(180,140,80,0.28)":"rgba(255,255,255,0.05)"}`,borderRadius:8,padding:"10px 13px",transition:"all 0.2s"}}>
+                  <input type="checkbox" checked={opt.state} onChange={e=>opt.set(e.target.checked)} style={{accentColor:"#b48c50",width:14,height:14}}/>
+                  <span style={{fontSize:12,color:"#a89878"}}>{opt.label}</span>
                 </label>
               ))}
             </div>
             {includeMaterials&&<div style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.05)",borderRadius:8,padding:"12px 13px"}}>
-              <div style={{fontSize:11,color:"#7a7060",marginBottom:7}}>{T.matMarkup}: <span style={{color:"#f5a623",fontWeight:700}}>{markupPct}%</span></div>
-              <input type="range" min={0} max={50} value={markupPct} onChange={e=>setMarkupPct(Number(e.target.value))} style={{width:"100%",accentColor:"#f5a623"}}/>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#3a3040",fontFamily:"monospace",marginTop:3}}><span>0%</span><span>25%</span><span>50%</span></div>
+              <div style={{fontSize:11,color:"#7a7060",marginBottom:7}}>{T.matMarkup}: <span style={{color:"#b48c50",fontWeight:700}}>{markupPct}%</span></div>
+              <input type="range" min={0} max={50} value={markupPct} onChange={e=>setMarkupPct(Number(e.target.value))} style={{width:"100%",accentColor:"#b48c50"}}/>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#3a3040",fontFamily:"'DM Mono','Courier New',monospace",marginTop:3}}><span>0%</span><span>25%</span><span>50%</span></div>
             </div>}
           </Sec>
 
-          <button onClick={calculateEstimate} disabled={!hasItems} style={{width:"100%",padding:"15px",marginBottom:22,background:hasItems?"linear-gradient(135deg,#f5a623,#e8860a)":"#111120",border:"none",borderRadius:10,cursor:hasItems?"pointer":"not-allowed",fontSize:13,fontWeight:700,color:hasItems?"#0a0a0f":"#2a2a3a",letterSpacing:2,textTransform:"uppercase",fontFamily:"monospace",boxShadow:hasItems?"0 4px 28px rgba(245,166,35,0.32)":"none",transition:"all 0.3s"}}>
-            {hasItems?"⚡ "+T.generateBtn:T.selectItems}
+          <button onClick={calculateEstimate} disabled={!hasItems} className="vq-primary-btn" style={{width:"100%",padding:"18px",marginBottom:24,background:hasItems?"linear-gradient(135deg,#b48c50 0%,#d4a96a 40%,#b48c50 60%,#8a6830 100%)":"rgba(255,255,255,0.03)",backgroundSize:"200% auto",animation:hasItems?"shimmer 3s linear infinite":"none",border:hasItems?"1px solid rgba(180,140,80,0.4)":"1px solid rgba(255,255,255,0.06)",borderRadius:8,cursor:hasItems?"pointer":"not-allowed",fontSize:11,fontWeight:500,color:hasItems?"#080810":"#2a2420",letterSpacing:5,textTransform:"uppercase",fontFamily:"'DM Mono','Courier New',monospace",boxShadow:hasItems?"0 4px 36px rgba(180,140,80,0.3)":"none",transition:"all 0.3s ease"}}>
+            {hasItems?"⚡  "+T.generateBtn:T.selectItems}
           </button>
 
           {result&&(
-            <div style={{background:"rgba(245,166,35,0.025)",border:"1px solid rgba(245,166,35,0.2)",borderRadius:12,padding:20,animation:"fadeIn 0.4s ease"}}>
+            <div style={{background:"rgba(245,166,35,0.025)",border:"1px solid rgba(180,140,80,0.2)",borderRadius:12,padding:20,animation:"fadeIn 0.4s ease"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:8}}>
                 <div>
-                  <div style={{fontSize:9,letterSpacing:3,color:"#f5a623",fontFamily:"monospace",textTransform:"uppercase"}}>{T.estReady}</div>
+                  <div style={{fontSize:9,letterSpacing:3,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace",textTransform:"uppercase"}}>{T.estReady}</div>
                   <div style={{fontSize:11,color:"#5a5555"}}>{result.region} · {result.pricingMode==="tm"?T.timeAndMat:T.flatRate} · {result.date}</div>
                 </div>
                 <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-                  <button onClick={()=>setShowCustomer(true)} style={{background:"rgba(85,136,224,0.12)",border:"1px solid rgba(85,136,224,0.3)",borderRadius:6,padding:"7px 11px",cursor:"pointer",color:"#7aa8f0",fontSize:10,fontFamily:"monospace"}}>👤 {T.customerView}</button>
-                  <button onClick={()=>setShowInvoice(true)} style={{background:"rgba(85,168,120,0.12)",border:"1px solid rgba(85,168,120,0.3)",borderRadius:6,padding:"7px 11px",cursor:"pointer",color:"#55a878",fontSize:10,fontFamily:"monospace"}}>📄 Invoice</button>
-                  <button onClick={saveEstimate} style={{background:saved?"rgba(80,200,120,0.12)":"rgba(255,255,255,0.04)",border:`1px solid ${saved?"rgba(80,200,120,0.35)":"rgba(255,255,255,0.08)"}`,borderRadius:6,padding:"7px 11px",cursor:"pointer",color:saved?"#50c878":"#8a8070",fontSize:10,fontFamily:"monospace"}}>{saved?"✓ "+T.savedOk:T.saveEst}</button>
-                  <button onClick={copyQuote} style={{background:copied?"rgba(80,200,120,0.12)":"rgba(245,166,35,0.09)",border:`1px solid ${copied?"rgba(80,200,120,0.35)":"rgba(245,166,35,0.28)"}`,borderRadius:6,padding:"7px 11px",cursor:"pointer",color:copied?"#50c878":"#f5a623",fontSize:10,fontFamily:"monospace"}}>{copied?"✓ "+T.copied:T.copyQuote}</button>
+                  <button onClick={()=>setShowCustomer(true)} style={{background:"rgba(85,136,224,0.12)",border:"1px solid rgba(85,136,224,0.3)",borderRadius:6,padding:"7px 11px",cursor:"pointer",color:"#7aa8f0",fontSize:10,fontFamily:"'DM Mono','Courier New',monospace"}}>👤 {T.customerView}</button>
+                  <button onClick={()=>setShowInvoice(true)} style={{background:"rgba(85,168,120,0.12)",border:"1px solid rgba(85,168,120,0.3)",borderRadius:6,padding:"7px 11px",cursor:"pointer",color:"#55a878",fontSize:10,fontFamily:"'DM Mono','Courier New',monospace"}}>📄 Invoice</button>
+                  <button onClick={saveEstimate} style={{background:saved?"rgba(80,200,120,0.12)":"rgba(255,255,255,0.04)",border:`1px solid ${saved?"rgba(80,200,120,0.35)":"rgba(255,255,255,0.08)"}`,borderRadius:6,padding:"7px 11px",cursor:"pointer",color:saved?"#50c878":"#8a8070",fontSize:10,fontFamily:"'DM Mono','Courier New',monospace"}}>{saved?"✓ "+T.savedOk:T.saveEst}</button>
+                  <button onClick={copyQuote} style={{background:copied?"rgba(80,200,120,0.12)":"rgba(180,140,80,0.09)",border:`1px solid ${copied?"rgba(80,200,120,0.35)":"rgba(180,140,80,0.28)"}`,borderRadius:6,padding:"7px 11px",cursor:"pointer",color:copied?"#50c878":"#b48c50",fontSize:10,fontFamily:"'DM Mono','Courier New',monospace"}}>{copied?"✓ "+T.copied:T.copyQuote}</button>
                 </div>
               </div>
               {result.lineItems.map((item,i)=>(
                 <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
                   <div>
-                    <span style={{fontSize:12,color:"#d8d0c0"}}>{item.label}</span>
-                    {item.qty&&<span style={{fontSize:10,color:"#3a3a3a",marginLeft:5,fontFamily:"monospace"}}>×{item.qty}</span>}
-                    {item.hrs>0&&<span style={{fontSize:10,color:"#3a4a3a",marginLeft:5,fontFamily:"monospace"}}>{item.hrs}h</span>}
-                    {item.nec&&<span style={{fontSize:9,background:"rgba(85,136,224,0.08)",color:"#6898e0",borderRadius:3,padding:"1px 4px",marginLeft:5,fontFamily:"monospace"}}>§{item.nec}</span>}
+                    <span style={{fontSize:12,color:"#d4c8b0"}}>{item.label}</span>
+                    {item.qty&&<span style={{fontSize:10,color:"#3a3a3a",marginLeft:5,fontFamily:"'DM Mono','Courier New',monospace"}}>×{item.qty}</span>}
+                    {item.hrs>0&&<span style={{fontSize:10,color:"#3a4a3a",marginLeft:5,fontFamily:"'DM Mono','Courier New',monospace"}}>{item.hrs}h</span>}
+                    {item.nec&&<span style={{fontSize:9,background:"rgba(85,136,224,0.08)",color:"#6898e0",borderRadius:3,padding:"1px 4px",marginLeft:5,fontFamily:"'DM Mono','Courier New',monospace"}}>§{item.nec}</span>}
                   </div>
-                  <div style={{fontSize:12,color:"#b8b09a",fontFamily:"monospace",flexShrink:0}}>{fmtRange(item.low,item.high)}</div>
+                  <div style={{fontSize:12,color:"#a89878",fontFamily:"'DM Mono','Courier New',monospace",flexShrink:0}}>{fmtRange(item.low,item.high)}</div>
                 </div>
               ))}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0",borderTop:"2px solid rgba(245,166,35,0.28)",marginTop:4}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0",borderTop:"2px solid rgba(180,140,80,0.28)",marginTop:4}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>{T.totalEst}</div>
-                  <div style={{fontSize:10,color:"#4a4a4a",fontFamily:"monospace"}}>~{result.totalHours} {T.laborHours}</div>
+                  <div style={{fontSize:10,color:"#4a4a4a",fontFamily:"'DM Mono','Courier New',monospace"}}>~{result.totalHours} {T.laborHours}</div>
                 </div>
-                <div style={{fontSize:18,fontWeight:700,color:"#f5a623",fontFamily:"monospace"}}>
+                <div style={{fontSize:18,fontWeight:700,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace"}}>
                   {result.pricingMode==="tm"?fmt(result.tmTotal):`${fmt(result.totalLow)}–${fmt(result.totalHigh)}`}
                 </div>
               </div>
-              <div style={{marginTop:13,padding:13,background:"rgba(0,0,0,0.22)",borderRadius:8,borderLeft:"3px solid #f5a623"}}>
-                <div style={{fontSize:9,letterSpacing:3,color:"#f5a623",fontFamily:"monospace",marginBottom:7,textTransform:"uppercase"}}>{T.profSummary}</div>
+              <div style={{marginTop:13,padding:13,background:"rgba(0,0,0,0.22)",borderRadius:8,borderLeft:"3px solid #b48c50"}}>
+                <div style={{fontSize:9,letterSpacing:3,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:7,textTransform:"uppercase"}}>{T.profSummary}</div>
                 {loading?<div style={{color:"#3a3a3a",fontSize:12,fontStyle:"italic"}}>{T.generating}</div>
                   :<p style={{margin:0,fontSize:12,color:"#b0a898",lineHeight:1.8}}>{aiSummary}</p>}
               </div>
@@ -800,12 +849,12 @@ export default function ElectricalEstimator() {
             <p style={{fontSize:12,color:"#5a5555",marginTop:0,lineHeight:1.7,marginBottom:20}}>{T.sqftDesc}</p>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               {Object.entries(SQFT_PRESETS).map(([name,preset])=>(
-                <button key={name} onClick={()=>applySquareFootage(preset)} style={{background:"rgba(245,166,35,0.04)",border:"1px solid rgba(245,166,35,0.2)",borderRadius:10,padding:18,cursor:"pointer",textAlign:"left",transition:"all 0.2s"}}>
-                  <div style={{fontSize:13,fontWeight:700,color:"#f5a623",marginBottom:6}}>{name}</div>
+                <button key={name} onClick={()=>applySquareFootage(preset)} style={{background:"rgba(180,140,80,0.04)",border:"1px solid rgba(180,140,80,0.2)",borderRadius:10,padding:18,cursor:"pointer",textAlign:"left",transition:"all 0.2s"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"#b48c50",marginBottom:6}}>{name}</div>
                   <div style={{fontSize:11,color:"#5a5555",lineHeight:1.8}}>
                     {Object.entries(preset).map(([k,v])=>`${v} ${JOB_CATEGORIES["Wiring Devices"][k]?.label||JOB_CATEGORIES["Lighting"][k]?.label||JOB_CATEGORIES["Safety Devices"][k]?.label||JOB_CATEGORIES["Panels & Service"][k]?.label||k}`).join("\n")}
                   </div>
-                  <div style={{marginTop:10,fontSize:10,color:"#f5a623",fontFamily:"monospace",letterSpacing:1}}>→ APPLY TO ESTIMATE</div>
+                  <div style={{marginTop:10,fontSize:10,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:1}}>→ APPLY TO ESTIMATE</div>
                 </button>
               ))}
             </div>
@@ -817,14 +866,14 @@ export default function ElectricalEstimator() {
           <Sec title="📷 Photo-to-Estimate">
             <p style={{fontSize:12,color:"#5a5555",marginTop:0,lineHeight:1.7}}>Upload a photo of any room, panel, or electrical area and AI analyzes what work may be needed.</p>
             <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoUpload} style={{display:"none"}}/>
-            <button onClick={()=>fileRef.current?.click()} disabled={photoLoading} style={{width:"100%",padding:36,border:"2px dashed rgba(245,166,35,0.3)",borderRadius:12,background:"rgba(245,166,35,0.03)",cursor:"pointer",color:"#f5a623",fontSize:13,fontFamily:"monospace",letterSpacing:2,textTransform:"uppercase",transition:"all 0.2s"}}>
+            <button onClick={()=>fileRef.current?.click()} disabled={photoLoading} style={{width:"100%",padding:36,border:"2px dashed rgba(180,140,80,0.3)",borderRadius:12,background:"rgba(180,140,80,0.03)",cursor:"pointer",color:"#b48c50",fontSize:13,fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:2,textTransform:"uppercase",transition:"all 0.2s"}}>
               {photoLoading?"🔍 Analyzing...":"📷 Upload Photo"}
             </button>
             {photoAnalysis&&(
-              <div style={{marginTop:18,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(245,166,35,0.18)",borderRadius:10,padding:16}}>
-                <div style={{fontSize:9,letterSpacing:3,color:"#f5a623",fontFamily:"monospace",marginBottom:8,textTransform:"uppercase"}}>AI Analysis</div>
+              <div style={{marginTop:18,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(180,140,80,0.18)",borderRadius:10,padding:16}}>
+                <div style={{fontSize:9,letterSpacing:3,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:8,textTransform:"uppercase"}}>AI Analysis</div>
                 <p style={{margin:0,fontSize:12,color:"#b0a898",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{photoAnalysis}</p>
-                <button onClick={()=>setActiveTab("estimator")} style={{marginTop:12,background:"rgba(245,166,35,0.12)",border:"1px solid rgba(245,166,35,0.3)",borderRadius:8,padding:"10px 18px",cursor:"pointer",color:"#f5a623",fontSize:11,fontFamily:"monospace"}}>→ Go Build Estimate</button>
+                <button onClick={()=>setActiveTab("estimator")} style={{marginTop:12,background:"rgba(180,140,80,0.12)",border:"1px solid rgba(180,140,80,0.3)",borderRadius:8,padding:"10px 18px",cursor:"pointer",color:"#b48c50",fontSize:11,fontFamily:"'DM Mono','Courier New',monospace"}}>→ Go Build Estimate</button>
               </div>
             )}
           </Sec>
@@ -844,45 +893,45 @@ export default function ElectricalEstimator() {
                   {key:"misc",label:"Misc Overhead /mo"},
                 ].map(f=>(
                   <div key={f.key}>
-                    <div style={{fontSize:10,color:"#5a5555",fontFamily:"monospace",marginBottom:4,letterSpacing:1}}>{f.label.toUpperCase()}</div>
-                    <div style={{display:"flex",alignItems:"center",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(245,166,35,0.2)",borderRadius:8,overflow:"hidden"}}>
-                      <span style={{padding:"0 10px",color:"#f5a623",fontSize:13}}>$</span>
-                      <input type="number" value={overhead[f.key]} onChange={e=>setOverhead(o=>({...o,[f.key]:Number(e.target.value)||0}))} style={{flex:1,background:"transparent",border:"none",color:"#e8e0d0",fontSize:13,padding:"10px 10px 10px 0",outline:"none",fontFamily:"Georgia,serif"}}/>
+                    <div style={{fontSize:10,color:"#5a5555",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:4,letterSpacing:1}}>{f.label.toUpperCase()}</div>
+                    <div style={{display:"flex",alignItems:"center",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(180,140,80,0.2)",borderRadius:8,overflow:"hidden"}}>
+                      <span style={{padding:"0 10px",color:"#b48c50",fontSize:13}}>$</span>
+                      <input type="number" value={overhead[f.key]} onChange={e=>setOverhead(o=>({...o,[f.key]:Number(e.target.value)||0}))} style={{flex:1,background:"transparent",border:"none",color:"#d4c8b0",fontSize:13,padding:"10px 10px 10px 0",outline:"none",fontFamily:"Georgia,serif"}}/>
                     </div>
                   </div>
                 ))}
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
                 <div>
-                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"monospace",marginBottom:4,letterSpacing:1}}>BILLABLE HOURS / MONTH</div>
+                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:4,letterSpacing:1}}>BILLABLE HOURS / MONTH</div>
                   <input type="number" value={targetHours} onChange={e=>setTargetHours(Number(e.target.value)||1)} style={{...sel,fontSize:13}}/>
                 </div>
                 <div>
-                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"monospace",marginBottom:4,letterSpacing:1}}>DESIRED PROFIT MARGIN %</div>
+                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:4,letterSpacing:1}}>DESIRED PROFIT MARGIN %</div>
                   <input type="number" value={desiredProfit} onChange={e=>setDesiredProfit(Number(e.target.value)||0)} style={{...sel,fontSize:13}}/>
                 </div>
               </div>
-              <div style={{background:"rgba(245,166,35,0.07)",border:"1px solid rgba(245,166,35,0.3)",borderRadius:12,padding:22}}>
+              <div style={{background:"rgba(180,140,80,0.07)",border:"1px solid rgba(180,140,80,0.3)",borderRadius:12,padding:22}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,textAlign:"center"}}>
                   <div>
-                    <div style={{fontSize:10,color:"#8a8070",fontFamily:"monospace",letterSpacing:1,marginBottom:6}}>MONTHLY OVERHEAD</div>
-                    <div style={{fontSize:22,fontWeight:700,color:"#e05555",fontFamily:"monospace"}}>{fmt(totalOverhead)}</div>
+                    <div style={{fontSize:10,color:"#8a8070",fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:1,marginBottom:6}}>MONTHLY OVERHEAD</div>
+                    <div style={{fontSize:22,fontWeight:700,color:"#e05555",fontFamily:"'DM Mono','Courier New',monospace"}}>{fmt(totalOverhead)}</div>
                   </div>
                   <div>
-                    <div style={{fontSize:10,color:"#8a8070",fontFamily:"monospace",letterSpacing:1,marginBottom:6}}>BREAK-EVEN RATE</div>
-                    <div style={{fontSize:22,fontWeight:700,color:"#e08a55",fontFamily:"monospace"}}>${Math.ceil(totalOverhead/targetHours)}/hr</div>
+                    <div style={{fontSize:10,color:"#8a8070",fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:1,marginBottom:6}}>BREAK-EVEN RATE</div>
+                    <div style={{fontSize:22,fontWeight:700,color:"#e08a55",fontFamily:"'DM Mono','Courier New',monospace"}}>${Math.ceil(totalOverhead/targetHours)}/hr</div>
                   </div>
                   <div>
-                    <div style={{fontSize:10,color:"#8a8070",fontFamily:"monospace",letterSpacing:1,marginBottom:6}}>YOUR TRUE RATE</div>
-                    <div style={{fontSize:22,fontWeight:700,color:"#f5a623",fontFamily:"monospace"}}>${trueHourlyRate}/hr</div>
+                    <div style={{fontSize:10,color:"#8a8070",fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:1,marginBottom:6}}>YOUR TRUE RATE</div>
+                    <div style={{fontSize:22,fontWeight:700,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace"}}>${trueHourlyRate}/hr</div>
                   </div>
                 </div>
-                <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid rgba(245,166,35,0.2)",fontSize:12,color:"#8a8070",textAlign:"center",lineHeight:1.7}}>
+                <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid rgba(180,140,80,0.2)",fontSize:12,color:"#8a8070",textAlign:"center",lineHeight:1.7}}>
                   Your true hourly rate includes overhead recovery + {desiredProfit}% profit margin.<br/>
-                  <span style={{color:"#f5a623"}}>Use ${trueHourlyRate}/hr</span> in your Time & Material estimates to actually profit.
+                  <span style={{color:"#b48c50"}}>Use ${trueHourlyRate}/hr</span> in your Time & Material estimates to actually profit.
                 </div>
                 <div style={{marginTop:12,textAlign:"center"}}>
-                  <button onClick={()=>{setHourlyRate(trueHourlyRate);setPricingMode("tm");setActiveTab("estimator");}} style={{background:"rgba(245,166,35,0.15)",border:"1px solid rgba(245,166,35,0.35)",borderRadius:8,padding:"10px 20px",cursor:"pointer",color:"#f5a623",fontSize:12,fontFamily:"monospace"}}>→ Apply to T&M Estimator</button>
+                  <button onClick={()=>{setHourlyRate(trueHourlyRate);setPricingMode("tm");setActiveTab("estimator");}} style={{background:"rgba(180,140,80,0.15)",border:"1px solid rgba(180,140,80,0.35)",borderRadius:8,padding:"10px 20px",cursor:"pointer",color:"#b48c50",fontSize:12,fontFamily:"'DM Mono','Courier New',monospace"}}>→ Apply to T&M Estimator</button>
                 </div>
               </div>
             </Sec>
@@ -902,39 +951,39 @@ export default function ElectricalEstimator() {
                 {label:"City",val:contractorCity,set:setContractorCity,ph:"Binghamton"},
               ].map(f=>(
                 <div key={f.label}>
-                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"monospace",marginBottom:4,letterSpacing:1}}>{f.label.toUpperCase()}</div>
+                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:4,letterSpacing:1}}>{f.label.toUpperCase()}</div>
                   <input value={f.val} onChange={e=>f.set(e.target.value)} placeholder={f.ph} style={{...sel,fontSize:12}}/>
                 </div>
               ))}
               <div>
-                <div style={{fontSize:10,color:"#5a5555",fontFamily:"monospace",marginBottom:4,letterSpacing:1}}>STATE</div>
+                <div style={{fontSize:10,color:"#5a5555",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:4,letterSpacing:1}}>STATE</div>
                 <select value={contractorState} onChange={e=>setContractorState(e.target.value)} style={sel}>{US_STATES.map(s=><option key={s} value={s}>{s}</option>)}</select>
               </div>
             </div>
             <div style={{marginTop:20}}>
-              <div style={{fontSize:10,color:"#5a5555",fontFamily:"monospace",marginBottom:10,letterSpacing:1}}>INVOICE DEFAULTS</div>
+              <div style={{fontSize:10,color:"#5a5555",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:10,letterSpacing:1}}>INVOICE DEFAULTS</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                 <div>
-                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"monospace",marginBottom:4}}>DEFAULT CLIENT NAME</div>
+                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:4}}>DEFAULT CLIENT NAME</div>
                   <input value={invoiceClient} onChange={e=>setInvoiceClient(e.target.value)} placeholder="Customer name" style={{...sel,fontSize:12}}/>
                 </div>
                 <div>
-                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"monospace",marginBottom:4}}>PAYMENT TERMS (DAYS)</div>
+                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:4}}>PAYMENT TERMS (DAYS)</div>
                   <select value={invoiceDue} onChange={e=>setInvoiceDue(Number(e.target.value))} style={sel}>{[15,30,45,60].map(d=><option key={d} value={d}>Net {d}</option>)}</select>
                 </div>
                 <div style={{gridColumn:"1/-1"}}>
-                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"monospace",marginBottom:4}}>INVOICE NOTES / TERMS</div>
+                  <div style={{fontSize:10,color:"#5a5555",fontFamily:"'DM Mono','Courier New',monospace",marginBottom:4}}>INVOICE NOTES / TERMS</div>
                   <textarea value={invoiceNotes} onChange={e=>setInvoiceNotes(e.target.value)} placeholder="e.g. 50% deposit required. Balance due on completion." style={{...sel,height:70,resize:"vertical",lineHeight:1.6}}/>
                 </div>
               </div>
             </div>
             {contractorName&&(
-              <div style={{marginTop:20,background:"rgba(245,166,35,0.05)",border:"1px solid rgba(245,166,35,0.22)",borderRadius:10,padding:16}}>
-                <div style={{fontSize:9,color:"#f5a623",fontFamily:"monospace",letterSpacing:2,marginBottom:8,textTransform:"uppercase"}}>Preview</div>
+              <div style={{marginTop:20,background:"rgba(180,140,80,0.05)",border:"1px solid rgba(180,140,80,0.22)",borderRadius:10,padding:16}}>
+                <div style={{fontSize:9,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace",letterSpacing:2,marginBottom:8,textTransform:"uppercase"}}>Preview</div>
                 <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>{contractorName}</div>
-                {contractorPhone&&<div style={{fontSize:12,color:"#b8b09a"}}>📞 {contractorPhone}</div>}
-                {contractorEmail&&<div style={{fontSize:12,color:"#b8b09a"}}>✉️ {contractorEmail}</div>}
-                {contractorLicense&&<div style={{fontSize:11,color:"#f5a623"}}>License #{contractorLicense}</div>}
+                {contractorPhone&&<div style={{fontSize:12,color:"#a89878"}}>📞 {contractorPhone}</div>}
+                {contractorEmail&&<div style={{fontSize:12,color:"#a89878"}}>✉️ {contractorEmail}</div>}
+                {contractorLicense&&<div style={{fontSize:11,color:"#b48c50"}}>License #{contractorLicense}</div>}
                 {(contractorCity||contractorState)&&<div style={{fontSize:11,color:"#6a6055"}}>{[contractorCity,contractorState].filter(Boolean).join(", ")}</div>}
               </div>
             )}
@@ -946,18 +995,18 @@ export default function ElectricalEstimator() {
           <Sec title="💬 Ask the AI Electrician">
             <p style={{fontSize:12,color:"#5a5555",marginTop:0,lineHeight:1.7}}>Ask code questions, pricing, scope clarification — anything. Context-aware if you have an active estimate.</p>
             <div style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,padding:14,minHeight:260,maxHeight:380,overflowY:"auto",marginBottom:10}}>
-              {aiChat.length===0&&<div style={{color:"#2a2535",fontSize:12,fontFamily:"monospace",textAlign:"center",marginTop:50}}>e.g. "Do I need AFCI in the kitchen?" or "What gauge wire for a dryer?"</div>}
+              {aiChat.length===0&&<div style={{color:"#2a2535",fontSize:12,fontFamily:"'DM Mono','Courier New',monospace",textAlign:"center",marginTop:50}}>e.g. "Do I need AFCI in the kitchen?" or "What gauge wire for a dryer?"</div>}
               {aiChat.map((m,i)=>(
                 <div key={i} style={{marginBottom:12,display:"flex",gap:8,justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
-                  {m.role==="assistant"&&<div style={{width:22,height:22,borderRadius:"50%",background:"linear-gradient(135deg,#f5a623,#e8860a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0}}>⚡</div>}
-                  <div style={{maxWidth:"82%",background:m.role==="user"?"rgba(245,166,35,0.1)":"rgba(255,255,255,0.03)",border:`1px solid ${m.role==="user"?"rgba(245,166,35,0.22)":"rgba(255,255,255,0.06)"}`,borderRadius:9,padding:"9px 13px",fontSize:12,color:m.role==="user"?"#e8c878":"#b0a898",lineHeight:1.7}}>{m.content}</div>
+                  {m.role==="assistant"&&<div style={{width:22,height:22,borderRadius:"50%",background:"linear-gradient(135deg,#b48c50,#8a6830)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0}}>⚡</div>}
+                  <div style={{maxWidth:"82%",background:m.role==="user"?"rgba(245,166,35,0.1)":"rgba(255,255,255,0.03)",border:`1px solid ${m.role==="user"?"rgba(180,140,80,0.22)":"rgba(255,255,255,0.06)"}`,borderRadius:9,padding:"9px 13px",fontSize:12,color:m.role==="user"?"#e8c878":"#b0a898",lineHeight:1.7}}>{m.content}</div>
                 </div>
               ))}
-              {chatLoading&&<div style={{color:"#3a3535",fontSize:12,fontStyle:"italic",fontFamily:"monospace"}}>⚡ Thinking...</div>}
+              {chatLoading&&<div style={{color:"#3a3535",fontSize:12,fontStyle:"italic",fontFamily:"'DM Mono','Courier New',monospace"}}>⚡ Thinking...</div>}
             </div>
             <div style={{display:"flex",gap:8}}>
               <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendChat()} placeholder="Ask anything..." style={{...sel,flex:1,fontSize:12}}/>
-              <button onClick={sendChat} disabled={!chatInput.trim()||chatLoading} style={{background:chatInput.trim()?"linear-gradient(135deg,#f5a623,#e8860a)":"#111120",border:"none",borderRadius:8,padding:"0 16px",cursor:chatInput.trim()?"pointer":"not-allowed",color:chatInput.trim()?"#0a0a0f":"#2a2a3a",fontSize:12,fontFamily:"monospace",fontWeight:700,flexShrink:0}}>Send</button>
+              <button onClick={sendChat} disabled={!chatInput.trim()||chatLoading} style={{background:chatInput.trim()?"linear-gradient(135deg,#b48c50,#8a6830)":"#111120",border:"none",borderRadius:8,padding:"0 16px",cursor:chatInput.trim()?"pointer":"not-allowed",color:chatInput.trim()?"#080810":"#2a2a3a",fontSize:12,fontFamily:"'DM Mono','Courier New',monospace",fontWeight:700,flexShrink:0}}>Send</button>
             </div>
           </Sec>
         )}
@@ -966,20 +1015,20 @@ export default function ElectricalEstimator() {
         {activeTab==="history"&&(
           <Sec title={"🗂 "+T.historyTitle}>
             {savedEstimates.length===0
-              ?<div style={{textAlign:"center",color:"#3a3040",fontFamily:"monospace",fontSize:12,padding:40}}>{T.historyEmpty}</div>
+              ?<div style={{textAlign:"center",color:"#3a3040",fontFamily:"'DM Mono','Courier New',monospace",fontSize:12,padding:40}}>{T.historyEmpty}</div>
               :savedEstimates.map(est=>(
-                <div key={est.id} style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(245,166,35,0.15)",borderRadius:10,padding:16,marginBottom:10}}>
+                <div key={est.id} style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(180,140,80,0.15)",borderRadius:10,padding:16,marginBottom:10}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                     <div>
-                      <div style={{fontSize:13,fontWeight:600,color:"#e8e0d0"}}>{est.clientName||est.region}</div>
-                      <div style={{fontSize:10,color:"#5a5555",fontFamily:"monospace"}}>{est.date} · {est.region}</div>
+                      <div style={{fontSize:13,fontWeight:600,color:"#d4c8b0"}}>{est.clientName||est.region}</div>
+                      <div style={{fontSize:10,color:"#5a5555",fontFamily:"'DM Mono','Courier New',monospace"}}>{est.date} · {est.region}</div>
                     </div>
-                    <div style={{fontSize:14,fontWeight:700,color:"#f5a623",fontFamily:"monospace"}}>{est.pricingMode==="tm"?fmt(est.tmTotal):`${fmt(est.totalLow)}–${fmt(est.totalHigh)}`}</div>
+                    <div style={{fontSize:14,fontWeight:700,color:"#b48c50",fontFamily:"'DM Mono','Courier New',monospace"}}>{est.pricingMode==="tm"?fmt(est.tmTotal):`${fmt(est.totalLow)}–${fmt(est.totalHigh)}`}</div>
                   </div>
                   <div style={{fontSize:11,color:"#4a4a4a",marginBottom:10}}>{est.lineItems.filter(i=>i.qty).map(i=>`${i.label} ×${i.qty}`).join(" · ")}</div>
                   <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>loadEstimate(est)} style={{background:"rgba(245,166,35,0.1)",border:"1px solid rgba(245,166,35,0.28)",borderRadius:6,padding:"6px 12px",cursor:"pointer",color:"#f5a623",fontSize:10,fontFamily:"monospace"}}>Load</button>
-                    <button onClick={()=>deleteEstimate(est.id)} style={{background:"rgba(224,85,85,0.08)",border:"1px solid rgba(224,85,85,0.22)",borderRadius:6,padding:"6px 12px",cursor:"pointer",color:"#e05555",fontSize:10,fontFamily:"monospace"}}>Delete</button>
+                    <button onClick={()=>loadEstimate(est)} style={{background:"rgba(245,166,35,0.1)",border:"1px solid rgba(180,140,80,0.28)",borderRadius:6,padding:"6px 12px",cursor:"pointer",color:"#b48c50",fontSize:10,fontFamily:"'DM Mono','Courier New',monospace"}}>Load</button>
+                    <button onClick={()=>deleteEstimate(est.id)} style={{background:"rgba(224,85,85,0.08)",border:"1px solid rgba(224,85,85,0.22)",borderRadius:6,padding:"6px 12px",cursor:"pointer",color:"#e05555",fontSize:10,fontFamily:"'DM Mono','Courier New',monospace"}}>Delete</button>
                   </div>
                 </div>
               ))
@@ -996,17 +1045,200 @@ export default function ElectricalEstimator() {
           </div>
         )}
 
-        <div style={{textAlign:"center",marginTop:24,paddingTop:14,borderTop:"1px solid rgba(255,255,255,0.04)"}}>
-          <p style={{fontSize:10,color:"#1a1020",fontFamily:"monospace",margin:0}}>VoltQuote · {T.disclaimer}</p>
+        <div style={{textAlign:"center",marginTop:32,paddingTop:18,borderBottom:"none",borderTop:"1px solid rgba(180,140,80,0.12)"}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,marginBottom:6}}>
+            <div style={{width:1,height:16,background:"linear-gradient(180deg,transparent,#b48c50,transparent)"}}/>
+            <p style={{fontSize:9,color:"#4a4038",fontFamily:"'Courier New',monospace",margin:0,letterSpacing:3,textTransform:"uppercase"}}>{T.disclaimer}</p>
+            <div style={{width:1,height:16,background:"linear-gradient(180deg,transparent,#b48c50,transparent)"}}/>
+          </div>
         </div>
       </div>
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}} select option{background:#1a1a2e} textarea{font-family:Georgia,serif;color:#e8e0d0;} ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:#0a0a0f} ::-webkit-scrollbar-thumb{background:#f5a623;border-radius:2px} *{-webkit-tap-highlight-color:transparent;} input,select,textarea{-webkit-appearance:none;} @supports (-webkit-touch-callout:none){.app-root{min-height:-webkit-fill-available;}}`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap');
+
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        input, select, textarea { -webkit-appearance: none; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-track { background: #080810; }
+        ::-webkit-scrollbar-thumb { background: #b48c50; border-radius: 2px; }
+
+        /* Animations */
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shimmer {
+          0%   { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.5; }
+        }
+
+        /* Selection */
+        ::selection { background: rgba(180,140,80,0.3); color: #f0e8d8; }
+
+        /* Global typography */
+        body { font-family: 'Cormorant Garamond', Georgia, serif; }
+
+        /* Input focus */
+        input:focus, select:focus, textarea:focus {
+          outline: none;
+          border-color: rgba(180,140,80,0.6) !important;
+          box-shadow: 0 0 0 2px rgba(180,140,80,0.08);
+        }
+
+        /* Button hover states */
+        .vq-tab-btn:hover { color: #b48c50 !important; }
+        .vq-primary-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 32px rgba(180,140,80,0.4) !important; }
+        .vq-ghost-btn:hover { border-color: rgba(180,140,80,0.4) !important; color: #b48c50 !important; }
+        .vq-item-row:hover { background: rgba(180,140,80,0.04) !important; }
+
+        /* Category expand button hover */
+        .vq-cat-btn:hover { background: rgba(180,140,80,0.06) !important; }
+
+        /* Checkbox accent */
+        input[type="checkbox"] { accent-color: #b48c50; }
+        input[type="range"] { accent-color: #b48c50; }
+
+        /* Card animation */
+        .vq-result-card { animation: fadeUp 0.5s ease forwards; }
+
+        /* Landing page feature cards */
+        .vq-feature-card:hover {
+          border-color: rgba(180,140,80,0.3) !important;
+          transform: translateY(-2px);
+          transition: all 0.3s ease;
+        }
+
+        /* Monospace elements */
+        .vq-mono { font-family: 'DM Mono', 'Courier New', monospace; }
+
+        /* NEC article cards */
+        .vq-nec-card:hover { background: rgba(180,140,80,0.03) !important; }
+
+        /* Range input */
+        input[type=range] { height: 3px; border-radius: 2px; }
+
+        /* Landing page sticky nav backdrop */
+        .vq-nav { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+
+        /* Gradient text for hero */
+        .vq-gradient-text {
+          background: linear-gradient(135deg,#d4a96a,#b48c50,#8a6830);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        /* Premium card border glow on hover */
+        .vq-feature-card {
+          transition: all 0.3s ease;
+        }
+        .vq-feature-card:hover {
+          border-color: rgba(180,140,80,0.3) !important;
+          transform: translateY(-3px);
+          box-shadow: 0 8px 32px rgba(180,140,80,0.08);
+        }
+
+        /* Pricing card top line accent */
+        .vq-price-highlight::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 2px;
+          background: linear-gradient(90deg,transparent,#b48c50,transparent);
+        }
+
+        /* Tab bar active indicator */
+        .vq-tab-btn {
+          position: relative;
+        }
+        .vq-tab-btn.active::after {
+          content: '';
+          position: absolute;
+          bottom: 0; left: 20%; right: 20%;
+          height: 1px;
+          background: linear-gradient(90deg,transparent,#b48c50,transparent);
+        }
+
+        /* Safe area */
+        @supports (-webkit-touch-callout: none) {
+          .vq-header { padding-top: max(16px, env(safe-area-inset-top)); }
+        }
+      `}</style>
     </div>
   );
 }
 
-function Sec({title,children}){return <div style={{marginBottom:22}}><div style={{fontSize:10,letterSpacing:4,color:"#f5a623",fontFamily:"monospace",textTransform:"uppercase",marginBottom:10}}>{title}</div>{children}</div>;}
+function Sec({title, children}) {
+  return (
+    <div style={{marginBottom:28}}>
+      <div style={{
+        display:"flex", alignItems:"center", gap:12, marginBottom:14
+      }}>
+        <div style={{
+          fontSize:9, letterSpacing:5, color:"#b48c50",
+          fontFamily:"'DM Mono','Courier New',monospace",
+          textTransform:"uppercase", fontWeight:500
+        }}>{title}</div>
+        <div style={{flex:1, height:"1px", background:"linear-gradient(90deg,rgba(180,140,80,0.3),transparent)"}}/>
+      </div>
+      {children}
+    </div>
+  );
+}
 
-const sel={width:"100%",padding:"10px 12px",background:"rgba(255,255,255,0.035)",border:"1px solid rgba(245,166,35,0.25)",borderRadius:8,color:"#e8e0d0",fontSize:13,fontFamily:"Georgia,serif",cursor:"pointer",outline:"none",boxSizing:"border-box"};
-const qBtn={width:27,height:27,borderRadius:6,background:"rgba(245,166,35,0.09)",border:"1px solid rgba(245,166,35,0.2)",color:"#f5a623",fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,lineHeight:1,flexShrink:0};
-const ghostBtn={background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:7,cursor:"pointer",color:"#6a6055",fontFamily:"monospace",letterSpacing:1};
+// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
+// Copper/Bronze accent palette — industrial luxury
+const C = {
+  copper:    "#b48c50",   // primary accent
+  copperLt:  "#d4a96a",  // light copper
+  copperDim: "#7a5e30",  // muted copper
+  bg:        "#080810",  // near-black background
+  bgMid:     "#0e0e1c",  // panel background
+  bgCard:    "#111120",  // card background
+  bgHover:   "rgba(180,140,80,0.05)",
+  border:    "rgba(180,140,80,0.18)",
+  borderDim: "rgba(180,140,80,0.08)",
+  text:      "#d4c8b0",  // primary text — warm off-white
+  textDim:   "#6a6050",  // muted text
+  textFaint: "#2a2420",  // barely visible
+  white:     "#f0e8d8",  // warm white
+  success:   "#4a8c60",
+  danger:    "#8c4a40",
+  info:      "#4a6a8c",
+};
+
+const sel = {
+  width:"100%", padding:"11px 14px",
+  background:"rgba(180,140,80,0.04)",
+  border:`1px solid ${C.border}`,
+  borderRadius:6, color:C.text, fontSize:14,
+  fontFamily:"'Cormorant Garamond',Georgia,serif",
+  cursor:"pointer", outline:"none", boxSizing:"border-box",
+  transition:"border-color 0.2s ease",
+};
+
+const qBtn = {
+  width:30, height:30, borderRadius:4,
+  background:"rgba(180,140,80,0.07)",
+  border:`1px solid rgba(180,140,80,0.22)`,
+  color:C.copper, fontSize:16, cursor:"pointer",
+  display:"flex", alignItems:"center", justifyContent:"center",
+  fontWeight:400, lineHeight:1, flexShrink:0,
+  transition:"all 0.15s ease",
+  fontFamily:"'DM Mono','Courier New',monospace",
+};
+
+const ghostBtn = {
+  background:"rgba(180,140,80,0.04)",
+  border:`1px solid rgba(180,140,80,0.2)`,
+  borderRadius:5, cursor:"pointer",
+  color:C.textDim,
+  fontFamily:"'DM Mono','Courier New',monospace",
+  letterSpacing:1, transition:"all 0.2s ease",
+};
