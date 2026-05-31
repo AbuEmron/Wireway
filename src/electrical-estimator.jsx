@@ -669,6 +669,7 @@ export default function ElectricalEstimator() {
               <div style={{background:"rgba(245,166,35,0.09)",border:"1px solid rgba(245,166,35,0.28)",borderRadius:8,padding:"8px 12px",textAlign:"center",flexShrink:0}}>
                 <div style={{fontSize:9,color:"#6a6055",fontFamily:"monospace"}}>RATE</div>
                 <div style={{fontSize:15,fontWeight:700,color:"#f5a623",fontFamily:"monospace"}}>{regionMultiplier.toFixed(2)}x</div>
+                <div style={{fontSize:8,color:"#4a4040",fontFamily:"monospace",marginTop:2}}>prices live</div>
               </div>
             </div>
             <div style={{display:"flex",gap:8}}>
@@ -702,7 +703,7 @@ export default function ElectricalEstimator() {
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:12,color:"#e0d8c8"}}>{item.label}</div>
                           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:2}}>
-                            <span style={{fontSize:10,color:"#4a4848",fontFamily:"monospace"}}>${item.low}–${item.high}/{item.unit}</span>
+                            <span style={{fontSize:10,color:"#4a4848",fontFamily:"monospace"}}>${Math.round(item.low*regionMultiplier)}–${Math.round(item.high*regionMultiplier)}/{item.unit}</span>
                             <span style={{fontSize:10,color:"#4a5448",fontFamily:"monospace"}}>~{item.hours}h</span>
                             {item.nec&&<span style={{fontSize:9,background:"rgba(85,136,224,0.1)",color:"#7aa8f0",borderRadius:3,padding:"1px 5px",fontFamily:"monospace",cursor:"pointer"}} onClick={()=>{setActiveTab("nec");setNecSearch(item.nec);}}>§{item.nec}</span>}
                           </div>
