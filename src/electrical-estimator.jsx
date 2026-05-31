@@ -415,7 +415,7 @@ export default function ElectricalEstimator() {
 
   // ── LANDING PAGE ──────────────────────────────────────────────────────────
   if (view==="landing") return (
-    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#e8e0d0",fontFamily:"Georgia,serif"}}>
+    <div style={{minHeight:"-webkit-fill-available",background:"#0a0a0f",color:"#e8e0d0",fontFamily:"Georgia,serif"}}>
       <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse at 20% 40%,#1a1a2e 0%,transparent 55%),radial-gradient(ellipse at 80% 10%,#16213e 0%,transparent 50%)",pointerEvents:"none"}}/>
       <div style={{position:"relative",zIndex:1}}>
         {/* Nav */}
