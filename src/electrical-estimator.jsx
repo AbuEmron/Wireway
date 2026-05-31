@@ -415,8 +415,8 @@ export default function ElectricalEstimator() {
 
   // ── LANDING PAGE ──────────────────────────────────────────────────────────
   if (view==="landing") return (
-    <div style={{minHeight:"100shv",background:"#0a0a0f",fontFamily:"Georgia,serif",color:"#e8e0d0"}}>
-      <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse at 20% 40%,#1a1a2e 0%,transparent 55%),radial-gradient(ellipse at 80% 10%,#16213e 0%,transparent 50%)",pointerEvents:"none"}}/>
+    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#e8e0d0",fontFamily:"Georgia,serif"}}>
+      <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"radial-gradient(ellipse at 20% 40%,#1a1a2e 0%,transparent 55%),radial-gradient(ellipse at 80% 10%,#16213e 0%,transparent 50%)",pointerEvents:"none",zIndex:0}}/>
       <div style={{position:"relative",zIndex:1}}>
         {/* Nav */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 32px",borderBottom:"1px solid rgba(245,166,35,0.15)"}}>
@@ -495,7 +495,7 @@ export default function ElectricalEstimator() {
 
   // ── INVOICE VIEW ──────────────────────────────────────────────────────────
   if (showInvoice && result) return (
-    <div style={{minHeight:"100shv",background:"#0a0a0f",fontFamily:"Georgia,serif",color:"#e8e0d0"}}>
+    <div style={{minHeight:"100vh",background:"#f4f1ea",fontFamily:"Georgia,serif",color:"#1a1a1a",padding:"32px 16px"}}>
       <div style={{maxWidth:640,margin:"0 auto"}}>
         <div style={{background:"#1a1a2e",color:"white",borderRadius:"12px 12px 0 0",padding:"28px 32px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
@@ -621,7 +621,7 @@ export default function ElectricalEstimator() {
 
   return (
     <div style={{minHeight:"100vh",background:"#0a0a0f",fontFamily:"Georgia,serif",color:"#e8e0d0"}}>
-      <div style={{position:"fixed",inset:0,zIndex:0,background:"radial-gradient(ellipse at 20% 50%,#1a1a2e 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,#16213e 0%,transparent 50%)",pointerEvents:"none"}}/>
+      <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:0,background:"radial-gradient(ellipse at 20% 50%,#1a1a2e 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,#16213e 0%,transparent 50%)",pointerEvents:"none"}}/>
       {/* Header */}
       <div style={{position:"relative",zIndex:1,borderBottom:"1px solid rgba(245,166,35,0.3)",padding:"18px 18px 0",background:"linear-gradient(180deg,#0d0d1a 0%,transparent 100%)"}}>
         <div style={{maxWidth:860,margin:"0 auto"}}>
@@ -1004,7 +1004,7 @@ export default function ElectricalEstimator() {
           <p style={{fontSize:10,color:"#1a1020",fontFamily:"monospace",margin:0}}>VoltQuote · {T.disclaimer}</p>
         </div>
       </div>
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}} select option{background:#1a1a2e} textarea{font-family:Georgia,serif;color:#e8e0d0;} ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:#0a0a0f} ::-webkit-scrollbar-thumb{background:#f5a623;border-radius:2px}`}</style>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}} select option{background:#1a1a2e} textarea{font-family:Georgia,serif;color:#e8e0d0;} ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:#0a0a0f} ::-webkit-scrollbar-thumb{background:#f5a623;border-radius:2px} *{-webkit-tap-highlight-color:transparent;} input,select,textarea{-webkit-appearance:none;} @supports (-webkit-touch-callout:none){.app-root{min-height:-webkit-fill-available;}}`}</style>
     </div>
   );
 }
