@@ -415,8 +415,7 @@ export default function ElectricalEstimator() {
 
   // ── LANDING PAGE ──────────────────────────────────────────────────────────
   if (view==="landing") return (
-    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#e8e0d0",fontFamily:"Georgia,serif"}}>
-      <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"radial-gradient(ellipse at 20% 40%,#1a1a2e 0%,transparent 55%),radial-gradient(ellipse at 80% 10%,#16213e 0%,transparent 50%)",pointerEvents:"none",zIndex:0}}/>
+    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 20% 40%,#1a1a2e 0%,#0a0a0f 55%),radial-gradient(ellipse at 80% 10%,#16213e 0%,#0a0a0f 50%)",color:"#e8e0d0",fontFamily:"Georgia,serif"}}>
       <div style={{position:"relative",zIndex:1}}>
         {/* Nav */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 32px",borderBottom:"1px solid rgba(245,166,35,0.15)"}}>
@@ -620,8 +619,7 @@ export default function ElectricalEstimator() {
   );
 
   return (
-    <div style={{minHeight:"100vh",background:"#0a0a0f",fontFamily:"Georgia,serif",color:"#e8e0d0"}}>
-      <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:0,background:"radial-gradient(ellipse at 20% 50%,#1a1a2e 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,#16213e 0%,transparent 50%)",pointerEvents:"none"}}/>
+    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 20% 50%,#1a1a2e 0%,#0a0a0f 60%),radial-gradient(ellipse at 80% 20%,#16213e 0%,#0a0a0f 50%)",fontFamily:"Georgia,serif",color:"#e8e0d0"}}>
       {/* Header */}
       <div style={{position:"relative",zIndex:1,borderBottom:"1px solid rgba(245,166,35,0.3)",padding:"18px 18px 0",background:"linear-gradient(180deg,#0d0d1a 0%,transparent 100%)"}}>
         <div style={{maxWidth:860,margin:"0 auto"}}>
