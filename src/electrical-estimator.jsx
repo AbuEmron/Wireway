@@ -879,9 +879,7 @@ export default function Wireway() {
   const [tab,          setTab]          = useState("services");
   const [showMaterials,setShowMaterials]= useState(true);
   const [clientBuysAll,setClientBuysAll]= useState(false);
-  const [sendModal,    setSendModal]    = useState(false);
   const [copied,       setCopied]       = useState(false);
-  const [previewModal, setPreviewModal] = useState(false);
 
   // ── Company profile (persisted in localStorage) ──
   const [company, setCompany] = useState(() => {
