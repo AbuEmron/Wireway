@@ -4,129 +4,186 @@ import { useState, useMemo } from "react";
 // materialCost = typical material cost (electrician supplies)
 // laborCost    = labor only (no materials)
 // variants multiply the TOTAL of both
+// ─── LABOR HOUR NOTES (NECA MLU anchored, remodel/existing construction) ─────
+// 1-for-1 swap = existing box, no fishing wire, device only: ~0.25 hr outlets/switches, ~0.5 hr fixtures
+// New outlet/switch in existing wall (fish wire, cut box): ~0.6 hr outlets, ~0.5 hr switches
+// New circuit from panel: 3.5–6 hr depending on distance/complexity
+// Panel breaker swap: ~0.75 hr standard, ~1.25 hr AFCI/GFCI (more wiring)
+// Panel upgrade 100A: 6–8 hr; 200A: 8–12 hr; 400A: 14–18 hr
+// Ceiling fixture swap: ~0.75 hr; new box + fixture: ~1.5 hr
+// Ceiling fan swap: ~1.25 hr; new fan on existing box: ~1.5 hr; new box + fan: ~2.5 hr
+// Recessed can remodel: ~1.25 hr each; new construction: ~0.75 hr each
+// Low-voltage run: ~1.5–2 hr per drop depending on distance
+
 const CATEGORIES = [
   {
     id: "service_entrance", label: "Service Entrance & Panel", icon: "▦", color: "#e8c97a",
     services: [
-      { id: "panel_100",        label: "Panel Upgrade – 100A",              nec: "NEC 230.79(C)",   materialCost: 650,  laborCost: 550,  laborHours: 6,   unit: "panel",   variants: [{ label: "Standard", m: 1 }, { label: "Main Breaker", m: 1.15 }] },
-      { id: "panel_200",        label: "Panel Upgrade – 200A",              nec: "NEC 230.79(D)",   materialCost: 1200, laborCost: 900,  laborHours: 10,  unit: "panel",   variants: [{ label: "Standard", m: 1 }, { label: "Main Breaker", m: 1.15 }, { label: "Smart Panel", m: 1.6 }] },
-      { id: "panel_400",        label: "Panel Upgrade – 400A",              nec: "NEC 230.79",      materialCost: 2800, laborCost: 1500, laborHours: 16,  unit: "panel",   variants: [{ label: "Standard", m: 1 }, { label: "With Meter Stack", m: 1.3 }] },
-      { id: "sub_panel",        label: "Sub-Panel Install",                 nec: "NEC 225.30",      materialCost: 500,  laborCost: 400,  laborHours: 6,   unit: "panel",   variants: [{ label: "60A", m: 1 }, { label: "100A", m: 1.2 }, { label: "150A", m: 1.4 }] },
-      { id: "breaker_single",   label: "Breaker – Single Pole",             nec: "NEC 240.6",       materialCost: 60,   laborCost: 90,   laborHours: 1,   unit: "breaker", variants: [{ label: "15A", m: 1 }, { label: "20A", m: 1.05 }, { label: "AFCI", m: 1.4 }, { label: "GFCI", m: 1.4 }, { label: "Dual AFCI/GFCI", m: 1.6 }] },
-      { id: "breaker_double",   label: "Breaker – Double Pole",             nec: "NEC 240.6",       materialCost: 90,   laborCost: 110,  laborHours: 1.5, unit: "breaker", variants: [{ label: "30A", m: 1 }, { label: "40A", m: 1.1 }, { label: "50A", m: 1.2 }, { label: "60A", m: 1.3 }] },
-      { id: "surge_whole",      label: "Whole-Home Surge Protector",        nec: "NEC 230.67",      materialCost: 180,  laborCost: 160,  laborHours: 2,   unit: "unit",    variants: [{ label: "Type 1", m: 1 }, { label: "Type 2", m: 0.9 }, { label: "Type 1+2 Combo", m: 1.2 }] },
-      { id: "meter_socket",     label: "Meter Socket Replacement",          nec: "NEC 230.66",      materialCost: 200,  laborCost: 200,  laborHours: 3,   unit: "unit",    variants: [{ label: "100A", m: 1 }, { label: "200A", m: 1.2 }] },
-      { id: "grounding",        label: "Grounding Electrode System",        nec: "NEC 250.50",      materialCost: 120,  laborCost: 180,  laborHours: 3,   unit: "system",  variants: [{ label: "Ground Rod", m: 1 }, { label: "Rod + Plate", m: 1.4 }, { label: "Ufer Ground", m: 1.8 }] },
-      { id: "bonding",          label: "Bonding – Water / Gas Pipe",        nec: "NEC 250.104",     materialCost: 40,   laborCost: 110,  laborHours: 1.5, unit: "each",    variants: [{ label: "Water Pipe", m: 1 }, { label: "Gas Pipe", m: 1 }, { label: "Both", m: 1.6 }] },
+      // Panel upgrades: 100A ~7 hr realistic with utility coordination; 200A ~10 hr; 400A ~16 hr
+      { id: "panel_100",        label: "Panel Upgrade – 100A",              nec: "NEC 230.79(C)",   materialCost: 650,  laborCost: 595,  laborHours: 7,   unit: "panel",   variants: [{ label: "Standard", m: 1 }, { label: "Main Breaker", m: 1.15 }] },
+      { id: "panel_200",        label: "Panel Upgrade – 200A",              nec: "NEC 230.79(D)",   materialCost: 1200, laborCost: 850,  laborHours: 10,  unit: "panel",   variants: [{ label: "Standard", m: 1 }, { label: "Main Breaker", m: 1.15 }, { label: "Smart Panel", m: 1.6 }] },
+      { id: "panel_400",        label: "Panel Upgrade – 400A",              nec: "NEC 230.79",      materialCost: 2800, laborCost: 1360, laborHours: 16,  unit: "panel",   variants: [{ label: "Standard", m: 1 }, { label: "With Meter Stack", m: 1.3 }] },
+      // Sub-panel: 5–7 hr depending on feed distance
+      { id: "sub_panel",        label: "Sub-Panel Install",                 nec: "NEC 225.30",      materialCost: 500,  laborCost: 510,  laborHours: 6,   unit: "panel",   variants: [{ label: "60A", m: 1 }, { label: "100A", m: 1.2 }, { label: "150A", m: 1.4 }] },
+      // Breaker swap: standard ~0.75 hr; AFCI/GFCI ~1.25 hr (more wiring, testing)
+      { id: "breaker_single",   label: "Breaker – Single Pole",             nec: "NEC 240.6",       materialCost: 60,   laborCost: 64,   laborHours: 0.75,unit: "breaker", variants: [{ label: "15A Standard", m: 1 }, { label: "20A Standard", m: 1.05 }, { label: "AFCI", m: 1.65 }, { label: "GFCI", m: 1.65 }, { label: "Dual AFCI/GFCI", m: 1.85 }] },
+      { id: "breaker_double",   label: "Breaker – Double Pole",             nec: "NEC 240.6",       materialCost: 90,   laborCost: 85,   laborHours: 1,   unit: "breaker", variants: [{ label: "30A", m: 1 }, { label: "40A", m: 1.1 }, { label: "50A", m: 1.2 }, { label: "60A", m: 1.3 }] },
+      // Surge protector: ~1.5 hr at panel
+      { id: "surge_whole",      label: "Whole-Home Surge Protector",        nec: "NEC 230.67",      materialCost: 180,  laborCost: 128,  laborHours: 1.5, unit: "unit",    variants: [{ label: "Type 1", m: 1 }, { label: "Type 2", m: 0.9 }, { label: "Type 1+2 Combo", m: 1.2 }] },
+      // Meter socket: 2.5–3 hr, utility coordination required
+      { id: "meter_socket",     label: "Meter Socket Replacement",          nec: "NEC 230.66",      materialCost: 200,  laborCost: 213,  laborHours: 2.5, unit: "unit",    variants: [{ label: "100A", m: 1 }, { label: "200A", m: 1.2 }] },
+      // Grounding: drive rod + connect GEC ~2.5 hr; Ufer is concrete work, ~4 hr
+      { id: "grounding",        label: "Grounding Electrode System",        nec: "NEC 250.50",      materialCost: 120,  laborCost: 213,  laborHours: 2.5, unit: "system",  variants: [{ label: "Ground Rod", m: 1 }, { label: "Rod + Plate", m: 1.4 }, { label: "Ufer Ground", m: 1.6 }] },
+      // Bonding: ~1 hr water pipe, ~1 hr gas pipe
+      { id: "bonding",          label: "Bonding – Water / Gas Pipe",        nec: "NEC 250.104",     materialCost: 40,   laborCost: 85,   laborHours: 1,   unit: "each",    variants: [{ label: "Water Pipe", m: 1 }, { label: "Gas Pipe", m: 1 }, { label: "Both", m: 1.8 }] },
     ],
   },
   {
     id: "circuits", label: "Branch Circuits & Wiring", icon: "⌁", color: "#7eb8e8",
     services: [
-      { id: "circuit_15",       label: "New 15A Circuit",                   nec: "NEC 210.11",      materialCost: 120,  laborCost: 200,  laborHours: 3.5, unit: "circuit", variants: [{ label: "Standard", m: 1 }, { label: "AFCI Required", m: 1.2 }, { label: "Long Run (50+ ft)", m: 1.4 }] },
-      { id: "circuit_20",       label: "New 20A Circuit",                   nec: "NEC 210.11",      materialCost: 140,  laborCost: 230,  laborHours: 4,   unit: "circuit", variants: [{ label: "Standard", m: 1 }, { label: "Kitchen/Bath", m: 1.15 }, { label: "AFCI Required", m: 1.25 }] },
-      { id: "circuit_30",       label: "New 240V Circuit – 30A",            nec: "NEC 210.19",      materialCost: 180,  laborCost: 280,  laborHours: 5,   unit: "circuit", variants: [{ label: "Dryer", m: 1 }, { label: "HVAC", m: 1.1 }, { label: "Hot Tub/Spa", m: 1.3 }] },
-      { id: "circuit_50",       label: "New 240V Circuit – 50A",            nec: "NEC 210.19",      materialCost: 220,  laborCost: 330,  laborHours: 6,   unit: "circuit", variants: [{ label: "Range/Oven", m: 1 }, { label: "EV Charger", m: 1.1 }, { label: "Pool Equipment", m: 1.2 }] },
-      { id: "circuit_dedicated",label: "Dedicated Appliance Circuit",       nec: "NEC 210.52",      materialCost: 130,  laborCost: 220,  laborHours: 4,   unit: "circuit", variants: [{ label: "Refrigerator", m: 1 }, { label: "Microwave", m: 1 }, { label: "Dishwasher", m: 1 }, { label: "Disposal", m: 1 }] },
-      { id: "rewire_room",      label: "Room Rewire",                       nec: "NEC 310.15",      materialCost: 350,  laborCost: 500,  laborHours: 8,   unit: "room",    variants: [{ label: "Bedroom", m: 1 }, { label: "Living Room", m: 1.2 }, { label: "Kitchen", m: 1.8 }, { label: "Bathroom", m: 1.3 }] },
-      { id: "knob_tube",        label: "Knob & Tube Removal/Replace",       nec: "NEC 394.12",      materialCost: 600,  laborCost: 900,  laborHours: 14,  unit: "room",    variants: [{ label: "Single Room", m: 1 }, { label: "Per Floor", m: 3 }, { label: "Whole House", m: 7 }] },
-      { id: "aluminum_wiring",  label: "Aluminum Wiring Remediation",       nec: "NEC 310.14(B)",   materialCost: 50,   laborCost: 120,  laborHours: 2,   unit: "outlet",  variants: [{ label: "CO/ALR Device", m: 1 }, { label: "Pigtail w/ Marrette", m: 1.3 }] },
-      { id: "low_voltage",      label: "Low-Voltage / Data Run",            nec: "NEC 725.41",      materialCost: 60,   laborCost: 120,  laborHours: 2,   unit: "run",     variants: [{ label: "Cat6 Ethernet", m: 1 }, { label: "Coax", m: 0.9 }, { label: "Speaker Wire", m: 0.8 }, { label: "HDMI/AV", m: 1.1 }] },
+      // New circuits in finished home: fish walls, drill plates, run to panel — 3.5–5 hr typical
+      { id: "circuit_15",       label: "New 15A Circuit",                   nec: "NEC 210.11",      materialCost: 120,  laborCost: 298,  laborHours: 3.5, unit: "circuit", variants: [{ label: "Standard", m: 1 }, { label: "AFCI Required", m: 1.2 }, { label: "Long Run (50+ ft)", m: 1.5 }] },
+      { id: "circuit_20",       label: "New 20A Circuit",                   nec: "NEC 210.11",      materialCost: 140,  laborCost: 340,  laborHours: 4,   unit: "circuit", variants: [{ label: "Standard", m: 1 }, { label: "Kitchen/Bath", m: 1.15 }, { label: "AFCI Required", m: 1.25 }] },
+      // 240V circuits: heavier wire, more panel work — 5–6 hr
+      { id: "circuit_30",       label: "New 240V Circuit – 30A",            nec: "NEC 210.19",      materialCost: 180,  laborCost: 425,  laborHours: 5,   unit: "circuit", variants: [{ label: "Dryer", m: 1 }, { label: "HVAC", m: 1.1 }, { label: "Hot Tub/Spa", m: 1.3 }] },
+      { id: "circuit_50",       label: "New 240V Circuit – 50A",            nec: "NEC 210.19",      materialCost: 220,  laborCost: 510,  laborHours: 6,   unit: "circuit", variants: [{ label: "Range/Oven", m: 1 }, { label: "EV Charger", m: 1.1 }, { label: "Pool Equipment", m: 1.2 }] },
+      { id: "circuit_dedicated",label: "Dedicated Appliance Circuit",       nec: "NEC 210.52",      materialCost: 130,  laborCost: 340,  laborHours: 4,   unit: "circuit", variants: [{ label: "Refrigerator", m: 1 }, { label: "Microwave", m: 1 }, { label: "Dishwasher", m: 1 }, { label: "Disposal", m: 1 }] },
+      // Room rewire: open walls or extensive fish work — 8–16 hr
+      { id: "rewire_room",      label: "Room Rewire",                       nec: "NEC 310.15",      materialCost: 350,  laborCost: 680,  laborHours: 8,   unit: "room",    variants: [{ label: "Bedroom", m: 1 }, { label: "Living Room", m: 1.2 }, { label: "Kitchen", m: 1.8 }, { label: "Bathroom", m: 1.3 }] },
+      { id: "knob_tube",        label: "Knob & Tube Removal/Replace",       nec: "NEC 394.12",      materialCost: 600,  laborCost: 1190, laborHours: 14,  unit: "room",    variants: [{ label: "Single Room", m: 1 }, { label: "Per Floor", m: 3 }, { label: "Whole House", m: 7 }] },
+      // Aluminum remediation: ~0.4 hr per point (CO/ALR device or pigtail)
+      { id: "aluminum_wiring",  label: "Aluminum Wiring Remediation",       nec: "NEC 310.14(B)",   materialCost: 50,   laborCost: 34,   laborHours: 0.4, unit: "outlet",  variants: [{ label: "CO/ALR Device", m: 1 }, { label: "Pigtail w/ Marrette", m: 1.3 }] },
+      // Low voltage: ~1.5 hr per drop in finished home
+      { id: "low_voltage",      label: "Low-Voltage / Data Run",            nec: "NEC 725.41",      materialCost: 60,   laborCost: 128,  laborHours: 1.5, unit: "run",     variants: [{ label: "Cat6 Ethernet", m: 1 }, { label: "Coax", m: 0.9 }, { label: "Speaker Wire", m: 0.8 }, { label: "HDMI/AV", m: 1.1 }] },
     ],
   },
   {
     id: "receptacles", label: "Receptacles & Outlets", icon: "⬡", color: "#a8e87e",
     services: [
-      { id: "outlet_standard",  label: "Standard Duplex Outlet",            nec: "NEC 210.52",      materialCost: 18,   laborCost: 55,   laborHours: 0.6, unit: "outlet",  variants: [{ label: "15A", m: 1 }, { label: "20A", m: 1.1 }] },
-      { id: "outlet_gfci",      label: "GFCI Outlet",                       nec: "NEC 210.8",       materialCost: 38,   laborCost: 65,   laborHours: 0.75,unit: "outlet",  variants: [{ label: "15A", m: 1 }, { label: "20A", m: 1.1 }, { label: "Weather Resistant", m: 1.2 }] },
-      { id: "outlet_afci",      label: "AFCI Outlet",                       nec: "NEC 210.12",      materialCost: 55,   laborCost: 65,   laborHours: 0.75,unit: "outlet",  variants: [{ label: "15A", m: 1 }, { label: "20A", m: 1.1 }] },
-      { id: "outlet_usb",       label: "USB / Smart Outlet",                nec: "NEC 210.52",      materialCost: 55,   laborCost: 65,   laborHours: 0.75,unit: "outlet",  variants: [{ label: "USB-A/C Combo", m: 1 }, { label: "Smart Wi-Fi", m: 1.4 }, { label: "Tamper Resistant", m: 1.1 }] },
-      { id: "outlet_240",       label: "240V Outlet",                       nec: "NEC 210.19",      materialCost: 55,   laborCost: 120,  laborHours: 1.5, unit: "outlet",  variants: [{ label: "NEMA 6-20 (Welder)", m: 1 }, { label: "NEMA 14-30 (Dryer)", m: 1.1 }, { label: "NEMA 14-50 (RV/EV)", m: 1.2 }] },
-      { id: "outlet_floor",     label: "Floor Outlet",                      nec: "NEC 314.27(B)",   materialCost: 85,   laborCost: 160,  laborHours: 2,   unit: "outlet",  variants: [{ label: "Standard", m: 1 }, { label: "With Cover", m: 1.2 }] },
-      { id: "outlet_exterior",  label: "Exterior Outlet",                   nec: "NEC 210.52(E)",   materialCost: 45,   laborCost: 120,  laborHours: 1.5, unit: "outlet",  variants: [{ label: "In-Use Cover", m: 1 }, { label: "WR + In-Use Cover", m: 1.2 }, { label: "Recessed", m: 1.4 }] },
-      { id: "outlet_countertop",label: "Countertop Popup Outlet",           nec: "NEC 210.52(C)",   materialCost: 120,  laborCost: 160,  laborHours: 2.5, unit: "outlet",  variants: [{ label: "Standard", m: 1 }, { label: "With USB", m: 1.2 }, { label: "Wireless Charger", m: 1.5 }] },
-      { id: "outlet_ev",        label: "EV Charger / EVSE",                 nec: "NEC 625.40",      materialCost: 280,  laborCost: 320,  laborHours: 5,   unit: "unit",    variants: [{ label: "NEMA 14-50 Outlet", m: 1 }, { label: "Level 2 Hardwire", m: 1.5 }, { label: "Smart EVSE", m: 1.8 }] },
+      // 1-for-1 swap: ~0.25 hr (pull out, reconnect, done — no fishing)
+      // New outlet in existing wall: ~0.6 hr (cut box, fish wire, connect)
+      { id: "outlet_standard",  label: "Standard Duplex Outlet",            nec: "NEC 210.52",      materialCost: 18,   laborCost: 21,   laborHours: 0.25,unit: "outlet",  variants: [{ label: "1-for-1 Swap", m: 1 }, { label: "New – Same Wall (15A)", m: 2.4 }, { label: "New – Same Wall (20A)", m: 2.65 }] },
+      { id: "outlet_gfci",      label: "GFCI Outlet",                       nec: "NEC 210.8",       materialCost: 38,   laborCost: 25,   laborHours: 0.3, unit: "outlet",  variants: [{ label: "1-for-1 Swap", m: 1 }, { label: "New Install – 15A", m: 2.3 }, { label: "New Install – 20A", m: 2.5 }, { label: "WR + New Install", m: 2.8 }] },
+      { id: "outlet_afci",      label: "AFCI Outlet",                       nec: "NEC 210.12",      materialCost: 55,   laborCost: 25,   laborHours: 0.3, unit: "outlet",  variants: [{ label: "1-for-1 Swap", m: 1 }, { label: "New Install – 15A", m: 2.2 }, { label: "New Install – 20A", m: 2.4 }] },
+      { id: "outlet_usb",       label: "USB / Smart Outlet",                nec: "NEC 210.52",      materialCost: 55,   laborCost: 25,   laborHours: 0.3, unit: "outlet",  variants: [{ label: "1-for-1 Swap", m: 1 }, { label: "New Install – USB-A/C", m: 2.2 }, { label: "New Install – Smart Wi-Fi", m: 2.8 }, { label: "New Install – TR", m: 2.3 }] },
+      // 240V outlet: no swap variant — always involves new wire or circuit work
+      { id: "outlet_240",       label: "240V Outlet",                       nec: "NEC 210.19",      materialCost: 55,   laborCost: 170,  laborHours: 2,   unit: "outlet",  variants: [{ label: "NEMA 6-20 (Welder)", m: 1 }, { label: "NEMA 14-30 (Dryer)", m: 1.1 }, { label: "NEMA 14-50 (RV/EV)", m: 1.2 }] },
+      // Floor outlet: always new work, ~2 hr
+      { id: "outlet_floor",     label: "Floor Outlet",                      nec: "NEC 314.27(B)",   materialCost: 85,   laborCost: 170,  laborHours: 2,   unit: "outlet",  variants: [{ label: "Standard", m: 1 }, { label: "With Cover", m: 1.2 }] },
+      // Exterior: ~1.5 hr new; swap existing box is ~0.5 hr
+      { id: "outlet_exterior",  label: "Exterior Outlet",                   nec: "NEC 210.52(E)",   materialCost: 45,   laborCost: 43,   laborHours: 0.5, unit: "outlet",  variants: [{ label: "1-for-1 Swap", m: 1 }, { label: "New – In-Use Cover", m: 3 }, { label: "New – WR + In-Use Cover", m: 3.4 }, { label: "New – Recessed", m: 4 }] },
+      { id: "outlet_countertop",label: "Countertop Popup Outlet",           nec: "NEC 210.52(C)",   materialCost: 120,  laborCost: 213,  laborHours: 2.5, unit: "outlet",  variants: [{ label: "Standard", m: 1 }, { label: "With USB", m: 1.2 }, { label: "Wireless Charger", m: 1.5 }] },
+      // EV: ~5 hr for Level 2 hardwire including panel work
+      { id: "outlet_ev",        label: "EV Charger / EVSE",                 nec: "NEC 625.40",      materialCost: 280,  laborCost: 425,  laborHours: 5,   unit: "unit",    variants: [{ label: "NEMA 14-50 Outlet", m: 1 }, { label: "Level 2 Hardwire", m: 1.5 }, { label: "Smart EVSE", m: 1.8 }] },
     ],
   },
   {
     id: "switches", label: "Switches & Controls", icon: "◈", color: "#e87eb8",
     services: [
-      { id: "switch_single",    label: "Single Pole Switch",                nec: "NEC 404.2",       materialCost: 14,   laborCost: 48,   laborHours: 0.5, unit: "switch",  variants: [{ label: "Standard", m: 1 }, { label: "Decorator", m: 1.05 }, { label: "Lighted", m: 1.15 }] },
-      { id: "switch_3way",      label: "3-Way Switch",                      nec: "NEC 404.2",       materialCost: 24,   laborCost: 80,   laborHours: 1,   unit: "switch",  variants: [{ label: "Standard", m: 1 }, { label: "Decorator", m: 1.1 }] },
-      { id: "switch_4way",      label: "4-Way Switch",                      nec: "NEC 404.2",       materialCost: 35,   laborCost: 95,   laborHours: 1.25,unit: "switch",  variants: [{ label: "Standard", m: 1 }, { label: "Decorator", m: 1.1 }] },
-      { id: "dimmer_single",    label: "Dimmer – Single Pole",              nec: "NEC 404.14",      materialCost: 35,   laborCost: 75,   laborHours: 0.75,unit: "switch",  variants: [{ label: "Standard", m: 1 }, { label: "LED Compatible", m: 1.15 }, { label: "Smart/Wi-Fi", m: 1.6 }] },
-      { id: "dimmer_3way",      label: "Dimmer – 3-Way",                    nec: "NEC 404.14",      materialCost: 55,   laborCost: 95,   laborHours: 1.25,unit: "switch",  variants: [{ label: "Standard", m: 1 }, { label: "Smart/Wi-Fi", m: 1.6 }] },
-      { id: "switch_smart",     label: "Smart Switch / Scene Controller",   nec: "NEC 404.2",       materialCost: 85,   laborCost: 80,   laborHours: 1,   unit: "switch",  variants: [{ label: "Wi-Fi", m: 1 }, { label: "Z-Wave/Zigbee", m: 1.2 }, { label: "Lutron Caseta", m: 1.3 }] },
-      { id: "gfci_switch",      label: "GFCI Combo Switch",                 nec: "NEC 210.8",       materialCost: 45,   laborCost: 75,   laborHours: 0.75,unit: "switch",  variants: [{ label: "Standard", m: 1 }] },
-      { id: "occupancy_sensor", label: "Occupancy / Motion Switch",         nec: "NEC 404.2",       materialCost: 55,   laborCost: 80,   laborHours: 1,   unit: "switch",  variants: [{ label: "Wall Switch", m: 1 }, { label: "Ceiling Sensor", m: 1.3 }] },
-      { id: "timer_switch",     label: "Timer Switch",                      nec: "NEC 404.2",       materialCost: 35,   laborCost: 65,   laborHours: 0.75,unit: "switch",  variants: [{ label: "Mechanical", m: 1 }, { label: "Digital/Programmable", m: 1.3 }, { label: "Outdoor Intermatic", m: 1.2 }] },
+      // 1-for-1 swap: ~0.25 hr (remove old, connect new — box and wire already there)
+      // New switch location: ~0.5 hr (cut box, fish wire, connect)
+      { id: "switch_single",    label: "Single Pole Switch",                nec: "NEC 404.2",       materialCost: 14,   laborCost: 21,   laborHours: 0.25,unit: "switch",  variants: [{ label: "1-for-1 Swap – Standard", m: 1 }, { label: "1-for-1 Swap – Decorator", m: 1.05 }, { label: "1-for-1 Swap – Lighted", m: 1.1 }, { label: "New Location", m: 2 }] },
+      { id: "switch_3way",      label: "3-Way Switch",                      nec: "NEC 404.2",       materialCost: 24,   laborCost: 34,   laborHours: 0.4, unit: "switch",  variants: [{ label: "1-for-1 Swap – Standard", m: 1 }, { label: "1-for-1 Swap – Decorator", m: 1.1 }, { label: "New Location", m: 2.5 }] },
+      { id: "switch_4way",      label: "4-Way Switch",                      nec: "NEC 404.2",       materialCost: 35,   laborCost: 43,   laborHours: 0.5, unit: "switch",  variants: [{ label: "1-for-1 Swap – Standard", m: 1 }, { label: "1-for-1 Swap – Decorator", m: 1.1 }, { label: "New Location", m: 2.5 }] },
+      // Dimmer swap: ~0.35 hr (slightly more — check load compatibility, neutral wire)
+      { id: "dimmer_single",    label: "Dimmer – Single Pole",              nec: "NEC 404.14",      materialCost: 35,   laborCost: 30,   laborHours: 0.35,unit: "switch",  variants: [{ label: "1-for-1 Swap – Standard", m: 1 }, { label: "1-for-1 Swap – LED Compatible", m: 1.1 }, { label: "1-for-1 Swap – Smart/Wi-Fi", m: 1.4 }, { label: "New Location", m: 2.1 }] },
+      { id: "dimmer_3way",      label: "Dimmer – 3-Way",                    nec: "NEC 404.14",      materialCost: 55,   laborCost: 43,   laborHours: 0.5, unit: "switch",  variants: [{ label: "1-for-1 Swap – Standard", m: 1 }, { label: "1-for-1 Swap – Smart/Wi-Fi", m: 1.5 }, { label: "New Location", m: 2.5 }] },
+      // Smart switch: ~0.75 hr swap (app pairing, neutral check, load programming)
+      { id: "switch_smart",     label: "Smart Switch / Scene Controller",   nec: "NEC 404.2",       materialCost: 85,   laborCost: 64,   laborHours: 0.75,unit: "switch",  variants: [{ label: "1-for-1 Swap – Wi-Fi", m: 1 }, { label: "1-for-1 Swap – Z-Wave/Zigbee", m: 1.15 }, { label: "1-for-1 Swap – Lutron Caseta", m: 1.25 }, { label: "New Location", m: 1.8 }] },
+      { id: "gfci_switch",      label: "GFCI Combo Switch",                 nec: "NEC 210.8",       materialCost: 45,   laborCost: 30,   laborHours: 0.35,unit: "switch",  variants: [{ label: "1-for-1 Swap", m: 1 }, { label: "New Install", m: 2 }] },
+      { id: "occupancy_sensor", label: "Occupancy / Motion Switch",         nec: "NEC 404.2",       materialCost: 55,   laborCost: 51,   laborHours: 0.6, unit: "switch",  variants: [{ label: "1-for-1 Swap – Wall Switch", m: 1 }, { label: "New Location – Wall", m: 1.8 }, { label: "New – Ceiling Sensor", m: 2.5 }] },
+      { id: "timer_switch",     label: "Timer Switch",                      nec: "NEC 404.2",       materialCost: 35,   laborCost: 30,   laborHours: 0.35,unit: "switch",  variants: [{ label: "1-for-1 Swap – Mechanical", m: 1 }, { label: "1-for-1 Swap – Digital", m: 1.15 }, { label: "New – Outdoor Intermatic", m: 2.2 }] },
     ],
   },
   {
     id: "lighting", label: "Lighting & Fixtures", icon: "◎", color: "#e8b87e",
     services: [
-      { id: "light_ceiling",    label: "Ceiling Light Fixture",             nec: "NEC 314.27",      materialCost: 55,   laborCost: 75,   laborHours: 1.25,unit: "fixture", variants: [{ label: "Flush Mount", m: 1 }, { label: "Semi-Flush", m: 1.1 }, { label: "Close-to-Ceiling", m: 1 }] },
-      { id: "light_recessed",   label: "Recessed Lighting (Can)",           nec: "NEC 410.116",     materialCost: 45,   laborCost: 80,   laborHours: 1.5, unit: "fixture", variants: [{ label: "New Construction", m: 1 }, { label: "Remodel/Retrofit", m: 1.3 }, { label: "IC Rated", m: 1.1 }, { label: "Airtight AT Rated", m: 1.2 }] },
-      { id: "light_pendant",    label: "Pendant Light",                     nec: "NEC 410.36",      materialCost: 80,   laborCost: 110,  laborHours: 2,   unit: "fixture", variants: [{ label: "Standard", m: 1 }, { label: "Over Island", m: 1.2 }, { label: "Heavy/Oversized", m: 1.5 }] },
-      { id: "light_chandelier", label: "Chandelier",                        nec: "NEC 410.36",      materialCost: 120,  laborCost: 200,  laborHours: 3.5, unit: "fixture", variants: [{ label: "Standard (<50 lbs)", m: 1 }, { label: "Heavy (50-100 lbs)", m: 1.5 }, { label: "Vaulted/High Ceiling", m: 1.8 }] },
-      { id: "light_fan",        label: "Ceiling Fan",                       nec: "NEC 314.27(D)",   materialCost: 100,  laborCost: 130,  laborHours: 2.5, unit: "fixture", variants: [{ label: "Standard", m: 1 }, { label: "With Light Kit", m: 1.1 }, { label: "Remote/Smart", m: 1.25 }, { label: "Vaulted Mount", m: 1.3 }] },
-      { id: "light_track",      label: "Track Lighting",                    nec: "NEC 410.151",     materialCost: 90,   laborCost: 100,  laborHours: 2,   unit: "run",     variants: [{ label: "4 ft", m: 1 }, { label: "8 ft", m: 1.5 }, { label: "Flexible/Monorail", m: 1.8 }] },
-      { id: "light_undercab",   label: "Under-Cabinet Lighting",            nec: "NEC 411.2",       materialCost: 70,   laborCost: 90,   laborHours: 2,   unit: "run",     variants: [{ label: "LED Strip (per 4 ft)", m: 1 }, { label: "Puck Lights", m: 0.9 }, { label: "Hardwired LED Bar", m: 1.3 }] },
-      { id: "light_exterior",   label: "Exterior / Porch Light",            nec: "NEC 410.10",      materialCost: 55,   laborCost: 90,   laborHours: 1.5, unit: "fixture", variants: [{ label: "Wall Sconce", m: 1 }, { label: "Flood/Security", m: 1.2 }, { label: "Motion Activated", m: 1.3 }, { label: "Post/Pier Mount", m: 1.6 }] },
-      { id: "light_vanity",     label: "Bathroom Vanity Light",             nec: "NEC 410.10(D)",   materialCost: 60,   laborCost: 80,   laborHours: 1.5, unit: "fixture", variants: [{ label: "Standard Bar", m: 1 }, { label: "Hollywood/Globe", m: 1.1 }, { label: "Lighted Mirror", m: 1.4 }] },
-      { id: "exhaust_fan",      label: "Bathroom Exhaust Fan",              nec: "NEC 210.11",      materialCost: 80,   laborCost: 120,  laborHours: 2.5, unit: "unit",    variants: [{ label: "Standard", m: 1 }, { label: "With Light", m: 1.2 }, { label: "With Heater", m: 1.4 }, { label: "High-CFM/Quiet", m: 1.3 }] },
-      { id: "led_retrofit",     label: "LED Retrofit / Recessed Kit",       nec: "NEC 410.6",       materialCost: 20,   laborCost: 18,   laborHours: 0.2, unit: "fixture", variants: [{ label: "Standard Bulb Swap", m: 1 }, { label: "Recessed Retrofit Kit", m: 2.5 }] },
-      { id: "landscape_light",  label: "Landscape / Low-Voltage Lighting",  nec: "NEC 411.2",       materialCost: 120,  laborCost: 140,  laborHours: 3,   unit: "zone",    variants: [{ label: "Low-Voltage Kit", m: 1 }, { label: "Hardwired Line Voltage", m: 1.8 }, { label: "Solar Accent", m: 0.6 }] },
+      // Fixture swap on existing box: ~0.75 hr; new box + fixture: ~1.5 hr
+      { id: "light_ceiling",    label: "Ceiling Light Fixture",             nec: "NEC 314.27",      materialCost: 55,   laborCost: 64,   laborHours: 0.75,unit: "fixture", variants: [{ label: "Swap on Existing Box", m: 1 }, { label: "New Box + Flush Mount", m: 2 }, { label: "New Box + Semi-Flush", m: 2.1 }] },
+      // Recessed: remodel retrofit ~1.25 hr; new construction open ceiling ~0.75 hr
+      { id: "light_recessed",   label: "Recessed Lighting (Can)",           nec: "NEC 410.116",     materialCost: 45,   laborCost: 106,  laborHours: 1.25,unit: "fixture", variants: [{ label: "Remodel/Retrofit", m: 1 }, { label: "New Construction", m: 0.6 }, { label: "IC Rated Remodel", m: 1.1 }, { label: "Airtight AT Rated", m: 1.15 }] },
+      // Pendant: more wire work, canopy, ~1.5 hr swap; new location ~2.5 hr
+      { id: "light_pendant",    label: "Pendant Light",                     nec: "NEC 410.36",      materialCost: 80,   laborCost: 128,  laborHours: 1.5, unit: "fixture", variants: [{ label: "Swap on Existing Box", m: 1 }, { label: "New Location – Standard", m: 1.65 }, { label: "New – Over Island", m: 1.85 }, { label: "New – Heavy/Oversized", m: 2.3 }] },
+      // Chandelier: 2.5–6 hr depending on weight and ceiling height
+      { id: "light_chandelier", label: "Chandelier",                        nec: "NEC 410.36",      materialCost: 120,  laborCost: 213,  laborHours: 2.5, unit: "fixture", variants: [{ label: "Swap on Existing Box", m: 1 }, { label: "New – Standard (<50 lbs)", m: 1.4 }, { label: "New – Heavy (50-100 lbs)", m: 2 }, { label: "New – Vaulted/High Ceiling", m: 2.4 }] },
+      // Fan swap on fan-rated box: ~1.25 hr; new fan-rated box install: ~2.5 hr
+      { id: "light_fan",        label: "Ceiling Fan",                       nec: "NEC 314.27(D)",   materialCost: 100,  laborCost: 106,  laborHours: 1.25,unit: "fixture", variants: [{ label: "Swap on Fan-Rated Box", m: 1 }, { label: "New Fan-Rated Box + Fan", m: 2 }, { label: "With Light Kit – Swap", m: 1.1 }, { label: "Remote/Smart – Swap", m: 1.25 }, { label: "Vaulted Mount – New", m: 2.4 }] },
+      { id: "light_track",      label: "Track Lighting",                    nec: "NEC 410.151",     materialCost: 90,   laborCost: 128,  laborHours: 1.5, unit: "run",     variants: [{ label: "4 ft", m: 1 }, { label: "8 ft", m: 1.6 }, { label: "Flexible/Monorail", m: 2 }] },
+      { id: "light_undercab",   label: "Under-Cabinet Lighting",            nec: "NEC 411.2",       materialCost: 70,   laborCost: 128,  laborHours: 1.5, unit: "run",     variants: [{ label: "LED Strip (per 4 ft)", m: 1 }, { label: "Puck Lights", m: 0.9 }, { label: "Hardwired LED Bar", m: 1.3 }] },
+      { id: "light_exterior",   label: "Exterior / Porch Light",            nec: "NEC 410.10",      materialCost: 55,   laborCost: 64,   laborHours: 0.75,unit: "fixture", variants: [{ label: "Swap on Existing Box", m: 1 }, { label: "New – Wall Sconce", m: 2 }, { label: "New – Flood/Security", m: 2.2 }, { label: "New – Motion Activated", m: 2.4 }, { label: "New – Post/Pier Mount", m: 3 }] },
+      { id: "light_vanity",     label: "Bathroom Vanity Light",             nec: "NEC 410.10(D)",   materialCost: 60,   laborCost: 64,   laborHours: 0.75,unit: "fixture", variants: [{ label: "Swap on Existing Box", m: 1 }, { label: "New – Standard Bar", m: 2 }, { label: "New – Hollywood/Globe", m: 2.1 }, { label: "New – Lighted Mirror", m: 2.5 }] },
+      // Exhaust fan: replace existing ~1 hr; new cut-in ~2.5 hr
+      { id: "exhaust_fan",      label: "Bathroom Exhaust Fan",              nec: "NEC 210.11",      materialCost: 80,   laborCost: 85,   laborHours: 1,   unit: "unit",    variants: [{ label: "1-for-1 Swap – Standard", m: 1 }, { label: "1-for-1 Swap – With Light", m: 1.15 }, { label: "New Cut-In – Standard", m: 2.5 }, { label: "New Cut-In – With Heater", m: 2.8 }, { label: "New Cut-In – High-CFM", m: 2.6 }] },
+      // LED retrofit: bulb swap ~10 min; recessed retrofit kit ~30 min
+      { id: "led_retrofit",     label: "LED Retrofit / Recessed Kit",       nec: "NEC 410.6",       materialCost: 20,   laborCost: 17,   laborHours: 0.2, unit: "fixture", variants: [{ label: "Standard Bulb Swap", m: 1 }, { label: "Recessed Retrofit Kit", m: 2.5 }] },
+      { id: "landscape_light",  label: "Landscape / Low-Voltage Lighting",  nec: "NEC 411.2",       materialCost: 120,  laborCost: 213,  laborHours: 2.5, unit: "zone",    variants: [{ label: "Low-Voltage Kit", m: 1 }, { label: "Hardwired Line Voltage", m: 1.8 }, { label: "Solar Accent", m: 0.6 }] },
     ],
   },
   {
     id: "safety", label: "Safety & Detection", icon: "◉", color: "#e87e7e",
     services: [
-      { id: "smoke_detector",   label: "Smoke Detector",                    nec: "NEC 760.41",      materialCost: 35,   laborCost: 55,   laborHours: 0.75,unit: "unit",    variants: [{ label: "Battery Backup", m: 1 }, { label: "Hardwired", m: 1 }, { label: "Hardwired + Interconnect", m: 1.3 }] },
-      { id: "co_detector",      label: "CO Detector",                       nec: "NEC 760.41",      materialCost: 40,   laborCost: 60,   laborHours: 0.75,unit: "unit",    variants: [{ label: "Battery", m: 1 }, { label: "Hardwired", m: 1.1 }, { label: "Combo Smoke/CO", m: 1.2 }] },
-      { id: "smoke_co_combo",   label: "Smoke + CO Combo (Hardwired)",      nec: "NEC 210.12",      materialCost: 65,   laborCost: 75,   laborHours: 1,   unit: "unit",    variants: [{ label: "Interconnected", m: 1 }, { label: "Smart (Nest/Ring)", m: 1.5 }] },
-      { id: "arc_fault",        label: "AFCI Protection – Retrofit",        nec: "NEC 210.12",      materialCost: 70,   laborCost: 110,  laborHours: 1.5, unit: "circuit", variants: [{ label: "Breaker Type", m: 1 }, { label: "Outlet Type", m: 0.9 }] },
-      { id: "gfci_protection",  label: "GFCI Protection – Retrofit",        nec: "NEC 210.8",       materialCost: 38,   laborCost: 80,   laborHours: 1,   unit: "circuit", variants: [{ label: "Breaker Type", m: 1 }, { label: "Outlet Type (Feeds Multiple)", m: 0.85 }] },
-      { id: "tamper_resistant", label: "Tamper-Resistant Receptacles",      nec: "NEC 406.12",      materialCost: 20,   laborCost: 55,   laborHours: 0.6, unit: "outlet",  variants: [{ label: "Standard TR", m: 1 }, { label: "TR + WR", m: 1.15 }] },
-      { id: "surge_individual", label: "Point-of-Use Surge Protection",     nec: "NEC 230.67",      materialCost: 30,   laborCost: 50,   laborHours: 0.5, unit: "unit",    variants: [{ label: "Outlet Type", m: 1 }, { label: "Hardwired", m: 1.5 }] },
+      // Smoke/CO detector swap: ~0.3 hr; new hardwired with interconnect: ~0.75 hr
+      { id: "smoke_detector",   label: "Smoke Detector",                    nec: "NEC 760.41",      materialCost: 35,   laborCost: 34,   laborHours: 0.4, unit: "unit",    variants: [{ label: "Battery (Swap/New)", m: 1 }, { label: "Hardwired – Swap", m: 1 }, { label: "Hardwired + Interconnect – New", m: 1.9 }] },
+      { id: "co_detector",      label: "CO Detector",                       nec: "NEC 760.41",      materialCost: 40,   laborCost: 34,   laborHours: 0.4, unit: "unit",    variants: [{ label: "Battery (Swap/New)", m: 1 }, { label: "Hardwired – Swap", m: 1.05 }, { label: "Combo Smoke/CO – Swap", m: 1.15 }] },
+      { id: "smoke_co_combo",   label: "Smoke + CO Combo (Hardwired)",      nec: "NEC 210.12",      materialCost: 65,   laborCost: 51,   laborHours: 0.6, unit: "unit",    variants: [{ label: "Swap Existing", m: 1 }, { label: "New – Interconnected", m: 1.65 }, { label: "New – Smart (Nest/Ring)", m: 2 }] },
+      // AFCI/GFCI retrofit: ~1.25 hr at breaker; ~0.4 hr outlet type
+      { id: "arc_fault",        label: "AFCI Protection – Retrofit",        nec: "NEC 210.12",      materialCost: 70,   laborCost: 106,  laborHours: 1.25,unit: "circuit", variants: [{ label: "Breaker Type", m: 1 }, { label: "Outlet Type", m: 0.32 }] },
+      { id: "gfci_protection",  label: "GFCI Protection – Retrofit",        nec: "NEC 210.8",       materialCost: 38,   laborCost: 85,   laborHours: 1,   unit: "circuit", variants: [{ label: "Breaker Type", m: 1 }, { label: "Outlet Type (Feeds Multiple)", m: 0.4 }] },
+      { id: "tamper_resistant", label: "Tamper-Resistant Receptacles",      nec: "NEC 406.12",      materialCost: 20,   laborCost: 21,   laborHours: 0.25,unit: "outlet",  variants: [{ label: "1-for-1 Swap – Standard TR", m: 1 }, { label: "1-for-1 Swap – TR + WR", m: 1.15 }] },
+      { id: "surge_individual", label: "Point-of-Use Surge Protection",     nec: "NEC 230.67",      materialCost: 30,   laborCost: 21,   laborHours: 0.25,unit: "unit",    variants: [{ label: "Outlet Type – Swap", m: 1 }, { label: "Hardwired", m: 3 }] },
     ],
   },
   {
     id: "hvac_appliance", label: "HVAC & Appliance Connections", icon: "⧖", color: "#b87ee8",
     services: [
-      { id: "ac_disconnect",    label: "AC Disconnect / Whip",              nec: "NEC 440.14",      materialCost: 120,  laborCost: 180,  laborHours: 3,   unit: "unit",    variants: [{ label: "Non-Fused", m: 1 }, { label: "Fused", m: 1.2 }, { label: "60A", m: 1 }, { label: "100A", m: 1.3 }] },
-      { id: "hvac_circuit",     label: "HVAC Dedicated Circuit",            nec: "NEC 440.32",      materialCost: 180,  laborCost: 280,  laborHours: 5,   unit: "unit",    variants: [{ label: "Mini Split", m: 1 }, { label: "Central AC", m: 1.2 }, { label: "Heat Pump", m: 1.2 }, { label: "Electric Furnace", m: 1.4 }] },
-      { id: "dryer_hookup",     label: "Dryer Hookup / Connection",         nec: "NEC 220.54",      materialCost: 55,   laborCost: 145,  laborHours: 2,   unit: "unit",    variants: [{ label: "3-Wire NEMA 10-30", m: 1 }, { label: "4-Wire NEMA 14-30", m: 1 }, { label: "Gas Dryer Outlet Only", m: 0.7 }] },
-      { id: "range_hookup",     label: "Range / Oven Hookup",               nec: "NEC 220.55",      materialCost: 65,   laborCost: 160,  laborHours: 2,   unit: "unit",    variants: [{ label: "Freestanding Range", m: 1 }, { label: "Wall Oven", m: 1.2 }, { label: "Cooktop + Oven", m: 1.4 }] },
-      { id: "water_heater",     label: "Electric Water Heater Circuit",     nec: "NEC 422.11",      materialCost: 150,  laborCost: 230,  laborHours: 4,   unit: "unit",    variants: [{ label: "Standard Tank", m: 1 }, { label: "Tankless/On-Demand", m: 1.5 }] },
-      { id: "generator_switch", label: "Generator Transfer Switch",         nec: "NEC 702.6",       materialCost: 450,  laborCost: 500,  laborHours: 8,   unit: "unit",    variants: [{ label: "Manual Transfer", m: 1 }, { label: "Interlock Kit", m: 0.7 }, { label: "Auto Transfer (ATS)", m: 2 }] },
-      { id: "generator_inlet",  label: "Generator Inlet Box",               nec: "NEC 702.7",       materialCost: 120,  laborCost: 180,  laborHours: 3,   unit: "unit",    variants: [{ label: "30A Inlet", m: 1 }, { label: "50A Inlet", m: 1.2 }] },
-      { id: "pool_equipment",   label: "Pool / Spa Equipment Circuit",      nec: "NEC 680.21",      materialCost: 250,  laborCost: 380,  laborHours: 6,   unit: "unit",    variants: [{ label: "Pump Motor", m: 1 }, { label: "Heater", m: 1.3 }, { label: "Full Equipment Pad", m: 2 }] },
+      // AC disconnect/whip: ~2.5 hr mount, connect, test
+      { id: "ac_disconnect",    label: "AC Disconnect / Whip",              nec: "NEC 440.14",      materialCost: 120,  laborCost: 213,  laborHours: 2.5, unit: "unit",    variants: [{ label: "Non-Fused", m: 1 }, { label: "Fused", m: 1.2 }, { label: "60A", m: 1 }, { label: "100A", m: 1.3 }] },
+      // HVAC dedicated circuit: 4–6 hr (panel to unit, outdoor disconnect)
+      { id: "hvac_circuit",     label: "HVAC Dedicated Circuit",            nec: "NEC 440.32",      materialCost: 180,  laborCost: 425,  laborHours: 5,   unit: "unit",    variants: [{ label: "Mini Split", m: 1 }, { label: "Central AC", m: 1.2 }, { label: "Heat Pump", m: 1.2 }, { label: "Electric Furnace", m: 1.4 }] },
+      // Dryer/range hookup: ~1.5 hr connection only; includes pulling appliance out
+      { id: "dryer_hookup",     label: "Dryer Hookup / Connection",         nec: "NEC 220.54",      materialCost: 55,   laborCost: 128,  laborHours: 1.5, unit: "unit",    variants: [{ label: "3-Wire NEMA 10-30", m: 1 }, { label: "4-Wire NEMA 14-30", m: 1 }, { label: "Gas Dryer Outlet Only", m: 0.6 }] },
+      { id: "range_hookup",     label: "Range / Oven Hookup",               nec: "NEC 220.55",      materialCost: 65,   laborCost: 128,  laborHours: 1.5, unit: "unit",    variants: [{ label: "Freestanding Range", m: 1 }, { label: "Wall Oven", m: 1.2 }, { label: "Cooktop + Oven", m: 1.5 }] },
+      // Water heater circuit: ~3.5 hr including panel breaker and disconnect
+      { id: "water_heater",     label: "Electric Water Heater Circuit",     nec: "NEC 422.11",      materialCost: 150,  laborCost: 298,  laborHours: 3.5, unit: "unit",    variants: [{ label: "Standard Tank", m: 1 }, { label: "Tankless/On-Demand", m: 1.6 }] },
+      // Generator transfer switch: ~6 hr manual; ATS ~12+ hr
+      { id: "generator_switch", label: "Generator Transfer Switch",         nec: "NEC 702.6",       materialCost: 450,  laborCost: 510,  laborHours: 6,   unit: "unit",    variants: [{ label: "Manual Transfer", m: 1 }, { label: "Interlock Kit", m: 0.6 }, { label: "Auto Transfer (ATS)", m: 2.2 }] },
+      { id: "generator_inlet",  label: "Generator Inlet Box",               nec: "NEC 702.7",       materialCost: 120,  laborCost: 213,  laborHours: 2.5, unit: "unit",    variants: [{ label: "30A Inlet", m: 1 }, { label: "50A Inlet", m: 1.2 }] },
+      // Pool equipment: 6–8 hr full pad; GFCI wiring, bonding, disconnect
+      { id: "pool_equipment",   label: "Pool / Spa Equipment Circuit",      nec: "NEC 680.21",      materialCost: 250,  laborCost: 510,  laborHours: 6,   unit: "unit",    variants: [{ label: "Pump Motor", m: 1 }, { label: "Heater", m: 1.3 }, { label: "Full Equipment Pad", m: 2 }] },
     ],
   },
   {
     id: "smart_home", label: "Structured Wiring & Smart Home", icon: "⬡", color: "#7ee8d4",
     services: [
-      { id: "data_panel",       label: "Structured Media / Data Panel",     nec: "NEC 800.133",     materialCost: 220,  laborCost: 300,  laborHours: 5,   unit: "unit",    variants: [{ label: "Basic", m: 1 }, { label: "With Network Switch", m: 1.4 }] },
-      { id: "cat6_drop",        label: "Cat6 Home Run (Per Drop)",          nec: "NEC 725.41",      materialCost: 60,   laborCost: 120,  laborHours: 2,   unit: "drop",    variants: [{ label: "To Patch Panel", m: 1 }, { label: "Terminated Both Ends", m: 1.1 }] },
-      { id: "coax_drop",        label: "Coax Run (Per Drop)",               nec: "NEC 820.133",     materialCost: 35,   laborCost: 95,   laborHours: 1.5, unit: "drop",    variants: [{ label: "Standard", m: 1 }, { label: "RG6 Quad Shield", m: 1.1 }] },
-      { id: "doorbell",         label: "Doorbell / Video Doorbell",         nec: "NEC 725.41",      materialCost: 60,   laborCost: 90,   laborHours: 1.5, unit: "unit",    variants: [{ label: "Traditional Chime", m: 1 }, { label: "Ring/Nest Wired", m: 1.2 }, { label: "New Circuit Required", m: 2 }] },
-      { id: "intercom",         label: "Intercom System",                   nec: "NEC 725.41",      materialCost: 180,  laborCost: 230,  laborHours: 4,   unit: "unit",    variants: [{ label: "Basic Door Intercom", m: 1 }, { label: "Multi-Room", m: 2 }] },
-      { id: "security_prewire", label: "Security System Pre-Wire",          nec: "NEC 760.41",      materialCost: 120,  laborCost: 240,  laborHours: 4,   unit: "zone",    variants: [{ label: "Per Zone", m: 1 }, { label: "Full House (8 zones)", m: 5 }] },
-      { id: "whole_audio",      label: "Whole-Home Audio Pre-Wire",         nec: "NEC 725.41",      materialCost: 80,   laborCost: 130,  laborHours: 2.5, unit: "room",    variants: [{ label: "Stereo (2 speakers)", m: 1 }, { label: "Surround (5 drops)", m: 2 }] },
+      // Data panel: ~4 hr build-out and mount
+      { id: "data_panel",       label: "Structured Media / Data Panel",     nec: "NEC 800.133",     materialCost: 220,  laborCost: 340,  laborHours: 4,   unit: "unit",    variants: [{ label: "Basic", m: 1 }, { label: "With Network Switch", m: 1.4 }] },
+      // Cat6 per drop: ~1.5 hr finished home (fish + terminate)
+      { id: "cat6_drop",        label: "Cat6 Home Run (Per Drop)",          nec: "NEC 725.41",      materialCost: 60,   laborCost: 128,  laborHours: 1.5, unit: "drop",    variants: [{ label: "To Patch Panel", m: 1 }, { label: "Terminated Both Ends", m: 1.1 }] },
+      { id: "coax_drop",        label: "Coax Run (Per Drop)",               nec: "NEC 820.133",     materialCost: 35,   laborCost: 106,  laborHours: 1.25,unit: "drop",    variants: [{ label: "Standard", m: 1 }, { label: "RG6 Quad Shield", m: 1.1 }] },
+      // Doorbell: ~1 hr swap; new wired ~1.5 hr
+      { id: "doorbell",         label: "Doorbell / Video Doorbell",         nec: "NEC 725.41",      materialCost: 60,   laborCost: 64,   laborHours: 0.75,unit: "unit",    variants: [{ label: "1-for-1 Swap", m: 1 }, { label: "New Wired – Ring/Nest", m: 2 }, { label: "New Circuit Required", m: 3.3 }] },
+      { id: "intercom",         label: "Intercom System",                   nec: "NEC 725.41",      materialCost: 180,  laborCost: 255,  laborHours: 3,   unit: "unit",    variants: [{ label: "Basic Door Intercom", m: 1 }, { label: "Multi-Room", m: 2 }] },
+      { id: "security_prewire", label: "Security System Pre-Wire",          nec: "NEC 760.41",      materialCost: 120,  laborCost: 255,  laborHours: 3,   unit: "zone",    variants: [{ label: "Per Zone", m: 1 }, { label: "Full House (8 zones)", m: 5 }] },
+      { id: "whole_audio",      label: "Whole-Home Audio Pre-Wire",         nec: "NEC 725.41",      materialCost: 80,   laborCost: 170,  laborHours: 2,   unit: "room",    variants: [{ label: "Stereo (2 speakers)", m: 1 }, { label: "Surround (5 drops)", m: 2 }] },
     ],
   },
   {
     id: "outdoor", label: "Outdoor, Garage & Specialty", icon: "◫", color: "#e8d47e",
     services: [
-      { id: "garage_circuit",   label: "Garage Circuit",                    nec: "NEC 210.52(G)",   materialCost: 140,  laborCost: 210,  laborHours: 4,   unit: "circuit", variants: [{ label: "20A General", m: 1 }, { label: "240V Workshop", m: 1.4 }, { label: "EV Charger", m: 1.5 }] },
-      { id: "outdoor_subpanel", label: "Outdoor Sub-Panel (Detached)",      nec: "NEC 225.30",      materialCost: 600,  laborCost: 700,  laborHours: 10,  unit: "unit",    variants: [{ label: "60A Overhead", m: 1 }, { label: "100A Overhead", m: 1.3 }, { label: "100A Underground", m: 1.5 }] },
-      { id: "gfci_outdoor",     label: "Outdoor GFCI Outlet",               nec: "NEC 210.8(A)(3)", materialCost: 45,   laborCost: 130,  laborHours: 1.5, unit: "outlet",  variants: [{ label: "Wall Mount", m: 1 }, { label: "Deck Box", m: 1.2 }, { label: "In-Ground/Pedestal", m: 1.6 }] },
-      { id: "flood_light",      label: "Security / Flood Light",            nec: "NEC 410.10",      materialCost: 65,   laborCost: 100,  laborHours: 2,   unit: "fixture", variants: [{ label: "Motion Flood", m: 1 }, { label: "Camera + Light Combo", m: 1.3 }, { label: "Dusk-to-Dawn", m: 1.1 }] },
-      { id: "conduit_run",      label: "Conduit Run (per 10 ft)",           nec: "NEC 358.26",      materialCost: 35,   laborCost: 55,   laborHours: 1,   unit: "10 ft",   variants: [{ label: "EMT", m: 1 }, { label: "PVC Schedule 40", m: 0.85 }, { label: "Rigid/GRC", m: 1.4 }, { label: "Underground Direct Burial", m: 1.6 }] },
-      { id: "solar_ready",      label: "Solar / Battery Ready Conduit",     nec: "NEC 690.12",      materialCost: 280,  laborCost: 340,  laborHours: 6,   unit: "unit",    variants: [{ label: "Panel Conduit Stub", m: 1 }, { label: "Full Conduit + Junction", m: 1.5 }] },
-      { id: "hot_tub",          label: "Hot Tub / Spa Install",             nec: "NEC 680.42",      materialCost: 380,  laborCost: 550,  laborHours: 8,   unit: "unit",    variants: [{ label: "Plug-in NEMA 14-50", m: 1 }, { label: "Hardwired 240V/50A", m: 1.4 }, { label: "With GFCI Protection", m: 1.5 }] },
-      { id: "ev_parking",       label: "Driveway / Parking EV Outlet",      nec: "NEC 625.40",      materialCost: 300,  laborCost: 420,  laborHours: 6,   unit: "unit",    variants: [{ label: "NEMA 14-50 Outdoor", m: 1 }, { label: "Level 2 EVSE Pedestal", m: 1.6 }] },
+      // Garage circuit: ~3.5 hr standard; 240V adds panel work ~5 hr
+      { id: "garage_circuit",   label: "Garage Circuit",                    nec: "NEC 210.52(G)",   materialCost: 140,  laborCost: 298,  laborHours: 3.5, unit: "circuit", variants: [{ label: "20A General", m: 1 }, { label: "240V Workshop", m: 1.4 }, { label: "EV Charger", m: 1.55 }] },
+      // Outdoor sub-panel: ~10 hr overhead; underground adds trenching ~12 hr
+      { id: "outdoor_subpanel", label: "Outdoor Sub-Panel (Detached)",      nec: "NEC 225.30",      materialCost: 600,  laborCost: 850,  laborHours: 10,  unit: "unit",    variants: [{ label: "60A Overhead", m: 1 }, { label: "100A Overhead", m: 1.3 }, { label: "100A Underground", m: 1.5 }] },
+      // Outdoor GFCI: ~0.5 hr swap; new mount ~1.5 hr
+      { id: "gfci_outdoor",     label: "Outdoor GFCI Outlet",               nec: "NEC 210.8(A)(3)", materialCost: 45,   laborCost: 43,   laborHours: 0.5, unit: "outlet",  variants: [{ label: "1-for-1 Swap", m: 1 }, { label: "New – Wall Mount", m: 3 }, { label: "New – Deck Box", m: 3.4 }, { label: "New – In-Ground/Pedestal", m: 4 }] },
+      // Flood light: ~0.75 hr swap; new mount with wire ~2 hr
+      { id: "flood_light",      label: "Security / Flood Light",            nec: "NEC 410.10",      materialCost: 65,   laborCost: 64,   laborHours: 0.75,unit: "fixture", variants: [{ label: "Swap on Existing Box", m: 1 }, { label: "New – Motion Flood", m: 2.65 }, { label: "New – Camera + Light", m: 3.2 }, { label: "New – Dusk-to-Dawn", m: 2.8 }] },
+      // Conduit: ~45 min per 10 ft EMT; underground adds ~50% more
+      { id: "conduit_run",      label: "Conduit Run (per 10 ft)",           nec: "NEC 358.26",      materialCost: 35,   laborCost: 64,   laborHours: 0.75,unit: "10 ft",   variants: [{ label: "EMT", m: 1 }, { label: "PVC Schedule 40", m: 0.85 }, { label: "Rigid/GRC", m: 1.4 }, { label: "Underground Direct Burial", m: 1.6 }] },
+      { id: "solar_ready",      label: "Solar / Battery Ready Conduit",     nec: "NEC 690.12",      materialCost: 280,  laborCost: 510,  laborHours: 6,   unit: "unit",    variants: [{ label: "Panel Conduit Stub", m: 1 }, { label: "Full Conduit + Junction", m: 1.5 }] },
+      // Hot tub: ~8 hr — trench or conduit, 240V/50A, GFCI, bonding, disconnect
+      { id: "hot_tub",          label: "Hot Tub / Spa Install",             nec: "NEC 680.42",      materialCost: 380,  laborCost: 680,  laborHours: 8,   unit: "unit",    variants: [{ label: "Plug-in NEMA 14-50", m: 1 }, { label: "Hardwired 240V/50A", m: 1.4 }, { label: "With GFCI + Bonding", m: 1.6 }] },
+      { id: "ev_parking",       label: "Driveway / Parking EV Outlet",      nec: "NEC 625.40",      materialCost: 300,  laborCost: 510,  laborHours: 6,   unit: "unit",    variants: [{ label: "NEMA 14-50 Outdoor", m: 1 }, { label: "Level 2 EVSE Pedestal", m: 1.6 }] },
     ],
   },
 ];
@@ -815,16 +872,43 @@ export default function Wireway() {
   const [hourlyRate,   setHourlyRate]   = useState(85);
   const [markup,       setMarkup]       = useState(0.30);
   const [clientName,   setClientName]   = useState("");
+  const [clientEmail,  setClientEmail]  = useState("");
+  const [clientPhone,  setClientPhone]  = useState("");
   const [jobName,      setJobName]      = useState("");
   const [notes,        setNotes]        = useState("");
-  const [copied,       setCopied]       = useState(false);
   const [tab,          setTab]          = useState("services");
   const [showMaterials,setShowMaterials]= useState(true);
-  const [clientBuysAll,setClientBuysAll]= useState(false); // global default
+  const [clientBuysAll,setClientBuysAll]= useState(false);
+  const [sendModal,    setSendModal]    = useState(false);
+  const [copied,       setCopied]       = useState(false);
+  const [previewModal, setPreviewModal] = useState(false);
+
+  // ── Company profile (persisted in localStorage) ──
+  const [company, setCompany] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("wireway_company") || "{}"); } catch { return {}; }
+  });
+  const [editingCompany, setEditingCompany] = useState(false);
+  const [companyDraft,   setCompanyDraft]   = useState(company);
+  const [logoDataUrl,    setLogoDataUrl]    = useState(company.logoDataUrl || "");
+
+  const saveCompany = () => {
+    const saved = { ...companyDraft, logoDataUrl };
+    setCompany(saved);
+    try { localStorage.setItem("wireway_company", JSON.stringify(saved)); } catch {}
+    setEditingCompany(false);
+  };
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setLogoDataUrl(ev.target.result);
+    reader.readAsDataURL(file);
+  };
 
   const upd = (id, data) => setEntries(p => ({ ...p, [id]: data }));
 
-  // ── Compute totals ──
+  // ── Totals ──
   const { activeItems, totMat, totLab, totHrs, totClientBuysMat } = useMemo(() => {
     const items = ALL_SERVICES.filter(s => entries[s.id]?.qty > 0).map(s => {
       const e = entries[s.id];
@@ -838,26 +922,33 @@ export default function Wireway() {
     });
     return {
       activeItems: items,
-      totMat:            items.reduce((a,i) => a + (i.cBuys ? 0 : i.mat), 0),
-      totLab:            items.reduce((a,i) => a + i.lab, 0),
-      totHrs:            items.reduce((a,i) => a + i.hrs, 0),
-      totClientBuysMat:  items.reduce((a,i) => a + (i.cBuys ? i.mat : 0), 0),
+      totMat:           items.reduce((a,i) => a + (i.cBuys ? 0 : i.mat), 0),
+      totLab:           items.reduce((a,i) => a + i.lab, 0),
+      totHrs:           items.reduce((a,i) => a + i.hrs, 0),
+      totClientBuysMat: items.reduce((a,i) => a + (i.cBuys ? i.mat : 0), 0),
     };
   }, [entries, clientBuysAll]);
 
-  const subtotal    = totMat + totLab;
-  const markupAmt   = subtotal * markup;
-  const total       = subtotal + markupAmt;
-  const hasItems    = activeItems.length > 0;
+  const subtotal = totMat + totLab;
+  const markupAmt = subtotal * markup;
+  const total = subtotal + markupAmt;
+  const hasItems = activeItems.length > 0;
 
-  const copyQuote = () => {
-    const cBuyItems  = activeItems.filter(i => i.cBuys);
-    const iSupply    = activeItems.filter(i => !i.cBuys);
-    const lines = [
+  // ── Build plain-text quote ──
+  const buildQuoteText = () => {
+    const cBuyItems = activeItems.filter(i => i.cBuys);
+    const iSupply   = activeItems.filter(i => !i.cBuys);
+    return [
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-      "         WIREWAY ESTIMATE",
+      company.name ? `  ${company.name.toUpperCase()}` : "  ELECTRICAL ESTIMATE",
+      company.phone ? `  ${company.phone}` : null,
+      company.email ? `  ${company.email}` : null,
+      company.address ? `  ${company.address}` : null,
+      company.license ? `  License: ${company.license}` : null,
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
       clientName && `Client:   ${clientName}`,
+      clientPhone && `Phone:    ${clientPhone}`,
+      clientEmail && `Email:    ${clientEmail}`,
       jobName    && `Job:      ${jobName}`,
       `Date:     ${new Date().toLocaleDateString()}`,
       "",
@@ -866,37 +957,61 @@ export default function Wireway() {
       ...activeItems.map(i => `  • ${i.label} (${i.variantLabel}) × ${i.qty}`),
       "",
       ...(iSupply.length ? [
-        "ELECTRICIAN SUPPLIES PARTS",
+        "PARTS SUPPLIED BY US",
         "──────────────────────────────────",
-        ...iSupply.map(i => `  ${i.label} (${i.variantLabel}) × ${i.qty}`),
-        `  Materials subtotal: $${totMat.toLocaleString()}`,
-        "",
+        ...iSupply.map(i => `  ${i.label} × ${i.qty}  — $${i.mat.toLocaleString()}`),
+        `  Materials subtotal: $${totMat.toLocaleString()}`, "",
       ] : []),
       ...(cBuyItems.length ? [
-        "CLIENT SUPPLIES PARTS (labor only)",
+        "CLIENT SUPPLIES PARTS (labor only billed)",
         "──────────────────────────────────",
-        ...cBuyItems.map(i => `  ${i.label} (${i.variantLabel}) × ${i.qty}`),
-        `  Client material est: $${totClientBuysMat.toLocaleString()} (not charged)`,
+        ...cBuyItems.map(i => `  ${i.label} × ${i.qty}  — est. $${i.mat.toLocaleString()} (not charged)`),
         "",
       ] : []),
       "COST BREAKDOWN",
       "──────────────────────────────────",
-      showMaterials && `  Materials (supplied by us): $${totMat.toLocaleString()}`,
-      `  Labor (${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr): $${totLab.toLocaleString()}`,
-      `  Markup (${(markup*100).toFixed(0)}%): $${markupAmt.toLocaleString()}`,
+      showMaterials ? `  Materials:  $${totMat.toLocaleString()}` : null,
+      `  Labor:      $${totLab.toLocaleString()}  (${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr)`,
+      `  Markup:     $${markupAmt.toLocaleString()}  (${(markup*100).toFixed(0)}%)`,
       "──────────────────────────────────",
-      `  TOTAL: $${total.toLocaleString()}`,
-      notes && `\nNotes:\n${notes}`,
+      `  TOTAL:      $${total.toLocaleString()}`,
+      notes ? `\nNotes:\n${notes}` : null,
       "",
-      "Generated by Wireway · NEC 2023 · Professional Electrical Estimating",
+      company.terms ? `TERMS:\n${company.terms}` : null,
+      "",
+      "Generated by Wireway · NEC 2023 Professional Estimating",
     ].filter(Boolean).join("\n");
-    navigator.clipboard.writeText(lines);
+  };
+
+  const copyQuote = () => {
+    navigator.clipboard.writeText(buildQuoteText());
     setCopied(true); setTimeout(() => setCopied(false), 2500);
+  };
+
+  const emailQuote = () => {
+    const subject = encodeURIComponent(`Electrical Estimate${clientName ? " for " + clientName : ""}${jobName ? " — " + jobName : ""}`);
+    const body = encodeURIComponent(buildQuoteText());
+    const to = clientEmail ? encodeURIComponent(clientEmail) : "";
+    window.open(`mailto:${to}?subject=${subject}&body=${body}`);
+  };
+
+  const smsQuote = () => {
+    const body = encodeURIComponent(
+      `Hi ${clientName || "there"}, here's your electrical estimate from ${company.name || "us"}:\n\n` +
+      activeItems.map(i => `• ${i.label} × ${i.qty}`).join("\n") +
+      `\n\nTOTAL: $${total.toLocaleString()}\n\nCall us: ${company.phone || ""}`
+    );
+    const to = clientPhone ? clientPhone.replace(/\D/g, "") : "";
+    window.open(`sms:${to}?body=${body}`);
   };
 
   const TAB = (id, lbl) => (
     <button onClick={() => setTab(id)} style={{ flex:1, padding:"10px 6px", border:"none", cursor:"pointer", fontFamily:"'Syne',sans-serif", fontSize:12, fontWeight:700, letterSpacing:"-0.01em", transition:"all 0.2s", background: tab===id ? "rgba(232,201,122,0.1)" : "transparent", color: tab===id ? "#e8c97a" : "rgba(255,255,255,0.3)", borderBottom: tab===id ? "2px solid #e8c97a" : "2px solid transparent" }}>{lbl}</button>
   );
+
+  const inputStyle = { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:7, padding:"8px 11px", fontSize:13, color:"#fff", fontFamily:"inherit", width:"100%", transition:"border-color 0.15s" };
+  const focusGold = e => e.target.style.borderColor = "rgba(232,201,122,0.4)";
+  const blurGray  = e => e.target.style.borderColor = "rgba(255,255,255,0.07)";
 
   return (
     <>
@@ -910,54 +1025,65 @@ export default function Wireway() {
         input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.18)}
         select option{background:#1a1a1e}
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes modalIn{from{opacity:0;transform:scale(0.96) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px}
+        .modal-box{background:#111115;border:1px solid rgba(255,255,255,0.1);border-radius:18px;width:100%;max-width:600px;animation:modalIn 0.25s ease both;margin:auto}
+        @media print{.no-print{display:none!important}.print-quote{background:#fff!important;color:#000!important;padding:32px!important}}
       `}</style>
 
       <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 45% at 50% -5%,rgba(232,201,122,0.065) 0%,transparent 55%),#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:80 }}>
 
         {/* ── HEADER ── */}
-        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.055)", background:"rgba(10,10,12,0.88)", backdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
+        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.055)", background:"rgba(10,10,12,0.88)", backdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }} className="no-print">
           <div style={{ maxWidth:800, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <div style={{ width:26, height:26, borderRadius:6, background:"linear-gradient(135deg,#e8c97a 0%,#c9a84c 100%)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:800, color:"#0a0a0c" }}>W</div>
-              <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, letterSpacing:"-0.03em" }}>Wireway</span>
+              {logoDataUrl
+                ? <img src={logoDataUrl} alt="logo" style={{ height:28, width:"auto", borderRadius:4, objectFit:"contain" }} />
+                : <div style={{ width:26, height:26, borderRadius:6, background:"linear-gradient(135deg,#e8c97a 0%,#c9a84c 100%)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:800, color:"#0a0a0c" }}>W</div>
+              }
+              <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, letterSpacing:"-0.03em" }}>{company.name || "Wireway"}</span>
               <span style={{ fontSize:8, fontWeight:700, color:"rgba(232,201,122,0.6)", background:"rgba(232,201,122,0.07)", border:"1px solid rgba(232,201,122,0.16)", padding:"1px 5px", borderRadius:3, letterSpacing:"0.08em", textTransform:"uppercase" }}>NEC 2023</span>
             </div>
-            {hasItems && (
-              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <span style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontFamily:"'DM Mono',monospace" }}>{activeItems.length} services · {totHrs.toFixed(1)} hrs</span>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:17, fontWeight:500, color:"#e8c97a", letterSpacing:"-0.02em" }}>${total.toLocaleString()}</span>
-              </div>
-            )}
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              {hasItems && <span style={{ fontFamily:"'DM Mono',monospace", fontSize:17, fontWeight:500, color:"#e8c97a", letterSpacing:"-0.02em" }}>${total.toLocaleString()}</span>}
+              <button onClick={() => { setCompanyDraft(company); setLogoDataUrl(company.logoDataUrl||""); setEditingCompany(true); }}
+                style={{ padding:"5px 10px", borderRadius:6, border:"1px solid rgba(255,255,255,0.1)", background:"rgba(255,255,255,0.04)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                ⚙ Company
+              </button>
+            </div>
           </div>
         </div>
 
         <div style={{ maxWidth:800, margin:"0 auto", padding:"0 20px" }}>
 
           {/* ── HERO ── */}
-          <div style={{ padding:"26px 0 20px", animation:"fadeUp 0.4s ease both" }}>
+          <div style={{ padding:"26px 0 20px", animation:"fadeUp 0.4s ease both" }} className="no-print">
             <h1 style={{ fontFamily:"'Syne',sans-serif", fontSize:"clamp(20px,5vw,30px)", fontWeight:800, letterSpacing:"-0.04em", lineHeight:1.15, background:"linear-gradient(135deg,#ffffff 40%,rgba(232,201,122,0.85) 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", marginBottom:6 }}>
               Build your estimate.<br />Win the job.
             </h1>
             <p style={{ fontSize:12, color:"rgba(255,255,255,0.35)", lineHeight:1.6 }}>
-              {CATEGORIES.flatMap(c => c.services).length} services · {CATEGORIES.length} categories · NEC 2023 code references · Material vs labor split · Client-supplied parts
+              {CATEGORIES.flatMap(c => c.services).length} services · {CATEGORIES.length} categories · NEC 2023 · Material vs labor split · Client-supplied parts
             </p>
           </div>
 
           {/* ── JOB DETAILS ── */}
-          <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:13, padding:"14px 16px", marginBottom:12, animation:"fadeUp 0.4s ease 0.04s both" }}>
-            <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Job Details</div>
+          <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:13, padding:"14px 16px", marginBottom:12, animation:"fadeUp 0.4s ease 0.04s both" }} className="no-print">
+            <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Client & Job Details</div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-              {[{ ph:"Client name", val:clientName, set:setClientName },{ ph:"Job / address", val:jobName, set:setJobName }].map(f => (
+              {[
+                { ph:"Client name",    val:clientName,   set:setClientName },
+                { ph:"Job / address",  val:jobName,      set:setJobName },
+                { ph:"Client email",   val:clientEmail,  set:setClientEmail },
+                { ph:"Client phone",   val:clientPhone,  set:setClientPhone },
+              ].map(f => (
                 <input key={f.ph} placeholder={f.ph} value={f.val} onChange={e => f.set(e.target.value)}
-                  style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:7, padding:"8px 11px", fontSize:13, color:"#fff", fontFamily:"inherit", width:"100%", transition:"border-color 0.15s" }}
-                  onFocus={e => e.target.style.borderColor="rgba(232,201,122,0.35)"}
-                  onBlur={e => e.target.style.borderColor="rgba(255,255,255,0.07)"} />
+                  style={inputStyle} onFocus={focusGold} onBlur={blurGray} />
               ))}
             </div>
           </div>
 
           {/* ── RATE SETTINGS ── */}
-          <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:13, padding:"14px 16px", marginBottom:12, animation:"fadeUp 0.4s ease 0.08s both" }}>
+          <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:13, padding:"14px 16px", marginBottom:12, animation:"fadeUp 0.4s ease 0.08s both" }} className="no-print">
             <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Rate Settings</div>
             <div style={{ display:"flex", gap:18, flexWrap:"wrap" }}>
               <div style={{ flex:1, minWidth:220 }}>
@@ -976,19 +1102,17 @@ export default function Wireway() {
           </div>
 
           {/* ── GLOBAL SETTINGS BAR ── */}
-          <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap", animation:"fadeUp 0.4s ease 0.12s both" }}>
-            {/* Show/hide materials */}
+          <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap", animation:"fadeUp 0.4s ease 0.12s both" }} className="no-print">
             <button onClick={() => setShowMaterials(v => !v)} style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 12px", borderRadius:8, border: showMaterials ? "1px solid rgba(232,201,122,0.35)" : "1px solid rgba(255,255,255,0.08)", background: showMaterials ? "rgba(232,201,122,0.1)" : "rgba(255,255,255,0.03)", color: showMaterials ? "#e8c97a" : "rgba(255,255,255,0.38)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
-              <span style={{ fontSize:13 }}>{showMaterials ? "◈" : "◇"}</span> {showMaterials ? "Showing material cost" : "Labor only (hide materials)"}
+              <span>{showMaterials ? "◈" : "◇"}</span> {showMaterials ? "Showing material cost" : "Labor only (hide materials)"}
             </button>
-            {/* Global client buys parts */}
             <button onClick={() => setClientBuysAll(v => !v)} style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 12px", borderRadius:8, border: clientBuysAll ? "1px solid rgba(120,200,255,0.35)" : "1px solid rgba(255,255,255,0.08)", background: clientBuysAll ? "rgba(120,200,255,0.08)" : "rgba(255,255,255,0.03)", color: clientBuysAll ? "#7ec8e8" : "rgba(255,255,255,0.38)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
-              <span style={{ fontSize:13 }}>{clientBuysAll ? "◉" : "○"}</span> {clientBuysAll ? "Client buys all parts (default)" : "You supply all parts (default)"}
+              <span>{clientBuysAll ? "◉" : "○"}</span> {clientBuysAll ? "Client buys all parts" : "You supply all parts"}
             </button>
           </div>
 
           {/* ── TABS ── */}
-          <div style={{ display:"flex", background:"rgba(255,255,255,0.025)", borderRadius:9, border:"1px solid rgba(255,255,255,0.065)", overflow:"hidden", marginBottom:14, animation:"fadeUp 0.4s ease 0.16s both" }}>
+          <div style={{ display:"flex", background:"rgba(255,255,255,0.025)", borderRadius:9, border:"1px solid rgba(255,255,255,0.065)", overflow:"hidden", marginBottom:14, animation:"fadeUp 0.4s ease 0.16s both" }} className="no-print">
             {TAB("services", `Services (${CATEGORIES.flatMap(c=>c.services).length})`)}
             {TAB("summary",  hasItems ? `Summary · $${total.toLocaleString()}` : "Summary")}
             {TAB("nec", "NEC 2023")}
@@ -996,7 +1120,7 @@ export default function Wireway() {
 
           {/* ════════════ SERVICES TAB ════════════ */}
           {tab==="services" && (
-            <div style={{ animation:"fadeUp 0.3s ease both" }}>
+            <div style={{ animation:"fadeUp 0.3s ease both" }} className="no-print">
               {CATEGORIES.map(cat => (
                 <CategorySection key={cat.id} category={cat} entries={entries} onUpdate={upd}
                   hourlyRate={hourlyRate} clientBuys={clientBuysAll} showMaterials={showMaterials} />
@@ -1008,7 +1132,7 @@ export default function Wireway() {
           {tab==="summary" && (
             <div style={{ animation:"fadeUp 0.3s ease both" }}>
               {!hasItems ? (
-                <div style={{ textAlign:"center", padding:"48px 20px", color:"rgba(255,255,255,0.2)" }}>
+                <div style={{ textAlign:"center", padding:"48px 20px", color:"rgba(255,255,255,0.2)" }} className="no-print">
                   <div style={{ fontSize:30, marginBottom:10 }}>◎</div>
                   <div style={{ fontSize:13 }}>No services selected yet.</div>
                   <button onClick={() => setTab("services")} style={{ marginTop:18, padding:"9px 22px", background:"rgba(232,201,122,0.1)", border:"1px solid rgba(232,201,122,0.28)", borderRadius:8, color:"#e8c97a", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Open Services</button>
@@ -1016,38 +1140,65 @@ export default function Wireway() {
               ) : (
                 <>
                   {/* ── STAT CARDS ── */}
-                  <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
-                    <StatCard label="Total Estimate"    value={`$${total.toLocaleString()}`}    color="#e8c97a" />
-                    <StatCard label="Labor Only"        value={`$${totLab.toLocaleString()}`}   color="#a8e87e" sub={`${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr`} />
-                    {showMaterials && <StatCard label="Materials (You)" value={`$${totMat.toLocaleString()}`}   color="#7eb8e8" />}
+                  <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }} className="no-print">
+                    <StatCard label="Total Estimate"      value={`$${total.toLocaleString()}`}           color="#e8c97a" />
+                    <StatCard label="Labor Only"          value={`$${totLab.toLocaleString()}`}          color="#a8e87e" sub={`${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr`} />
+                    {showMaterials && <StatCard label="Materials (You)"    value={`$${totMat.toLocaleString()}`}          color="#7eb8e8" />}
                     {totClientBuysMat > 0 && <StatCard label="Client Buys (est.)" value={`$${totClientBuysMat.toLocaleString()}`} color="#e87eb8" sub="not charged to you" />}
                   </div>
 
-                  {/* ── SERVICES PROVIDED LIST ── */}
-                  <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:13, padding:"14px 16px", marginBottom:12 }}>
-                    <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Services Provided</div>
+                  {/* ── QUOTE PREVIEW CARD ── */}
+                  <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:13, padding:"20px", marginBottom:12 }} className="print-quote">
+                    {/* Company header */}
+                    <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:16, paddingBottom:16, borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+                      {logoDataUrl
+                        ? <img src={logoDataUrl} alt="logo" style={{ height:48, width:"auto", maxWidth:120, objectFit:"contain", borderRadius:6 }} />
+                        : <div style={{ width:44, height:44, borderRadius:8, background:"linear-gradient(135deg,#e8c97a,#c9a84c)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, fontWeight:800, color:"#0a0a0c", flexShrink:0 }}>
+                            {(company.name || "W")[0].toUpperCase()}
+                          </div>
+                      }
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontFamily:"'Syne',sans-serif", fontSize:15, fontWeight:800, color:"#fff", letterSpacing:"-0.02em" }}>{company.name || "Your Company Name"}</div>
+                        <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:2, lineHeight:1.6 }}>
+                          {[company.phone, company.email, company.address, company.license && `Lic: ${company.license}`].filter(Boolean).join("  ·  ")}
+                        </div>
+                      </div>
+                      <div style={{ textAlign:"right", flexShrink:0 }}>
+                        <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em" }}>Date</div>
+                        <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"'DM Mono',monospace" }}>{new Date().toLocaleDateString()}</div>
+                      </div>
+                    </div>
+
+                    {/* Client info */}
+                    {(clientName || jobName || clientEmail || clientPhone) && (
+                      <div style={{ background:"rgba(255,255,255,0.03)", borderRadius:8, padding:"10px 12px", marginBottom:14, display:"grid", gridTemplateColumns:"1fr 1fr", gap:"4px 16px" }}>
+                        {clientName  && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.35)" }}>Client: </span><span style={{ color:"#fff", fontWeight:600 }}>{clientName}</span></div>}
+                        {jobName     && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.35)" }}>Job: </span><span style={{ color:"rgba(255,255,255,0.7)" }}>{jobName}</span></div>}
+                        {clientEmail && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.35)" }}>Email: </span><span style={{ color:"rgba(255,255,255,0.7)" }}>{clientEmail}</span></div>}
+                        {clientPhone && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.35)" }}>Phone: </span><span style={{ color:"rgba(255,255,255,0.7)" }}>{clientPhone}</span></div>}
+                      </div>
+                    )}
+
+                    {/* Services provided */}
+                    <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Services Provided</div>
                     {CATEGORIES.map(cat => {
                       const items = activeItems.filter(i => cat.services.find(s => s.id===i.id));
                       if (!items.length) return null;
                       return (
-                        <div key={cat.id} style={{ marginBottom:14 }}>
-                          <div style={{ fontSize:9, color:cat.color, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:6, opacity:0.85 }}>{cat.label}</div>
+                        <div key={cat.id} style={{ marginBottom:12 }}>
+                          <div style={{ fontSize:9, color:cat.color, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:5, opacity:0.85 }}>{cat.label}</div>
                           {items.map(item => (
-                            <div key={item.id} style={{ display:"flex", alignItems:"flex-start", gap:8, padding:"7px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                            <div key={item.id} style={{ display:"flex", alignItems:"flex-start", gap:8, padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
                               <div style={{ flex:1 }}>
                                 <div style={{ fontSize:12, color:"rgba(255,255,255,0.78)", fontWeight:600 }}>{item.label}</div>
-                                <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontFamily:"'DM Mono',monospace", marginTop:2 }}>
+                                <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontFamily:"'DM Mono',monospace", marginTop:1 }}>
                                   {item.variantLabel} · {item.nec} · qty {item.qty}
-                                  {item.cBuys
-                                    ? <span style={{ color:"#7ec8e8", marginLeft:6 }}>· client supplies parts</span>
-                                    : <span style={{ color:"rgba(255,255,255,0.25)", marginLeft:6 }}>· you supply parts</span>}
+                                  {item.cBuys ? <span style={{ color:"#7ec8e8", marginLeft:5 }}>· client supplies parts</span> : ""}
                                 </div>
                               </div>
-                              {/* Labor / mat / total columns */}
-                              <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:2, flexShrink:0 }}>
-                                <span style={{ fontSize:10, color:"rgba(162,220,160,0.8)", fontFamily:"'DM Mono',monospace" }}>lab ${item.lab.toLocaleString()}</span>
-                                {showMaterials && !item.cBuys && <span style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontFamily:"'DM Mono',monospace" }}>mat ${item.mat.toLocaleString()}</span>}
-                                {item.cBuys && showMaterials && <span style={{ fontSize:10, color:"rgba(126,200,232,0.5)", fontFamily:"'DM Mono',monospace" }}>mat ${item.mat.toLocaleString()} (client)</span>}
+                              <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:1, flexShrink:0 }}>
+                                <span style={{ fontSize:10, color:"rgba(162,220,160,0.75)", fontFamily:"'DM Mono',monospace" }}>lab ${item.lab.toLocaleString()}</span>
+                                {showMaterials && !item.cBuys && <span style={{ fontSize:9, color:"rgba(255,255,255,0.28)", fontFamily:"'DM Mono',monospace" }}>mat ${item.mat.toLocaleString()}</span>}
                                 <span style={{ fontSize:12, fontWeight:700, color:cat.color, fontFamily:"'DM Mono',monospace" }}>${item.lineTotal.toLocaleString()}</span>
                               </div>
                             </div>
@@ -1055,42 +1206,73 @@ export default function Wireway() {
                         </div>
                       );
                     })}
-                  </div>
 
-                  {/* ── TOTALS BOX ── */}
-                  <div style={{ background:"linear-gradient(135deg,rgba(232,201,122,0.065) 0%,rgba(255,255,255,0.018) 100%)", border:"1px solid rgba(232,201,122,0.18)", borderRadius:13, padding:"16px 18px", marginBottom:12 }}>
-                    <div style={{ fontSize:9, color:"rgba(232,201,122,0.55)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Cost Breakdown</div>
-                    {[
-                      showMaterials && { label:"Materials (supplied by you)", val:totMat, color:"#7eb8e8" },
-                      { label:`Labor — ${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr`, val:totLab, color:"#a8e87e" },
-                      { label:`Markup — ${(markup*100).toFixed(0)}%`, val:markupAmt, color:"rgba(255,255,255,0.45)" },
-                    ].filter(Boolean).map(row => (
-                      <div key={row.label} style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", fontSize:12 }}>
-                        <span style={{ color:"rgba(255,255,255,0.38)" }}>{row.label}</span>
-                        <span style={{ fontFamily:"'DM Mono',monospace", color:row.color, fontWeight:600 }}>${row.val.toLocaleString()}</span>
+                    {/* Totals */}
+                    <div style={{ background:"linear-gradient(135deg,rgba(232,201,122,0.065) 0%,rgba(255,255,255,0.018) 100%)", border:"1px solid rgba(232,201,122,0.18)", borderRadius:10, padding:"14px 16px", marginTop:8 }}>
+                      {[
+                        showMaterials && { label:"Materials (supplied by us)", val:totMat, color:"#7eb8e8" },
+                        { label:`Labor — ${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr`, val:totLab, color:"#a8e87e" },
+                        { label:`Markup — ${(markup*100).toFixed(0)}%`, val:markupAmt, color:"rgba(255,255,255,0.4)" },
+                      ].filter(Boolean).map(row => (
+                        <div key={row.label} style={{ display:"flex", justifyContent:"space-between", padding:"4px 0", fontSize:11 }}>
+                          <span style={{ color:"rgba(255,255,255,0.38)" }}>{row.label}</span>
+                          <span style={{ fontFamily:"'DM Mono',monospace", color:row.color, fontWeight:600 }}>${row.val.toLocaleString()}</span>
+                        </div>
+                      ))}
+                      {totClientBuysMat > 0 && (
+                        <div style={{ display:"flex", justifyContent:"space-between", padding:"4px 0", fontSize:11 }}>
+                          <span style={{ color:"rgba(126,200,232,0.45)" }}>Client supplies parts (not charged)</span>
+                          <span style={{ fontFamily:"'DM Mono',monospace", color:"rgba(126,200,232,0.45)" }}>~${totClientBuysMat.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:12, marginTop:6, borderTop:"1px solid rgba(232,201,122,0.18)" }}>
+                        <span style={{ fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:800, color:"#fff" }}>Total Estimate</span>
+                        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:500, color:"#e8c97a", letterSpacing:"-0.03em" }}>${total.toLocaleString()}</span>
                       </div>
-                    ))}
-                    {totClientBuysMat > 0 && (
-                      <div style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", fontSize:12 }}>
-                        <span style={{ color:"rgba(126,200,232,0.5)" }}>Client supplies parts (not charged)</span>
-                        <span style={{ fontFamily:"'DM Mono',monospace", color:"rgba(126,200,232,0.5)" }}>~${totClientBuysMat.toLocaleString()}</span>
+                    </div>
+
+                    {/* Notes */}
+                    {notes && (
+                      <div style={{ marginTop:12, padding:"10px 12px", background:"rgba(255,255,255,0.03)", borderRadius:8, fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.6 }}>
+                        <span style={{ color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em", fontSize:9 }}>Notes: </span>{notes}
                       </div>
                     )}
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:13, marginTop:7, borderTop:"1px solid rgba(232,201,122,0.16)" }}>
-                      <span style={{ fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:800, color:"#fff" }}>Total Estimate</span>
-                      <span style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:500, color:"#e8c97a", letterSpacing:"-0.03em" }}>${total.toLocaleString()}</span>
-                    </div>
+
+                    {/* Terms */}
+                    {company.terms && (
+                      <div style={{ marginTop:10, padding:"10px 12px", background:"rgba(255,255,255,0.02)", borderRadius:8, fontSize:10, color:"rgba(255,255,255,0.3)", lineHeight:1.7 }}>
+                        <div style={{ color:"rgba(255,255,255,0.2)", textTransform:"uppercase", letterSpacing:"0.08em", fontSize:9, marginBottom:4 }}>Terms & Conditions</div>
+                        {company.terms}
+                      </div>
+                    )}
                   </div>
 
-                  {/* ── NOTES ── */}
-                  <textarea placeholder="Job notes, permit info, scope exclusions, payment terms, warranty..." value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-                    style={{ width:"100%", background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:10, padding:"11px 13px", fontSize:13, color:"#fff", fontFamily:"inherit", resize:"vertical", lineHeight:1.6, transition:"border-color 0.15s", marginBottom:10 }}
-                    onFocus={e => e.target.style.borderColor="rgba(232,201,122,0.28)"}
-                    onBlur={e => e.target.style.borderColor="rgba(255,255,255,0.065)"} />
+                  {/* ── NOTES INPUT ── */}
+                  <textarea placeholder="Job notes, permit info, scope exclusions, warranty..." value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+                    style={{ ...inputStyle, width:"100%", marginBottom:10, resize:"vertical", lineHeight:1.6 }} className="no-print"
+                    onFocus={focusGold} onBlur={blurGray} />
 
-                  {/* ── COPY BUTTON ── */}
-                  <button onClick={copyQuote} style={{ width:"100%", padding:"13px", background: copied ? "rgba(100,200,130,0.1)" : "linear-gradient(135deg,rgba(232,201,122,0.16) 0%,rgba(232,201,122,0.07) 100%)", border: copied ? "1px solid rgba(100,200,130,0.38)" : "1px solid rgba(232,201,122,0.32)", borderRadius:11, color: copied ? "#7dcea0" : "#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", letterSpacing:"0.01em", transition:"all 0.2s" }}>
-                    {copied ? "✓  Quote Copied to Clipboard" : "Copy Full Quote"}
+                  {/* ── SEND ACTIONS ── */}
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:8 }} className="no-print">
+                    {[
+                      { icon:"✉", label:"Email Quote", desc: clientEmail || "Open mail app", action: emailQuote, color:"#7eb8e8" },
+                      { icon:"💬", label:"Text Quote",  desc: clientPhone || "Open messages", action: smsQuote,   color:"#a8e87e" },
+                      { icon:"⎘",  label:"Copy Quote",  desc: copied ? "Copied!" : "Plain text",   action: copyQuote,  color: copied ? "#7dcea0" : "#e8c97a" },
+                    ].map(btn => (
+                      <button key={btn.label} onClick={btn.action} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, padding:"12px 8px", borderRadius:11, border:`1px solid ${btn.color}25`, background:`${btn.color}08`, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background=`${btn.color}15`}
+                        onMouseLeave={e => e.currentTarget.style.background=`${btn.color}08`}>
+                        <span style={{ fontSize:18 }}>{btn.icon}</span>
+                        <span style={{ fontSize:11, fontWeight:700, color:btn.color }}>{btn.label}</span>
+                        <span style={{ fontSize:9, color:"rgba(255,255,255,0.3)" }}>{btn.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <button onClick={() => window.print()} style={{ width:"100%", padding:"11px", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, color:"rgba(255,255,255,0.5)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }} className="no-print"
+                    onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.08)"}
+                    onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.04)"}>
+                    🖨 Print / Save as PDF
                   </button>
                 </>
               )}
@@ -1100,11 +1282,79 @@ export default function Wireway() {
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
 
-          <div style={{ textAlign:"center", marginTop:44, paddingTop:18, borderTop:"1px solid rgba(255,255,255,0.04)", fontSize:9, color:"rgba(255,255,255,0.13)", letterSpacing:"0.07em" }}>
+          <div style={{ textAlign:"center", marginTop:44, paddingTop:18, borderTop:"1px solid rgba(255,255,255,0.04)", fontSize:9, color:"rgba(255,255,255,0.13)", letterSpacing:"0.07em" }} className="no-print">
             WIREWAY · NEC 2023 RESIDENTIAL ESTIMATING · PROFESSIONAL GRADE
           </div>
         </div>
       </div>
+
+      {/* ════════════ COMPANY PROFILE MODAL ════════════ */}
+      {editingCompany && (
+        <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setEditingCompany(false)}>
+          <div className="modal-box" style={{ padding:"24px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+              <div>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, color:"#fff" }}>Company Profile</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:2 }}>Appears on every quote you send</div>
+              </div>
+              <button onClick={() => setEditingCompany(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:20, cursor:"pointer", padding:"4px 8px" }}>✕</button>
+            </div>
+
+            {/* Logo upload */}
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Company Logo</div>
+              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                {logoDataUrl
+                  ? <img src={logoDataUrl} alt="logo" style={{ height:52, width:"auto", maxWidth:140, objectFit:"contain", borderRadius:6, border:"1px solid rgba(255,255,255,0.1)" }} />
+                  : <div style={{ width:52, height:52, borderRadius:8, background:"rgba(255,255,255,0.05)", border:"2px dashed rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, color:"rgba(255,255,255,0.2)" }}>⬡</div>
+                }
+                <div style={{ flex:1 }}>
+                  <label style={{ display:"inline-block", padding:"8px 14px", background:"rgba(232,201,122,0.1)", border:"1px solid rgba(232,201,122,0.3)", borderRadius:7, color:"#e8c97a", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                    {logoDataUrl ? "Change Logo" : "Upload Logo"}
+                    <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display:"none" }} />
+                  </label>
+                  {logoDataUrl && (
+                    <button onClick={() => setLogoDataUrl("")} style={{ marginLeft:8, padding:"8px 12px", background:"transparent", border:"1px solid rgba(255,255,255,0.1)", borderRadius:7, color:"rgba(255,255,255,0.4)", fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>Remove</button>
+                  )}
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.2)", marginTop:5 }}>PNG, JPG, SVG · max 2MB · appears on quotes</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Company fields */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
+              {[
+                { ph:"Company name",      key:"name" },
+                { ph:"Phone number",      key:"phone" },
+                { ph:"Email address",     key:"email" },
+                { ph:"Website",           key:"website" },
+                { ph:"Street address",    key:"address" },
+                { ph:"License number",    key:"license" },
+              ].map(f => (
+                <input key={f.key} placeholder={f.ph} value={companyDraft[f.key]||""} onChange={e => setCompanyDraft(p => ({ ...p, [f.key]: e.target.value }))}
+                  style={inputStyle} onFocus={focusGold} onBlur={blurGray} />
+              ))}
+            </div>
+
+            {/* Terms */}
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Terms & Conditions (optional)</div>
+              <textarea placeholder="Payment due within 30 days. 50% deposit required before work begins. Estimate valid for 30 days..."
+                value={companyDraft.terms||""} onChange={e => setCompanyDraft(p => ({ ...p, terms: e.target.value }))}
+                rows={3} style={{ ...inputStyle, resize:"vertical", lineHeight:1.6 }} onFocus={focusGold} onBlur={blurGray} />
+            </div>
+
+            <div style={{ display:"flex", gap:8 }}>
+              <button onClick={saveCompany} style={{ flex:1, padding:"12px", background:"linear-gradient(135deg,rgba(232,201,122,0.2),rgba(232,201,122,0.08))", border:"1px solid rgba(232,201,122,0.4)", borderRadius:10, color:"#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                Save Profile
+              </button>
+              <button onClick={() => setEditingCompany(false)} style={{ padding:"12px 20px", background:"transparent", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, color:"rgba(255,255,255,0.4)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
