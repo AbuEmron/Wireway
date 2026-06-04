@@ -947,7 +947,6 @@ export default function Wireway() {
   const [savedQuotes,  setSavedQuotes]  = useState(() => {
     try { return JSON.parse(localStorage.getItem("wireway_quotes") || "[]"); } catch { return []; }
   });
-  const [showSaved,    setShowSaved]    = useState(false);
   const [saveMsg,      setSaveMsg]      = useState("");
 
   // ── Generate quote number ──
@@ -991,7 +990,6 @@ export default function Wireway() {
     setShowMaterials(q.showMaterials ?? true);
     setClientBuysAll(q.clientBuysAll ?? false);
     setQuoteNumber(q.quoteNumber);
-    setShowSaved(false);
     setTab("summary");
   };
 
