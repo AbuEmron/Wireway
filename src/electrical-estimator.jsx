@@ -525,8 +525,6 @@ function ServiceRow({ service, entry, onUpdate, accentColor, hourlyRate, clientB
   const variantIdx = entry?.variantIdx ?? 0;
   const cBuys      = entry?.clientBuys ?? clientBuys; // per-line override
 
-  const v   = service.variants[variantIdx];
-
   return (
     <div style={{ borderBottom:"1px solid rgba(255,255,255,0.04)", padding:"11px 0", transition:"all 0.2s" }}>
       <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
