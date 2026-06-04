@@ -939,6 +939,85 @@ export default function Wireway() {
   const [showMaterials,setShowMaterials]= useState(true);
   const [clientBuysAll,setClientBuysAll]= useState(false);
   const [copied,       setCopied]       = useState(false);
+  const [quoteNumber,  setQuoteNumber]  = useState("");
+  const [signModal,    setSignModal]    = useState(false);
+  const [sigName,      setSigName]      = useState("");
+  const [sigDate,      setSigDate]      = useState("");
+  const [sigSaved,     setSigSaved]     = useState(false);
+  const [savedQuotes,  setSavedQuotes]  = useState(() => {
+    try { return JSON.parse(localStorage.getItem("wireway_quotes") || "[]"); } catch { return []; }
+  });
+  const [showSaved,    setShowSaved]    = useState(false);
+  const [saveMsg,      setSaveMsg]      = useState("");
+
+  // ── Generate quote number ──
+  const genQuoteNum = () => {
+    const yr  = new Date().getFullYear();
+    const seq = (savedQuotes.length + 1).toString().padStart(3, "0");
+    return `WW-${yr}-${seq}`;
+  };
+
+  // ── Save current estimate ──
+  const saveQuote = () => {
+    if (!hasItems) return;
+    const qn = quoteNumber || genQuoteNum();
+    setQuoteNumber(qn);
+    const quote = {
+      id: Date.now(),
+      quoteNumber: qn,
+      savedAt: new Date().toISOString(),
+      clientName, clientEmail, clientPhone, jobName, notes,
+      hourlyRate, markup, showMaterials, clientBuysAll,
+      entries,
+      total, totMat, totLab, totHrs,
+      status: "draft",
+    };
+    const updated = [quote, ...savedQuotes.filter(q => q.quoteNumber !== qn)];
+    setSavedQuotes(updated);
+    try { localStorage.setItem("wireway_quotes", JSON.stringify(updated)); } catch {}
+    setSaveMsg("Saved!"); setTimeout(() => setSaveMsg(""), 2000);
+  };
+
+  // ── Load a saved quote ──
+  const loadQuote = (q) => {
+    setEntries(q.entries);
+    setHourlyRate(q.hourlyRate);
+    setMarkup(q.markup);
+    setClientName(q.clientName || "");
+    setClientEmail(q.clientEmail || "");
+    setClientPhone(q.clientPhone || "");
+    setJobName(q.jobName || "");
+    setNotes(q.notes || "");
+    setShowMaterials(q.showMaterials ?? true);
+    setClientBuysAll(q.clientBuysAll ?? false);
+    setQuoteNumber(q.quoteNumber);
+    setShowSaved(false);
+    setTab("summary");
+  };
+
+  // ── Delete a saved quote ──
+  const deleteQuote = (id) => {
+    const updated = savedQuotes.filter(q => q.id !== id);
+    setSavedQuotes(updated);
+    try { localStorage.setItem("wireway_quotes", JSON.stringify(updated)); } catch {}
+  };
+
+  // ── Mark quote as accepted (signature) ──
+  const acceptQuote = () => {
+    if (!sigName) return;
+    const date = sigDate || new Date().toLocaleDateString();
+    const updated = savedQuotes.map(q =>
+      q.quoteNumber === quoteNumber
+        ? { ...q, status: "accepted", sigName, sigDate: date }
+        : q
+    );
+    setSavedQuotes(updated);
+    try { localStorage.setItem("wireway_quotes", JSON.stringify(updated)); } catch {}
+    setSigSaved(true);
+    setTimeout(() => { setSignModal(false); setSigSaved(false); }, 2000);
+  };
+
+  const currentQuoteStatus = savedQuotes.find(q => q.quoteNumber === quoteNumber);
 
   // ── Company profile (persisted in localStorage) ──
   const [company, setCompany] = useState(() => {
@@ -1172,6 +1251,7 @@ export default function Wireway() {
           <div style={{ display:"flex", background:"rgba(255,255,255,0.025)", borderRadius:9, border:"1px solid rgba(255,255,255,0.065)", overflow:"hidden", marginBottom:14, animation:"fadeUp 0.4s ease 0.16s both" }} className="no-print">
             {TAB("services", `Services (${CATEGORIES.flatMap(c=>c.services).length})`)}
             {TAB("summary",  hasItems ? `Summary · $${total.toLocaleString()}` : "Summary")}
+            {TAB("saved",    savedQuotes.length > 0 ? `Saved (${savedQuotes.length})` : "Saved")}
             {TAB("nec", "NEC 2023")}
           </div>
 
@@ -1219,8 +1299,12 @@ export default function Wireway() {
                         </div>
                       </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
+                        {quoteNumber && <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, color:"#e8c97a", marginBottom:3 }}>{quoteNumber}</div>}
                         <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em" }}>Date</div>
                         <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"'DM Mono',monospace" }}>{new Date().toLocaleDateString()}</div>
+                        {currentQuoteStatus?.status === "accepted" && (
+                          <div style={{ marginTop:4, fontSize:9, fontWeight:700, color:"#7dcea0", background:"rgba(100,220,130,0.1)", border:"1px solid rgba(100,220,130,0.25)", padding:"2px 6px", borderRadius:4 }}>✓ ACCEPTED</div>
+                        )}
                       </div>
                     </div>
 
@@ -1307,12 +1391,35 @@ export default function Wireway() {
                     style={{ ...inputStyle, width:"100%", marginBottom:10, resize:"vertical", lineHeight:1.6 }} className="no-print"
                     onFocus={focusGold} onBlur={blurGray} />
 
+                  {/* ── QUOTE NUMBER + STATUS ── */}
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }} className="no-print">
+                    <input placeholder="Quote # (auto-generated on save)" value={quoteNumber} onChange={e => setQuoteNumber(e.target.value)}
+                      style={{ ...inputStyle, flex:1, fontSize:12 }} onFocus={focusGold} onBlur={blurGray} />
+                    {currentQuoteStatus?.status === "accepted" && (
+                      <div style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 10px", background:"rgba(100,220,130,0.1)", border:"1px solid rgba(100,220,130,0.3)", borderRadius:7, flexShrink:0 }}>
+                        <span style={{ fontSize:11 }}>✓</span>
+                        <span style={{ fontSize:10, color:"#7dcea0", fontWeight:700 }}>ACCEPTED</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── SAVE + SIGN BUTTONS ── */}
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }} className="no-print">
+                    <button onClick={saveQuote} style={{ padding:"12px", background: saveMsg ? "rgba(100,220,130,0.1)" : "linear-gradient(135deg,rgba(232,201,122,0.18),rgba(232,201,122,0.07))", border: saveMsg ? "1px solid rgba(100,220,130,0.38)" : "1px solid rgba(232,201,122,0.35)", borderRadius:10, color: saveMsg ? "#7dcea0" : "#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
+                      {saveMsg ? "✓ Saved" : "💾 Save Quote"}
+                    </button>
+                    <button onClick={() => { setSigName(""); setSigDate(new Date().toLocaleDateString()); setSigSaved(false); setSignModal(true); }}
+                      style={{ padding:"12px", background: currentQuoteStatus?.status === "accepted" ? "rgba(100,220,130,0.1)" : "rgba(255,255,255,0.04)", border: currentQuoteStatus?.status === "accepted" ? "1px solid rgba(100,220,130,0.35)" : "1px solid rgba(255,255,255,0.1)", borderRadius:10, color: currentQuoteStatus?.status === "accepted" ? "#7dcea0" : "rgba(255,255,255,0.5)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
+                      {currentQuoteStatus?.status === "accepted" ? "✓ Client Signed" : "✍ Client Signature"}
+                    </button>
+                  </div>
+
                   {/* ── SEND ACTIONS ── */}
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:8 }} className="no-print">
                     {[
                       { icon:"✉", label:"Email Quote", desc: clientEmail || "Open mail app", action: emailQuote, color:"#7eb8e8" },
                       { icon:"💬", label:"Text Quote",  desc: clientPhone || "Open messages", action: smsQuote,   color:"#a8e87e" },
-                      { icon:"⎘",  label:"Copy Quote",  desc: copied ? "Copied!" : "Plain text",   action: copyQuote,  color: copied ? "#7dcea0" : "#e8c97a" },
+                      { icon:"⎘",  label:"Copy Quote",  desc: copied ? "Copied!" : "Plain text", action: copyQuote, color: copied ? "#7dcea0" : "#e8c97a" },
                     ].map(btn => (
                       <button key={btn.label} onClick={btn.action} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, padding:"12px 8px", borderRadius:11, border:`1px solid ${btn.color}25`, background:`${btn.color}08`, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}
                         onMouseEnter={e => e.currentTarget.style.background=`${btn.color}15`}
@@ -1334,6 +1441,64 @@ export default function Wireway() {
             </div>
           )}
 
+          {/* ════════════ SAVED QUOTES TAB ════════════ */}
+          {tab==="saved" && (
+            <div style={{ animation:"fadeUp 0.3s ease both" }} className="no-print">
+              {savedQuotes.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"48px 20px", color:"rgba(255,255,255,0.2)" }}>
+                  <div style={{ fontSize:30, marginBottom:10 }}>◎</div>
+                  <div style={{ fontSize:13 }}>No saved quotes yet.</div>
+                  <div style={{ fontSize:11, marginTop:6, color:"rgba(255,255,255,0.15)" }}>Build an estimate and tap Save Quote.</div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>
+                    {savedQuotes.length} saved quote{savedQuotes.length !== 1 ? "s" : ""}
+                  </div>
+                  {savedQuotes.map(q => (
+                    <div key={q.id} style={{
+                      background: q.status === "accepted" ? "linear-gradient(135deg,rgba(100,220,130,0.06),rgba(255,255,255,0.02))" : "rgba(255,255,255,0.022)",
+                      border: q.status === "accepted" ? "1px solid rgba(100,220,130,0.2)" : "1px solid rgba(255,255,255,0.065)",
+                      borderRadius:13, padding:"14px 16px", marginBottom:8,
+                      display:"flex", alignItems:"center", gap:12,
+                    }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                          <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, color:"#e8c97a" }}>{q.quoteNumber}</span>
+                          {q.status === "accepted" && (
+                            <span style={{ fontSize:9, fontWeight:700, color:"#7dcea0", background:"rgba(100,220,130,0.12)", border:"1px solid rgba(100,220,130,0.25)", padding:"1px 6px", borderRadius:4, letterSpacing:"0.05em" }}>
+                              ✓ ACCEPTED
+                            </span>
+                          )}
+                          {q.status === "draft" && (
+                            <span style={{ fontSize:9, color:"rgba(255,255,255,0.25)", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", padding:"1px 6px", borderRadius:4, letterSpacing:"0.05em" }}>
+                              DRAFT
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize:13, fontWeight:600, color:"#fff", marginBottom:2 }}>
+                          {q.clientName || "No client name"}{q.jobName ? ` — ${q.jobName}` : ""}
+                        </div>
+                        <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontFamily:"'DM Mono',monospace" }}>
+                          ${q.total?.toLocaleString()} · {new Date(q.savedAt).toLocaleDateString()}
+                          {q.sigName && <span style={{ color:"rgba(100,220,130,0.6)", marginLeft:8 }}>· Signed: {q.sigName}</span>}
+                        </div>
+                      </div>
+                      <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                        <button onClick={() => loadQuote(q)} style={{ padding:"7px 14px", borderRadius:7, border:"1px solid rgba(232,201,122,0.3)", background:"rgba(232,201,122,0.08)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                          Load
+                        </button>
+                        <button onClick={() => deleteQuote(q.id)} style={{ padding:"7px 10px", borderRadius:7, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"rgba(255,100,100,0.5)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
 
@@ -1342,6 +1507,74 @@ export default function Wireway() {
           </div>
         </div>
       </div>
+
+      {/* ════════════ SIGNATURE MODAL ════════════ */}
+      {signModal && (
+        <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setSignModal(false)}>
+          <div className="modal-box" style={{ padding:"28px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:22 }}>
+              <div>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontSize:17, fontWeight:800, color:"#fff" }}>Client Acceptance</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:3 }}>
+                  Quote {quoteNumber || "—"} · Total ${total.toLocaleString()}
+                </div>
+              </div>
+              <button onClick={() => setSignModal(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:22, cursor:"pointer" }}>✕</button>
+            </div>
+
+            {/* Quote summary for reference */}
+            <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"12px 14px", marginBottom:20 }}>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginBottom:8 }}>Scope Summary</div>
+              {activeItems.slice(0, 5).map(i => (
+                <div key={i.id} style={{ fontSize:11, color:"rgba(255,255,255,0.6)", padding:"3px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                  {i.label} ({i.variantLabel}) × {i.qty} — <span style={{ color:"#e8c97a", fontFamily:"'DM Mono',monospace" }}>${i.lineTotal.toLocaleString()}</span>
+                </div>
+              ))}
+              {activeItems.length > 5 && <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", paddingTop:6 }}>+ {activeItems.length - 5} more services</div>}
+              <div style={{ display:"flex", justifyContent:"space-between", paddingTop:10, marginTop:6, borderTop:"1px solid rgba(232,201,122,0.15)" }}>
+                <span style={{ fontSize:12, color:"rgba(255,255,255,0.5)" }}>Total</span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"#e8c97a" }}>${total.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Acceptance statement */}
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", lineHeight:1.7, marginBottom:20, padding:"12px 14px", background:"rgba(232,201,122,0.04)", borderRadius:8, border:"1px solid rgba(232,201,122,0.12)" }}>
+              By entering your name and date below, you acknowledge that you have reviewed this estimate, agree to the scope of work and pricing, and authorize {company.name || "the electrician"} to proceed.
+              {company.terms && <div style={{ marginTop:8, color:"rgba(255,255,255,0.3)", fontSize:10 }}>{company.terms}</div>}
+            </div>
+
+            {/* Signature fields */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:16 }}>
+              <div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Client Full Name</div>
+                <input placeholder="Type full name to accept" value={sigName} onChange={e => setSigName(e.target.value)}
+                  style={{ ...inputStyle }} onFocus={focusGold} onBlur={blurGray} />
+              </div>
+              <div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Date</div>
+                <input type="date" value={sigDate} onChange={e => setSigDate(e.target.value)}
+                  style={{ ...inputStyle, colorScheme:"dark" }} onFocus={focusGold} onBlur={blurGray} />
+              </div>
+            </div>
+
+            {/* Accept button */}
+            {sigSaved ? (
+              <div style={{ textAlign:"center", padding:"14px", background:"rgba(100,220,130,0.1)", border:"1px solid rgba(100,220,130,0.3)", borderRadius:10, color:"#7dcea0", fontSize:14, fontWeight:700 }}>
+                ✓ Quote Accepted — {sigName}
+              </div>
+            ) : (
+              <button onClick={acceptQuote} disabled={!sigName}
+                style={{ width:"100%", padding:"14px", background: sigName ? "linear-gradient(135deg,rgba(100,220,130,0.2),rgba(100,220,130,0.08))" : "rgba(255,255,255,0.04)", border: sigName ? "1px solid rgba(100,220,130,0.4)" : "1px solid rgba(255,255,255,0.08)", borderRadius:11, color: sigName ? "#7dcea0" : "rgba(255,255,255,0.25)", fontSize:13, fontWeight:700, cursor: sigName ? "pointer" : "default", fontFamily:"inherit", transition:"all 0.2s" }}>
+                ✍ Accept & Sign Quote
+              </button>
+            )}
+
+            <div style={{ textAlign:"center", marginTop:10, fontSize:10, color:"rgba(255,255,255,0.2)" }}>
+              This is an electronic acknowledgment. Save or print a copy for your records.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ════════════ COMPANY PROFILE MODAL ════════════ */}
       {editingCompany && (
