@@ -502,14 +502,7 @@ const MARKUP_OPTIONS = [{ label: "15%", v: 0.15 }, { label: "20%", v: 0.20 }, { 
 const HOURLY_RATES   = [55, 65, 75, 85, 95, 110, 125, 150];
 const ALL_SERVICES   = CATEGORIES.flatMap(c => c.services.map(s => ({ ...s, catColor: c.color, catLabel: c.label })));
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-const calcLine = (service, entry, hourlyRate) => {
-  const v      = service.variants[entry.variantIdx ?? 0];
-  const mat    = service.materialCost * v.m * entry.qty;
-  const lab    = service.laborCost    * v.m * entry.qty;
-  const hrs    = service.laborHours   * v.m * entry.qty;
-  return { mat, lab, hrs, total: mat + lab };
-};
+
 
 // ─── COUNTER ─────────────────────────────────────────────────────────────────
 function Counter({ value, onChange }) {
@@ -533,8 +526,6 @@ function ServiceRow({ service, entry, onUpdate, accentColor, hourlyRate, clientB
   const cBuys      = entry?.clientBuys ?? clientBuys; // per-line override
 
   const v   = service.variants[variantIdx];
-  const mat = service.materialCost * v.m * Math.max(qty, 1);
-  const lab = service.laborCost    * v.m * Math.max(qty, 1);
 
   return (
     <div style={{ borderBottom:"1px solid rgba(255,255,255,0.04)", padding:"11px 0", transition:"all 0.2s" }}>
