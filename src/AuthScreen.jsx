@@ -34,9 +34,9 @@ export default function AuthScreen({ onAuth }) {
     setError(""); setSuccess(""); setLoading(true);
     try {
       if (mode === "signin") {
-        const { data, error } = await signIn({ email, password });
+        const { error } = await signIn({ email, password });
         if (error) throw error;
-        onAuth(data.user);
+        onAuth();
       } else if (mode === "signup") {
         if (!name.trim()) throw new Error("Please enter your full name.");
         if (password.length < 8) throw new Error("Password must be at least 8 characters.");
