@@ -1,7 +1,4 @@
 // src/AuthScreen.jsx
-// Full auth flow: sign up, sign in, forgot password
-// Matches Wireway's dark gold UI exactly
-
 import { useState } from "react";
 import { signIn, signUp, resetPassword } from "./lib/supabase";
 
@@ -19,7 +16,7 @@ const IS = {
 };
 
 export default function AuthScreen({ onAuth }) {
-  const [mode,     setMode]     = useState("signin"); // signin | signup | reset
+  const [mode,     setMode]     = useState("signin");
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [name,     setName]     = useState("");
@@ -40,7 +37,7 @@ export default function AuthScreen({ onAuth }) {
       } else if (mode === "signup") {
         if (!name.trim()) throw new Error("Please enter your full name.");
         if (password.length < 8) throw new Error("Password must be at least 8 characters.");
-        const { data, error } = await signUp({ email, password, fullName: name });
+        const { error } = await signUp({ email, password, fullName: name });
         if (error) throw error;
         setSuccess("Check your email to confirm your account, then sign in.");
         setMode("signin");
@@ -67,7 +64,6 @@ export default function AuthScreen({ onAuth }) {
 
       <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"radial-gradient(ellipse 80% 50% at 50% 0%,rgba(232,201,122,0.07) 0%,transparent 60%),#0a0a0c", fontFamily:"'DM Sans',sans-serif", padding:"24px 20px" }}>
 
-        {/* Logo + wordmark */}
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:40, animation:"fadeUp 0.4s ease both" }}>
           <div style={{ width:38, height:38, borderRadius:9, background:"linear-gradient(135deg,#e8c97a,#c9a84c)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, fontWeight:800, color:"#0a0a0c" }}>W</div>
           <div>
@@ -76,7 +72,6 @@ export default function AuthScreen({ onAuth }) {
           </div>
         </div>
 
-        {/* Card */}
         <div style={{ width:"100%", maxWidth:380, background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:18, padding:"28px 24px", animation:"fadeUp 0.4s ease 0.05s both" }}>
 
           <div style={{ fontFamily:"'Syne',sans-serif", fontSize:18, fontWeight:800, color:"#fff", marginBottom:6, letterSpacing:"-0.02em" }}>
@@ -90,7 +85,6 @@ export default function AuthScreen({ onAuth }) {
               : "Enter your email and we'll send a reset link."}
           </div>
 
-          {/* Fields */}
           <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:16 }}>
             {mode === "signup" && (
               <input placeholder="Full name" value={name} onChange={e => setName(e.target.value)}
@@ -106,16 +100,13 @@ export default function AuthScreen({ onAuth }) {
             )}
           </div>
 
-          {/* Error / success */}
           {error   && <div style={{ fontSize:12, color:"#e87e7e", background:"rgba(232,126,126,0.08)", border:"1px solid rgba(232,126,126,0.2)", borderRadius:7, padding:"8px 10px", marginBottom:12, lineHeight:1.5 }}>{error}</div>}
           {success && <div style={{ fontSize:12, color:"#7dcea0", background:"rgba(100,220,130,0.08)", border:"1px solid rgba(100,220,130,0.2)", borderRadius:7, padding:"8px 10px", marginBottom:12, lineHeight:1.5 }}>{success}</div>}
 
-          {/* CTA button */}
           <button onClick={handle} disabled={loading} style={{ width:"100%", padding:"13px", background: loading ? "rgba(232,201,122,0.08)" : "linear-gradient(135deg,rgba(232,201,122,0.22),rgba(232,201,122,0.1))", border:"1px solid rgba(232,201,122,0.35)", borderRadius:10, color: loading ? "rgba(232,201,122,0.4)" : "#e8c97a", fontSize:14, fontWeight:700, cursor: loading ? "default" : "pointer", fontFamily:"inherit", transition:"all 0.2s", marginBottom:16 }}>
             {loading ? "Please wait..." : mode === "signin" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
           </button>
 
-          {/* Mode switcher */}
           <div style={{ display:"flex", flexDirection:"column", gap:8, alignItems:"center" }}>
             {mode === "signin" && (
               <>
@@ -140,8 +131,7 @@ export default function AuthScreen({ onAuth }) {
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ marginTop:32, fontSize:10, color:"rgba(255,255,255,0.15)", letterSpacing:"0.05em", textAlign:"center", animation:"fadeUp 0.4s ease 0.1s both" }}>
+        <div style={{ marginTop:32, fontSize:10, color:"rgba(255,255,255,0.15)", letterSpacing:"0.05em", textAlign:"center" }}>
           WIREWAY · NEC 2023 · PROFESSIONAL ELECTRICAL ESTIMATING
         </div>
       </div>
