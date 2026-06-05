@@ -1148,7 +1148,6 @@ export default function Wireway() {
     const row = table.find(r => r.a >= needed) || table[table.length - 1];
     // Voltage drop check
     const len = parseFloat(wireLen) || 0;
-    const awgNum = parseInt(row.awg) || 0;
     const cmilMap = {"14":4110,"12":6530,"10":10380,"8":16510,"6":26240,"4":41740,"3":52620,"2":66360,"1":83690,"1/0":105600,"2/0":133100,"3/0":167800,"4/0":211600};
     const cmil = cmilMap[row.awg] || 10380;
     const resistivity = wireMat === "copper" ? 10.4 : 17;
@@ -1194,7 +1193,6 @@ export default function Wireway() {
     // Use larger of AC or heat (NEC 220.82(C))
     const hvac = Math.max(acVA, heatVA);
     const totalVA = gen + dryerVA + rangeVA + hvac;
-    const amps120 = totalVA / 120;
     const amps240 = totalVA / 240;
     const panelSize = amps240 <= 100 ? "100A" : amps240 <= 150 ? "150A" : amps240 <= 200 ? "200A" : "400A";
     return { lighting, sabc, gen: Math.round(gen), dryerVA, rangeVA, hvac, totalVA: Math.round(totalVA), amps240: Math.round(amps240), panelSize };
