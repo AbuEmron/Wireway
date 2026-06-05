@@ -1,12 +1,15 @@
 {
-  "name": "voltquote",
-  "version": "1.0.0",
+  "name": "wireway",
+  "version": "2.0.0",
+  "description": "Professional NEC 2023 Electrical Estimating — SaaS",
   "private": true,
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-scripts": "5.0.1",
-    "web-vitals": "^3.5.0"
+    "stripe": "^14.0.0",
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -15,7 +18,7 @@
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
-    "extends": ["react-app"]
+    "extends": ["react-app", "react-app/jest"]
   },
   "browserslist": {
     "production": [">0.2%", "not dead", "not op_mini all"],
