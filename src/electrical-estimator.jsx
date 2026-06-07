@@ -1,4 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import {
+  signOut, updateProfile, updatePassword, updateEmail,
+  getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus,
+  getClients, upsertClient,
+  uploadLogo,
+  isPro, isTrialing, trialDaysLeft,
+} from "./lib/supabase";
 
 // ─── CATALOG: each service has separate materialCost + laborCost ──────────────
 // materialCost = typical material cost (electrician supplies)
@@ -1066,10 +1073,11 @@ function WirecayMark({ size = 32 }) {
 }
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
-export default function Wireway({ user, profile, onProfileUpdate, onShowPricing }) {
+export default function Wireway({ user, profile, onProfileUpdate, onShowPricing, paymentBanner, onClearBanner }) {
+  // ── Core state ──
   const [entries,        setEntries]        = useState({});
-  const [hourlyRate,     setHourlyRate]     = useState(85);
-  const [markup,         setMarkup]         = useState(0.30);
+  const [hourlyRate,     setHourlyRate]     = useState(profile?.hourly_rate || 85);
+  const [markup,         setMarkup]         = useState(Number(profile?.default_markup) || 0.30);
   const [clientName,     setClientName]     = useState("");
   const [clientEmail,    setClientEmail]    = useState("");
   const [clientPhone,    setClientPhone]    = useState("");
@@ -1080,91 +1088,28 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing 
   const [clientBuysAll,  setClientBuysAll]  = useState(false);
   const [copied,         setCopied]         = useState(false);
   const [quoteNumber,    setQuoteNumber]    = useState("");
+  const [quoteId,        setQuoteId]        = useState(null);
   const [signModal,      setSignModal]      = useState(false);
   const [sigName,        setSigName]        = useState("");
   const [sigDate,        setSigDate]        = useState("");
   const [sigSaved,       setSigSaved]       = useState(false);
-  const [savedQuotes,    setSavedQuotes]    = useState(() => {
-    try { return JSON.parse(localStorage.getItem("wireway_quotes") || "[]"); } catch { return []; }
-  });
+  const [savedQuotes,    setSavedQuotes]    = useState([]);
   const [saveMsg,        setSaveMsg]        = useState("");
-
-  // ── NEW: Custom line items ──
   const [customItems,    setCustomItems]    = useState([]);
-  const addCustomItem = () => setCustomItems(p => [...p, { id: Date.now(), label: "", qty: 1, materialCost: 0, laborCost: 0, laborHours: 0 }]);
-  const updateCustomItem = (id, data) => setCustomItems(p => p.map(i => i.id === id ? { ...i, ...data } : i));
-  const removeCustomItem = (id) => setCustomItems(p => p.filter(i => i.id !== id));
-
-  // ── NEW: Tax on materials ──
   const [taxEnabled,     setTaxEnabled]     = useState(false);
   const [taxRate,        setTaxRate]        = useState(0.08);
-
-  // ── NEW: Invoice mode ──
   const [invoiceMode,    setInvoiceMode]    = useState(false);
   const [invoiceDueDate, setInvoiceDueDate] = useState("");
   const [invoicePaid,    setInvoicePaid]    = useState(false);
-
-  // ── NEW: Flat rate mode (hides math, shows one price) ──
   const [flatRateMode,   setFlatRateMode]   = useState(false);
-
-  // ── NEW: Client database ──
-  const [clients,        setClients]        = useState(() => {
-    try { return JSON.parse(localStorage.getItem("wireway_clients") || "[]"); } catch { return []; }
-  });
+  const [clients,        setClients]        = useState([]);
   const [showClientDB,   setShowClientDB]   = useState(false);
   const [clientSearch,   setClientSearch]   = useState("");
-
-  const saveClient = () => {
-    if (!clientName) return;
-    const newClient = { id: Date.now(), name: clientName, email: clientEmail, phone: clientPhone, savedAt: new Date().toISOString(), jobCount: 1 };
-    const existing = clients.findIndex(c => c.name.toLowerCase() === clientName.toLowerCase());
-    const updated = existing >= 0
-      ? clients.map((c,i) => i === existing ? { ...c, email: clientEmail, phone: clientPhone, jobCount: (c.jobCount||1)+1 } : c)
-      : [newClient, ...clients];
-    setClients(updated);
-    try { localStorage.setItem("wireway_clients", JSON.stringify(updated)); } catch {}
-  };
-
-  const loadClient = (c) => {
-    setClientName(c.name); setClientEmail(c.email||""); setClientPhone(c.phone||"");
-    setShowClientDB(false);
-  };
-
-  // ── NEW: Wire size calculator state ──
   const [wireCalcOpen,   setWireCalcOpen]   = useState(false);
   const [wireAmps,       setWireAmps]       = useState("");
   const [wireLen,        setWireLen]        = useState("");
   const [wireVolt,       setWireVolt]       = useState("120");
   const [wireMat,        setWireMat]        = useState("copper");
-
-  const wireResult = useMemo(() => {
-    const a = parseFloat(wireAmps);
-    if (!a || a <= 0) return null;
-    // NEC Table 310.15(B)(16) — 60°C column (NM-B limitation), copper
-    const cuTable = [{a:15,awg:"14"},{a:20,awg:"12"},{a:30,awg:"10"},{a:40,awg:"8"},{a:55,awg:"6"},{a:70,awg:"4"},{a:85,awg:"3"},{a:95,awg:"2"},{a:110,awg:"1"},{a:130,awg:"1/0"},{a:150,awg:"2/0"},{a:175,awg:"3/0"},{a:200,awg:"4/0"}];
-    const alTable = [{a:15,awg:"12"},{a:20,awg:"10"},{a:30,awg:"8"},{a:40,awg:"6"},{a:55,awg:"4"},{a:65,awg:"3"},{a:75,awg:"2"},{a:85,awg:"1"},{a:100,awg:"1/0"},{a:120,awg:"2/0"},{a:135,awg:"3/0"},{a:155,awg:"4/0"}];
-    const table = wireMat === "copper" ? cuTable : alTable;
-    const needed = a * 1.25; // NEC 215.2 — 125% for continuous loads
-    const row = table.find(r => r.a >= needed) || table[table.length - 1];
-    // Voltage drop check
-    const len = parseFloat(wireLen) || 0;
-    const cmilMap = {"14":4110,"12":6530,"10":10380,"8":16510,"6":26240,"4":41740,"3":52620,"2":66360,"1":83690,"1/0":105600,"2/0":133100,"3/0":167800,"4/0":211600};
-    const cmil = cmilMap[row.awg] || 10380;
-    const resistivity = wireMat === "copper" ? 10.4 : 17;
-    const vDrop = len > 0 ? (2 * resistivity * len * a) / cmil : 0;
-    const vDropPct = len > 0 ? (vDrop / parseFloat(wireVolt)) * 100 : 0;
-    return {
-      awg: row.awg,
-      ampacity: row.a,
-      continuous: needed.toFixed(1),
-      vDrop: vDrop.toFixed(2),
-      vDropPct: vDropPct.toFixed(1),
-      vDropOk: vDropPct < 3,
-      nec: "NEC 310.15(B)(16)",
-    };
-  }, [wireAmps, wireLen, wireVolt, wireMat]);
-
-  // ── NEW: Load calculator (NEC 220.82 optional method) ──
   const [loadCalcOpen,   setLoadCalcOpen]   = useState(false);
   const [sqft,           setSqft]           = useState("");
   const [smallAppl,      setSmallAppl]      = useState(2);
@@ -1173,36 +1118,48 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing 
   const [range,          setRange]          = useState(0);
   const [acTons,         setAcTons]         = useState(0);
   const [heatKw,         setHeatKw]         = useState(0);
-
-  const loadResult = useMemo(() => {
-    const sf = parseFloat(sqft) || 0;
-    if (!sf) return null;
-    // NEC 220.12 — 3 VA/sqft general lighting
-    const lighting = sf * 3;
-    // NEC 220.52 — small appliance + laundry
-    const sabc = (smallAppl * 1500) + (laundry * 1500);
-    // General loads subtotal
-    const genLoad = lighting + sabc;
-    // NEC 220.82(B) demand: 100% first 10kVA, 40% remainder
-    const gen = genLoad <= 10000 ? genLoad : 10000 + (genLoad - 10000) * 0.4;
-    // Appliances at 100%
-    const dryerVA  = dryer  * 5000;
-    const rangeVA  = range  * 8000;
-    const acVA     = acTons * 3516; // 1 ton = 3516 W
-    const heatVA   = heatKw * 1000;
-    // Use larger of AC or heat (NEC 220.82(C))
-    const hvac = Math.max(acVA, heatVA);
-    const totalVA = gen + dryerVA + rangeVA + hvac;
-    const amps240 = totalVA / 240;
-    const panelSize = amps240 <= 100 ? "100A" : amps240 <= 150 ? "150A" : amps240 <= 200 ? "200A" : "400A";
-    return { lighting, sabc, gen: Math.round(gen), dryerVA, rangeVA, hvac, totalVA: Math.round(totalVA), amps240: Math.round(amps240), panelSize };
-  }, [sqft, smallAppl, laundry, dryer, range, acTons, heatKw]);
-
-  // ── NEW: Inspection checklist ──
   const [checklistOpen,  setChecklistOpen]  = useState(false);
   const [checklistType,  setChecklistType]  = useState("service_upgrade");
   const [checkedItems,   setCheckedItems]   = useState({});
+  const [depositOnly,    setDepositOnly]    = useState(true);
+  const [depositPercent, setDepositPercent] = useState(50);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError,   setPaymentError]   = useState("");
+  const [paymentSuccess, setPaymentSuccess] = useState(!!paymentBanner);
+  const [showAccount,    setShowAccount]    = useState(false);
+  const [proGateMsg,     setProGateMsg]     = useState("");
+
+  // ── Plan helpers ──
+  const userIsPro = isPro(profile);
+  const daysLeft  = trialDaysLeft(profile);
+  const onTrial   = isTrialing(profile);
+
+  const requirePro = (action) => {
+    if (userIsPro) { action(); return; }
+    setProGateMsg("This feature requires Wireway Pro. Upgrade to unlock.");
+    setTimeout(() => setProGateMsg(""), 3500);
+    if (onShowPricing) setTimeout(() => onShowPricing(), 400);
+  };
+
+  // ── Load Supabase data on mount ──
+  useEffect(() => {
+    if (!user?.id) return;
+    getQuotes(user.id).then(({ data }) => { if (data?.length) setSavedQuotes(data); });
+    getClients(user.id).then(({ data }) => { if (data?.length) setClients(data); });
+  }, [user?.id]);
+
+  const addCustomItem = () => setCustomItems(p => [...p, { id: Date.now(), label: "", qty: 1, materialCost: 0, laborCost: 0, laborHours: 0 }]);
+  const updateCustomItem = (id, data) => setCustomItems(p => p.map(i => i.id === id ? { ...i, ...data } : i));
+  const removeCustomItem = (id) => setCustomItems(p => p.filter(i => i.id !== id));
   const toggleCheck = (id) => setCheckedItems(p => ({ ...p, [id]: !p[id] }));
+
+  const saveClientToDB = async () => {
+    if (!clientName || !user?.id) return;
+    const { data } = await upsertClient(user.id, { name: clientName, email: clientEmail, phone: clientPhone });
+    if (data) setClients(prev => { const idx = prev.findIndex(c => c.id===data.id); return idx>=0 ? prev.map((c,i)=>i===idx?data:c) : [data,...prev]; });
+  };
+
+  const loadClient = (c) => { setClientName(c.name); setClientEmail(c.email||""); setClientPhone(c.phone||""); setShowClientDB(false); };
 
   const CHECKLISTS = {
     service_upgrade: {
@@ -1274,63 +1231,66 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing 
     return `WW-${yr}-${seq}`;
   };
 
-  // ── Save current estimate ──
-  const saveQuote = () => {
-    if (!hasItems) return;
+  // ── Save estimate to Supabase ──
+  const saveQuote = async () => {
+    if (!hasItems || !user?.id) return;
     const qn = quoteNumber || genQuoteNum();
     setQuoteNumber(qn);
-    const quote = {
-      id: Date.now(),
-      quoteNumber: qn,
-      savedAt: new Date().toISOString(),
-      clientName, clientEmail, clientPhone, jobName, notes,
+    const payload = {
+      id: quoteId || undefined,
+      quoteNumber: qn, clientName, clientEmail, clientPhone, jobName, notes,
       hourlyRate, markup, showMaterials, clientBuysAll,
-      entries, customItems,
-      total, totMat, totLab, totHrs,
-      status: "draft",
+      flatRateMode, invoiceMode, invoiceDueDate, invoicePaid,
+      taxEnabled, taxRate, entries, customItems,
+      totMat, totLab, totHrs, markupAmt, taxAmt, total, status: "draft",
     };
-    const updated = [quote, ...savedQuotes.filter(q => q.quoteNumber !== qn)];
-    setSavedQuotes(updated);
-    try { localStorage.setItem("wireway_quotes", JSON.stringify(updated)); } catch {}
-    saveClient();
-    setSaveMsg("Saved!"); setTimeout(() => setSaveMsg(""), 2000);
+    const { data, error } = await upsertQuote(user.id, payload);
+    if (data) {
+      setQuoteId(data.id);
+      setSavedQuotes(prev => { const idx=prev.findIndex(q=>q.id===data.id); return idx>=0?prev.map((q,i)=>i===idx?data:q):[data,...prev]; });
+    }
+    saveClientToDB();
+    setSaveMsg(error ? "Save failed" : "Saved!"); setTimeout(() => setSaveMsg(""), 2000);
   };
 
   // ── Load a saved quote ──
   const loadQuote = (q) => {
-    setEntries(q.entries || {});
-    setCustomItems(q.customItems || []);
-    setHourlyRate(q.hourlyRate);
-    setMarkup(q.markup);
-    setClientName(q.clientName || "");
-    setClientEmail(q.clientEmail || "");
-    setClientPhone(q.clientPhone || "");
-    setJobName(q.jobName || "");
+    setEntries(q.entries || q.entries || {});
+    setCustomItems(q.custom_items || q.customItems || []);
+    setHourlyRate(q.hourly_rate || q.hourlyRate || 85);
+    setMarkup(q.markup || 0.30);
+    setClientName(q.client_name || q.clientName || "");
+    setClientEmail(q.client_email || q.clientEmail || "");
+    setClientPhone(q.client_phone || q.clientPhone || "");
+    setJobName(q.job_name || q.jobName || "");
     setNotes(q.notes || "");
-    setShowMaterials(q.showMaterials ?? true);
-    setClientBuysAll(q.clientBuysAll ?? false);
-    setQuoteNumber(q.quoteNumber);
+    setShowMaterials(q.show_materials ?? q.showMaterials ?? true);
+    setClientBuysAll(q.client_buys_all ?? q.clientBuysAll ?? false);
+    setFlatRateMode(q.flat_rate_mode ?? q.flatRateMode ?? false);
+    setInvoiceMode(q.invoice_mode ?? q.invoiceMode ?? false);
+    setInvoiceDueDate(q.invoice_due_date || q.invoiceDueDate || "");
+    setInvoicePaid(q.invoice_paid ?? q.invoicePaid ?? false);
+    setTaxEnabled(q.tax_enabled ?? q.taxEnabled ?? false);
+    setTaxRate(q.tax_rate || q.taxRate || 0.08);
+    setQuoteNumber(q.quote_number || q.quoteNumber || "");
+    setQuoteId(q.id || null);
     setTab("summary");
   };
 
   // ── Delete a saved quote ──
-  const deleteQuote = (id) => {
-    const updated = savedQuotes.filter(q => q.id !== id);
-    setSavedQuotes(updated);
-    try { localStorage.setItem("wireway_quotes", JSON.stringify(updated)); } catch {}
+  const deleteQuote = async (id) => {
+    if (user?.id) await dbDeleteQuote(id, user.id);
+    setSavedQuotes(prev => prev.filter(q => q.id !== id));
   };
 
   // ── Mark quote as accepted (signature) ──
-  const acceptQuote = () => {
+  const acceptQuote = async () => {
     if (!sigName) return;
     const date = sigDate || new Date().toLocaleDateString();
-    const updated = savedQuotes.map(q =>
-      q.quoteNumber === quoteNumber
-        ? { ...q, status: "accepted", sigName, sigDate: date }
-        : q
-    );
-    setSavedQuotes(updated);
-    try { localStorage.setItem("wireway_quotes", JSON.stringify(updated)); } catch {}
+    if (quoteId && user?.id) {
+      await updateQuoteStatus(quoteId, "accepted", { sig_name: sigName, sig_date: date, signed_at: new Date().toISOString() });
+    }
+    setSavedQuotes(prev => prev.map(q => q.id===quoteId ? { ...q, status:"accepted", sig_name:sigName } : q));
     setSigSaved(true);
     setTimeout(() => { setSignModal(false); setSigSaved(false); }, 2000);
   };
@@ -1608,14 +1568,22 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing 
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               {hasItems && <span style={{ fontFamily:"'DM Mono',monospace", fontSize:17, fontWeight:500, color:"#e8c97a", letterSpacing:"-0.02em" }}>${total.toLocaleString()}</span>}
-              {onShowPricing && (!profile || profile.plan === "free") && (
-                <button onClick={onShowPricing} style={{ padding:"5px 10px", borderRadius:6, background:"linear-gradient(135deg,rgba(232,201,122,0.2),rgba(232,201,122,0.08))", border:"1px solid rgba(232,201,122,0.35)", color:"#e8c97a", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit", letterSpacing:"0.03em" }}>
+              {onShowPricing && !userIsPro && (
+                <button onClick={onShowPricing} style={{ padding:"5px 10px", borderRadius:6, background:"linear-gradient(135deg,rgba(232,201,122,0.2),rgba(232,201,122,0.08))", border:"1px solid rgba(232,201,122,0.35)", color:"#e8c97a", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                   ⚡ Upgrade
                 </button>
               )}
+              {onTrial && daysLeft > 0 && (
+                <span style={{ fontSize:9, color:"rgba(232,201,122,0.6)", background:"rgba(232,201,122,0.07)", border:"1px solid rgba(232,201,122,0.15)", padding:"2px 7px", borderRadius:4, fontFamily:"'DM Mono',monospace" }}>
+                  {daysLeft}d trial
+                </span>
+              )}
+              <button onClick={() => setShowAccount(true)} style={{ padding:"5px 10px", borderRadius:6, border:"1px solid rgba(255,255,255,0.1)", background:"rgba(255,255,255,0.04)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                ⚙ Account
+              </button>
               <button onClick={() => { setCompanyDraft(company); setLogoDataUrl(company.logoDataUrl||""); setEditingCompany(true); }}
                 style={{ padding:"5px 10px", borderRadius:6, border:"1px solid rgba(255,255,255,0.1)", background:"rgba(255,255,255,0.04)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-                ⚙ Company
+                🏢 Company
               </button>
             </div>
           </div>
@@ -1633,7 +1601,38 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing 
             </p>
           </div>
 
-          {/* ── JOB DETAILS ── */}
+          {/* ── PAYMENT SUCCESS BANNER ── */}
+          {paymentSuccess && (
+            <div style={{ margin:"0 0 14px", padding:"12px 16px", background:"rgba(100,220,130,0.08)", border:"1px solid rgba(100,220,130,0.25)", borderRadius:10, display:"flex", justifyContent:"space-between", alignItems:"center" }} className="no-print">
+              <span style={{ fontSize:13, color:"#7dcea0", fontWeight:600 }}>
+                {paymentBanner === "pro" ? "🎉 Welcome to Wireway Pro! Your subscription is active." : "✓ Payment received! Quote has been marked as paid."}
+              </span>
+              <button onClick={() => { setPaymentSuccess(false); if(onClearBanner) onClearBanner(); }} style={{ background:"transparent", border:"none", color:"rgba(100,220,130,0.5)", fontSize:18, cursor:"pointer" }}>✕</button>
+            </div>
+          )}
+
+          {/* ── PRO GATE TOAST ── */}
+          {proGateMsg && (
+            <div style={{ margin:"0 0 14px", padding:"11px 16px", background:"rgba(232,201,122,0.08)", border:"1px solid rgba(232,201,122,0.25)", borderRadius:10, fontSize:12, color:"#e8c97a", fontWeight:600 }} className="no-print">
+              ⚡ {proGateMsg}
+            </div>
+          )}
+
+          {/* ── TRIAL BANNER ── */}
+          {onTrial && daysLeft <= 7 && daysLeft > 0 && (
+            <div style={{ margin:"0 0 14px", padding:"10px 16px", background:"rgba(232,201,122,0.06)", border:"1px solid rgba(232,201,122,0.18)", borderRadius:10, display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:12 }} className="no-print">
+              <span style={{ color:"rgba(232,201,122,0.8)" }}>⏳ {daysLeft} day{daysLeft!==1?"s":""} left in your free trial.</span>
+              {onShowPricing && <button onClick={onShowPricing} style={{ padding:"5px 12px", borderRadius:6, border:"1px solid rgba(232,201,122,0.4)", background:"rgba(232,201,122,0.12)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Upgrade Now</button>}
+            </div>
+          )}
+
+          {/* ── FREE TIER LIMIT BANNER ── */}
+          {!userIsPro && savedQuotes.length >= 3 && (
+            <div style={{ margin:"0 0 14px", padding:"10px 16px", background:"rgba(232,126,126,0.06)", border:"1px solid rgba(232,126,126,0.2)", borderRadius:10, display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:12 }} className="no-print">
+              <span style={{ color:"rgba(232,126,126,0.8)" }}>⚠ Free plan limit: 3 saved quotes. Upgrade to save unlimited quotes.</span>
+              {onShowPricing && <button onClick={onShowPricing} style={{ padding:"5px 12px", borderRadius:6, border:"1px solid rgba(232,126,126,0.4)", background:"rgba(232,126,126,0.1)", color:"#e87e7e", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Upgrade</button>}
+            </div>
+          )}
           <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:13, padding:"14px 16px", marginBottom:12, animation:"fadeUp 0.4s ease 0.04s both" }} className="no-print">
             <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Client & Job Details</div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
@@ -1900,7 +1899,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing 
 
                   {/* ── SAVE + SIGN BUTTONS ── */}
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }} className="no-print">
-                    <button onClick={saveQuote} style={{ padding:"12px", background: saveMsg ? "rgba(100,220,130,0.1)" : "linear-gradient(135deg,rgba(232,201,122,0.18),rgba(232,201,122,0.07))", border: saveMsg ? "1px solid rgba(100,220,130,0.38)" : "1px solid rgba(232,201,122,0.35)", borderRadius:10, color: saveMsg ? "#7dcea0" : "#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
+                    <button onClick={() => { if (!userIsPro && savedQuotes.length >= 3) { if(onShowPricing) onShowPricing(); return; } saveQuote(); }} style={{ padding:"12px", background: saveMsg ? "rgba(100,220,130,0.1)" : "linear-gradient(135deg,rgba(232,201,122,0.18),rgba(232,201,122,0.07))", border: saveMsg ? "1px solid rgba(100,220,130,0.38)" : "1px solid rgba(232,201,122,0.35)", borderRadius:10, color: saveMsg ? "#7dcea0" : "#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
                       {saveMsg ? "✓ Saved" : "💾 Save Quote"}
                     </button>
                     <button onClick={() => { setSigName(""); setSigDate(new Date().toLocaleDateString()); setSigSaved(false); setSignModal(true); }}
@@ -1992,7 +1991,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing 
                         ⚙ Connect Stripe in Company Settings
                       </button>
                     ) : (
-                      <button onClick={requestPayment} disabled={paymentLoading} style={{ width:"100%", padding:"13px", background: paymentLoading ? "rgba(99,102,241,0.06)" : "linear-gradient(135deg,rgba(99,102,241,0.25),rgba(139,92,246,0.15))", border:"1px solid rgba(99,102,241,0.4)", borderRadius:10, color: paymentLoading ? "rgba(129,140,248,0.5)" : "#818cf8", fontSize:13, fontWeight:700, cursor: paymentLoading ? "default" : "pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
+                      <button onClick={() => requirePro(requestPayment)} disabled={paymentLoading} style={{ width:"100%", padding:"13px", background: paymentLoading ? "rgba(99,102,241,0.06)" : "linear-gradient(135deg,rgba(99,102,241,0.25),rgba(139,92,246,0.15))", border:"1px solid rgba(99,102,241,0.4)", borderRadius:10, color: paymentLoading ? "rgba(129,140,248,0.5)" : "#818cf8", fontSize:13, fontWeight:700, cursor: paymentLoading ? "default" : "pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
                         {paymentLoading ? "Opening Stripe Checkout..." : `⚡ Send Payment Request — $${depositOnly ? Math.round(total * depositPercent / 100).toLocaleString() : total.toLocaleString()}`}
                       </button>
                     )}
@@ -2145,6 +2144,70 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing 
           </div>
         </div>
       </div>
+
+      {/* ════════════ ACCOUNT MODAL ════════════ */}
+      {showAccount && (
+        <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setShowAccount(false)}>
+          <div className="modal-box" style={{ padding:"24px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+              <div>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, color:"#fff" }}>Account</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:2 }}>{user?.email}</div>
+              </div>
+              <button onClick={() => setShowAccount(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:22, cursor:"pointer" }}>✕</button>
+            </div>
+
+            {/* Plan status */}
+            <div style={{ background: userIsPro ? "rgba(100,220,130,0.06)" : "rgba(232,201,122,0.06)", border: userIsPro ? "1px solid rgba(100,220,130,0.2)" : "1px solid rgba(232,201,122,0.2)", borderRadius:10, padding:"12px 14px", marginBottom:16 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:700, color: userIsPro ? "#7dcea0" : "#e8c97a" }}>
+                    {userIsPro ? (onTrial ? `Pro Trial — ${daysLeft} days left` : "Wireway Pro") : "Free Plan"}
+                  </div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:2 }}>
+                    {userIsPro ? "All features unlocked" : "3 quote limit · upgrade to unlock everything"}
+                  </div>
+                </div>
+                {!userIsPro && onShowPricing && (
+                  <button onClick={() => { setShowAccount(false); onShowPricing(); }} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(232,201,122,0.4)", background:"rgba(232,201,122,0.1)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                    Upgrade ⚡
+                  </button>
+                )}
+                {userIsPro && (
+                  <button onClick={async () => {
+                    const res = await fetch("/api/billing-portal", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ userId: user.id }) });
+                    const d = await res.json(); if (d.url) window.open(d.url, "_blank");
+                  }} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(255,255,255,0.1)", background:"rgba(255,255,255,0.04)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                    Manage Billing
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
+              {[
+                { label:"Quotes saved", val: savedQuotes.length },
+                { label:"Clients", val: clients.length },
+                { label:"Accepted", val: savedQuotes.filter(q=>q.status==="accepted"||q.status==="paid").length },
+              ].map(s => (
+                <div key={s.label} style={{ background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:8, padding:"10px", textAlign:"center" }}>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:20, fontWeight:700, color:"#e8c97a" }}>{s.val}</div>
+                  <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginTop:2 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Sign out */}
+            <button onClick={async () => {
+              await signOut();
+              window.location.reload();
+            }} style={{ width:"100%", padding:"12px", background:"rgba(232,126,126,0.06)", border:"1px solid rgba(232,126,126,0.2)", borderRadius:10, color:"#e87e7e", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ════════════ COMPANY PROFILE MODAL ════════════ */}
       {signModal && (

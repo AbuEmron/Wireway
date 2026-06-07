@@ -131,9 +131,26 @@ export default function AuthScreen({ onAuth }) {
           </div>
         </div>
 
-        <div style={{ marginTop:32, fontSize:10, color:"rgba(255,255,255,0.15)", letterSpacing:"0.05em", textAlign:"center" }}>
-          WIREWAY · NEC 2023 · PROFESSIONAL ELECTRICAL ESTIMATING
-        </div>
+          {/* Demo access */}
+          <div style={{ marginTop:20, paddingTop:16, borderTop:"1px solid rgba(255,255,255,0.06)", textAlign:"center" }}>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.2)", marginBottom:10 }}>Just want to look around?</div>
+            <button onClick={async () => {
+              setEmail("demo@wireway.cc");
+              setPassword("Wireway2026!");
+              setError(""); setSuccess(""); setLoading(true);
+              try {
+                const { error } = await signIn({ email:"demo@wireway.cc", password:"Wireway2026!" });
+                if (error) throw error;
+                onAuth();
+              } catch (err) {
+                setError("Demo account not set up yet. Ask the admin to create it in Supabase.");
+              } finally { setLoading(false); }
+            }} style={{ padding:"9px 20px", borderRadius:8, border:"1px solid rgba(255,255,255,0.1)", background:"rgba(255,255,255,0.04)", color:"rgba(255,255,255,0.45)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.08)"}
+              onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.04)"}>
+              👀 Try Demo — no account needed
+            </button>
+          </div>
       </div>
     </>
   );
