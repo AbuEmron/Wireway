@@ -1133,6 +1133,11 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             {TAB("saved",    `Saved (${savedQuotes.length})`)}
             {TAB("profit",   "Profit")}
             {TAB("nec",      "NEC 2023")}
+            {(onTrial || !userIsPro) && onShowPricing && (
+              <button onClick={onShowPricing} style={{ padding:"9px 10px", border:"none", background:"linear-gradient(135deg,rgba(232,201,122,0.18),rgba(232,201,122,0.06))", color:"#e8c97a", fontSize:11, fontWeight:800, cursor:"pointer", fontFamily:"'Syne',sans-serif", borderLeft:"1px solid rgba(232,201,122,0.2)", letterSpacing:"-0.01em", whiteSpace:"nowrap" }}>
+                ⚡ {onTrial ? `${daysLeft}d left` : "Upgrade"}
+              </button>
+            )}
           </div>
 
           {/* ════════════ SERVICES TAB ════════════ */}
@@ -1317,6 +1322,30 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     🖨 Print / Save as PDF
                   </button>
 
+                  {/* ── UPGRADE PROMPT (trial / free users) ── */}
+                  {(!userIsPro || onTrial) && onShowPricing && (
+                    <div style={{ marginTop:16, background:"linear-gradient(135deg,rgba(232,201,122,0.08) 0%,rgba(99,102,241,0.06) 100%)", border:"1px solid rgba(232,201,122,0.2)", borderRadius:14, padding:"20px", textAlign:"center" }} className="no-print">
+                      <div style={{ fontSize:20, marginBottom:8 }}>⚡</div>
+                      <div style={{ fontFamily:"'Syne',sans-serif", fontSize:15, fontWeight:800, color:"#fff", marginBottom:6, letterSpacing:"-0.02em" }}>
+                        {onTrial ? `${daysLeft} days left in your free trial` : "Unlock Pro features"}
+                      </div>
+                      <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:16, lineHeight:1.6 }}>
+                        Client payments · Unlimited quotes · Signatures · Invoice mode · Profit analysis · and more
+                      </div>
+                      <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
+                        <button onClick={onShowPricing} style={{ padding:"11px 24px", background:"linear-gradient(135deg,rgba(232,201,122,0.25),rgba(232,201,122,0.1))", border:"1px solid rgba(232,201,122,0.4)", borderRadius:9, color:"#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                          Upgrade to Pro — $12/mo
+                        </button>
+                        <button onClick={onShowPricing} style={{ padding:"11px 20px", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:9, color:"rgba(255,255,255,0.4)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                          View all plans
+                        </button>
+                      </div>
+                      <div style={{ fontSize:10, color:"rgba(255,255,255,0.2)", marginTop:10 }}>
+                        30-day free trial · No credit card required · Cancel anytime
+                      </div>
+                    </div>
+                  )}
+
                   {/* ── STRIPE PAYMENT PANEL ── */}
                   <div style={{ marginTop:14, background:"linear-gradient(135deg,rgba(99,102,241,0.08) 0%,rgba(139,92,246,0.05) 100%)", border:"1px solid rgba(99,102,241,0.2)", borderRadius:13, padding:"18px 18px 14px" }} className="no-print">
                     <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
@@ -1394,6 +1423,18 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           {/* ════════════ SAVED QUOTES TAB ════════════ */}
           {tab==="saved" && (
             <div style={{ animation:"fadeUp 0.3s ease both" }} className="no-print">
+              {/* Free tier limit warning */}
+              {!userIsPro && savedQuotes.length >= 3 && onShowPricing && (
+                <div style={{ marginBottom:14, padding:"14px 16px", background:"linear-gradient(135deg,rgba(232,201,122,0.08),rgba(99,102,241,0.05))", border:"1px solid rgba(232,201,122,0.2)", borderRadius:12, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color:"#e8c97a", marginBottom:2 }}>Free plan limit reached</div>
+                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>You're using {savedQuotes.length}/3 saved quote slots. Upgrade for unlimited.</div>
+                  </div>
+                  <button onClick={onShowPricing} style={{ padding:"8px 14px", borderRadius:8, border:"1px solid rgba(232,201,122,0.4)", background:"rgba(232,201,122,0.12)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>
+                    Upgrade ⚡
+                  </button>
+                </div>
+              )}
               {savedQuotes.length === 0 ? (
                 <div style={{ textAlign:"center", padding:"48px 20px", color:"rgba(255,255,255,0.2)" }}>
                   <div style={{ fontSize:30, marginBottom:10 }}>◎</div>
