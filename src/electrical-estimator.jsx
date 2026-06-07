@@ -512,6 +512,43 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showAccount,    setShowAccount]    = useState(false);
   const [proGateMsg,     setProGateMsg]     = useState("");
 
+  // ── Wire size calculator (NEC 310.15) ──
+  const wireResult = useMemo(() => {
+    const a = parseFloat(wireAmps);
+    if (!a || a <= 0) return null;
+    const cuTable = [{a:15,awg:"14"},{a:20,awg:"12"},{a:30,awg:"10"},{a:40,awg:"8"},{a:55,awg:"6"},{a:70,awg:"4"},{a:85,awg:"3"},{a:95,awg:"2"},{a:110,awg:"1"},{a:130,awg:"1/0"},{a:150,awg:"2/0"},{a:175,awg:"3/0"},{a:200,awg:"4/0"}];
+    const alTable = [{a:15,awg:"12"},{a:20,awg:"10"},{a:30,awg:"8"},{a:40,awg:"6"},{a:55,awg:"4"},{a:65,awg:"3"},{a:75,awg:"2"},{a:85,awg:"1"},{a:100,awg:"1/0"},{a:120,awg:"2/0"},{a:135,awg:"3/0"},{a:155,awg:"4/0"}];
+    const table = wireMat === "copper" ? cuTable : alTable;
+    const needed = a * 1.25;
+    const row = table.find(r => r.a >= needed) || table[table.length - 1];
+    const len = parseFloat(wireLen) || 0;
+    const cmilMap = {"14":4110,"12":6530,"10":10380,"8":16510,"6":26240,"4":41740,"3":52620,"2":66360,"1":83690,"1/0":105600,"2/0":133100,"3/0":167800,"4/0":211600};
+    const cmil = cmilMap[row.awg] || 10380;
+    const resistivity = wireMat === "copper" ? 10.4 : 17;
+    const vDrop = len > 0 ? (2 * resistivity * len * a) / cmil : 0;
+    const vDropPct = len > 0 ? (vDrop / parseFloat(wireVolt)) * 100 : 0;
+    return { awg: row.awg, ampacity: row.a, continuous: needed.toFixed(1), vDrop: vDrop.toFixed(2), vDropPct: vDropPct.toFixed(1), vDropOk: vDropPct < 3, nec: "NEC 310.15(B)(16)" };
+  }, [wireAmps, wireLen, wireVolt, wireMat]);
+
+  // ── Load calculator (NEC 220.82) ──
+  const loadResult = useMemo(() => {
+    const sf = parseFloat(sqft) || 0;
+    if (!sf) return null;
+    const lighting = sf * 3;
+    const sabc = (smallAppl * 1500) + (laundry * 1500);
+    const genLoad = lighting + sabc;
+    const gen = genLoad <= 10000 ? genLoad : 10000 + (genLoad - 10000) * 0.4;
+    const dryerVA = dryer  * 5000;
+    const rangeVA = range  * 8000;
+    const acVA    = acTons * 3516;
+    const heatVA  = heatKw * 1000;
+    const hvac    = Math.max(acVA, heatVA);
+    const totalVA = gen + dryerVA + rangeVA + hvac;
+    const amps240 = totalVA / 240;
+    const panelSize = amps240 <= 100 ? "100A" : amps240 <= 150 ? "150A" : amps240 <= 200 ? "200A" : "400A";
+    return { lighting, sabc, gen: Math.round(gen), dryerVA, rangeVA, hvac, totalVA: Math.round(totalVA), amps240: Math.round(amps240), panelSize };
+  }, [sqft, smallAppl, laundry, dryer, range, acTons, heatKw]);
+
   // ── Plan helpers ──
   const userIsPro = isPro(profile);
   const daysLeft  = trialDaysLeft(profile);
