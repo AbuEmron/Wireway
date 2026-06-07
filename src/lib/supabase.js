@@ -202,3 +202,66 @@ export const uploadLogo = async (userId, file) => {
   const { data } = supabase.storage.from("logos").getPublicUrl(path);
   return { url: data.publicUrl + `?t=${Date.now()}`, error: null };
 };
+
+// ── JOBS ─────────────────────────────────────────────────────────────────────
+
+export const getJobs = async (userId, { month, year } = {}) => {
+  let query = supabase
+    .from("jobs")
+    .select("*")
+    .eq("user_id", userId)
+    .order("scheduled_date", { ascending: true })
+    .order("scheduled_time", { ascending: true });
+  if (month !== undefined && year !== undefined) {
+    const start = `${year}-${String(month+1).padStart(2,'0')}-01`;
+    const end   = `${year}-${String(month+1).padStart(2,'0')}-31`;
+    query = query.gte("scheduled_date", start).lte("scheduled_date", end);
+  }
+  const { data, error } = await query;
+  return { data: data || [], error };
+};
+
+export const upsertJob = async (userId, jobData) => {
+  const payload = { ...jobData, user_id: userId };
+  if (jobData.id) {
+    const { data, error } = await supabase.from("jobs").update(payload).eq("id", jobData.id).eq("user_id", userId).select().single();
+    return { data, error };
+  }
+  const { data, error } = await supabase.from("jobs").insert(payload).select().single();
+  return { data, error };
+};
+
+export const deleteJob = async (id, userId) => {
+  const { error } = await supabase.from("jobs").delete().eq("id", id).eq("user_id", userId);
+  return { error };
+};
+
+export const updateJobStatus = async (id, status) => {
+  const { data, error } = await supabase.from("jobs").update({ status }).eq("id", id).select().single();
+  return { data, error };
+};
+
+// ── PHOTOS ───────────────────────────────────────────────────────────────────
+
+export const getPhotos = async (quoteId) => {
+  const { data, error } = await supabase.from("photos").select("*").eq("quote_id", quoteId).order("created_at");
+  return { data: data || [], error };
+};
+
+export const uploadPhoto = async (userId, quoteId, file) => {
+  const ext  = file.name.split(".").pop();
+  const path = `${userId}/${quoteId}/${Date.now()}.${ext}`;
+  const { error: upErr } = await supabase.storage.from("photos").upload(path, file, { contentType: file.type });
+  if (upErr) return { url: null, error: upErr };
+  const { data: urlData } = supabase.storage.from("photos").getPublicUrl(path);
+  const { data, error } = await supabase.from("photos").insert({
+    user_id: userId, quote_id: quoteId, url: urlData.publicUrl,
+    size_bytes: file.size,
+  }).select().single();
+  return { data, error };
+};
+
+export const deletePhoto = async (id) => {
+  const { error } = await supabase.from("photos").delete().eq("id", id);
+  return { error };
+};
