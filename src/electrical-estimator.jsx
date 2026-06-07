@@ -7,6 +7,10 @@ import {
 } from "./lib/supabase";
 import { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES } from "./data/catalog";
 import { NEC_REF } from "./data/nec-reference";
+import {
+  JobCalendar, PhotoAttachments, QuickBooksExport,
+  AutoInvoiceButton, OnMyWayButton, ReviewRequestButton,
+} from "./features";
 
 
 
@@ -506,6 +510,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [paymentError,   setPaymentError]   = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState(!!paymentBanner);
   const [showAccount,    setShowAccount]    = useState(false);
+  const [showCalendar,   setShowCalendar]   = useState(false);
   const [proGateMsg,     setProGateMsg]     = useState("");
 
   // ── Wire size calculator (NEC 310.15) ──
@@ -1167,7 +1172,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             {/* Row 2: tools — subtle divider separates from toggles */}
             <div style={{ display:"flex", gap:5, flexWrap:"wrap", paddingTop:8, borderTop:"1px solid rgba(255,255,255,0.05)" }}>
               {[
-                { label:"Wire Calc",  action:() => setWireCalcOpen(true)  },
+                { label:"📅 Calendar", action:() => setShowCalendar(true)   },
+              { label:"Wire Calc",  action:() => setWireCalcOpen(true)  },
                 { label:"Load Calc",  action:() => setLoadCalcOpen(true)  },
                 { label:"Checklist",  action:() => setChecklistOpen(true) },
                 { label:"Clients",    action:() => setShowClientDB(true)  },
@@ -1402,6 +1408,39 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.04)"}>
                     🖨 Print / Save as PDF
                   </button>
+
+                  {/* ── ON MY WAY + REVIEW ── */}
+                  <div style={{ display:"flex", flexDirection:"column", gap:6, marginTop:2 }} className="no-print">
+                    <OnMyWayButton
+                      clientName={clientName} clientPhone={clientPhone}
+                      jobAddress={jobName} companyName={company.name}
+                    />
+                    {currentQuoteStatus?.status === "accepted" || currentQuoteStatus?.status === "paid" ? (
+                      <ReviewRequestButton
+                        clientName={clientName} clientPhone={clientPhone}
+                        companyName={company.name} reviewUrl={company.reviewUrl}
+                      />
+                    ) : null}
+                    <AutoInvoiceButton
+                      isInvoiceMode={invoiceMode}
+                      onConvert={() => { setInvoiceMode(true); setInvoiceDueDate(new Date(Date.now()+30*86400000).toISOString().split("T")[0]); }}
+                    />
+                    <QuickBooksExport
+                      quote={{ clientName, jobName, quoteNumber, invoiceDueDate }}
+                      company={company}
+                      activeItems={activeItems}
+                      total={total} totLab={totLab} totMat={totMat}
+                      markupAmt={markupAmt} taxAmt={taxAmt}
+                      taxRate={taxRate} taxEnabled={taxEnabled}
+                    />
+                  </div>
+
+                  {/* ── PHOTO ATTACHMENTS ── */}
+                  {quoteId && (
+                    <div style={{ marginTop:14, padding:"14px 16px", background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.055)", borderRadius:12 }} className="no-print">
+                      <PhotoAttachments user={user} quoteId={quoteId} />
+                    </div>
+                  )}
 
                   {/* ── UPGRADE PROMPT (trial / free users) ── */}
                   {(!userIsPro || onTrial) && onShowPricing && (
@@ -1641,6 +1680,13 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* ════════════ CALENDAR VIEW ════════════ */}
+          {showCalendar && (
+            <div style={{ position:"fixed", inset:0, zIndex:150, overflowY:"auto" }}>
+              <JobCalendar user={user} onClose={() => setShowCalendar(false)} />
             </div>
           )}
 
@@ -2032,12 +2078,13 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             {/* Company fields */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
               {[
-                { ph:"Company name",      key:"name" },
-                { ph:"Phone number",      key:"phone" },
-                { ph:"Email address",     key:"email" },
-                { ph:"Website",           key:"website" },
-                { ph:"Street address",    key:"address" },
-                { ph:"License number",    key:"license" },
+                { ph:"Company name",        key:"name" },
+                { ph:"Phone number",        key:"phone" },
+                { ph:"Email address",       key:"email" },
+                { ph:"Website",             key:"website" },
+                { ph:"Street address",      key:"address" },
+                { ph:"License number",      key:"license" },
+                { ph:"Google Review URL",   key:"reviewUrl" },
               ].map(f => (
                 <input key={f.key} placeholder={f.ph} value={companyDraft[f.key]||""} onChange={e => setCompanyDraft(p => ({ ...p, [f.key]: e.target.value }))}
                   style={inputStyle} onFocus={focusGold} onBlur={blurGray} />
