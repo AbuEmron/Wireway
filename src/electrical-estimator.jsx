@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import {
-  signOut, updateProfile, updatePassword, updateEmail,
+  signOut,
   getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus,
-  getClients, upsertClient, uploadLogo,
+  getClients, upsertClient,
   isPro, isTrialing, trialDaysLeft,
 } from "./lib/supabase";
 import { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES } from "./data/catalog";
