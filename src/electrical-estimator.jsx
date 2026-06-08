@@ -11,6 +11,7 @@ import {
   JobCalendar, PhotoAttachments, QuickBooksExport,
   AutoInvoiceButton, OnMyWayButton, ReviewRequestButton,
 } from "./features";
+import AIQuoteBuilder from "./AIQuoteBuilder";
 
 
 
@@ -371,6 +372,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [paymentSuccess, setPaymentSuccess] = useState(!!paymentBanner);
   const [showAccount,    setShowAccount]    = useState(false);
   const [showCalendar,   setShowCalendar]   = useState(false);
+  const [showAIBuilder,  setShowAIBuilder]  = useState(false);
   const [installPrompt,  setInstallPrompt]  = useState(null);
   const [showInstall,    setShowInstall]    = useState(false);
 
@@ -688,6 +690,23 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     const reader = new FileReader();
     reader.onload = (ev) => setLogoDataUrl(ev.target.result);
     reader.readAsDataURL(file);
+  };
+
+  // ── Apply AI-generated estimate items to entries ──
+  const applyAIEstimate = (items) => {
+    const newEntries = { ...entries };
+    items.forEach(item => {
+      newEntries[item.id] = {
+        qty:        item.qty,
+        variantIdx: item.variantIdx,
+        clientBuys: false,
+      };
+    });
+    setEntries(newEntries);
+    setShowAIBuilder(false);
+    setTab("summary");
+    setSaveMsg(`${items.length} services added by AI`);
+    setTimeout(() => setSaveMsg(""), 3000);
   };
 
   // ── New quote — reset all state ──
@@ -1062,7 +1081,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             {/* Row 2: tools — subtle divider separates from toggles */}
             <div style={{ display:"flex", gap:5, flexWrap:"wrap", paddingTop:8, borderTop:"1px solid rgba(255,255,255,0.05)" }}>
               {[
-                { label:"📅 Calendar", action:() => setShowCalendar(true)   },
+                { label:"⚡ AI Quote", action:() => setShowAIBuilder(true),  highlight: true },
+              { label:"📅 Calendar", action:() => setShowCalendar(true)   },
               { label:"Wire Calc",  action:() => setWireCalcOpen(true)  },
                 { label:"Load Calc",  action:() => setLoadCalcOpen(true)  },
                 { label:"Checklist",  action:() => setChecklistOpen(true) },
@@ -1070,9 +1090,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 { label:"+ Custom",   action:addCustomItem                },
                 hasItems ? { label:"Pull List", action:buildMaterialList } : null,
               ].filter(Boolean).map(btn => (
-                <button key={btn.label} onClick={btn.action} style={{ padding:"4px 10px", borderRadius:6, fontSize:10, fontWeight:600, border:"1px solid rgba(255,255,255,0.07)", background:"transparent", color:"rgba(255,255,255,0.45)", cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}
-                  onMouseEnter={e => { e.currentTarget.style.background="rgba(255,255,255,0.06)"; e.currentTarget.style.color="#fff"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background="transparent"; e.currentTarget.style.color="rgba(255,255,255,0.45)"; }}>
+                <button key={btn.label} onClick={btn.action} style={{ padding:"4px 10px", borderRadius:6, fontSize:10, fontWeight: btn.highlight ? 700 : 600, border: btn.highlight ? "1px solid rgba(232,201,122,0.3)" : "1px solid rgba(255,255,255,0.07)", background: btn.highlight ? "rgba(232,201,122,0.08)" : "transparent", color: btn.highlight ? "#e8c97a" : "rgba(255,255,255,0.45)", cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = btn.highlight ? "rgba(232,201,122,0.15)" : "rgba(255,255,255,0.06)"; e.currentTarget.style.color = btn.highlight ? "#e8c97a" : "#fff"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = btn.highlight ? "rgba(232,201,122,0.08)" : "transparent"; e.currentTarget.style.color = btn.highlight ? "#e8c97a" : "rgba(255,255,255,0.45)"; }}>
                   {btn.label}
                 </button>
               ))}
@@ -1571,6 +1591,14 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 </>
               )}
             </div>
+          )}
+
+          {/* ════════════ AI QUOTE BUILDER ════════════ */}
+          {showAIBuilder && (
+            <AIQuoteBuilder
+              onApplyEstimate={applyAIEstimate}
+              onClose={() => setShowAIBuilder(false)}
+            />
           )}
 
           {/* ════════════ CALENDAR VIEW ════════════ */}
