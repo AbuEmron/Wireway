@@ -158,7 +158,6 @@ export default function AuthScreen({ onAuth, initialMode = "signin", onBack }) {
               👀 Try Demo — no account needed
             </button>
           </div>
-      </div>
     </>
   );
 }

@@ -2097,7 +2097,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           </div>
         </div>
       )}
-      </div> {/* end display:none estimator wrapper */}
+      </div> {/* closes main app minHeight div */}
+      </div> {/* closes display:none estimator wrapper */}
 
       {/* ── PWA INSTALL BANNER ── */}
       {showInstall && (
