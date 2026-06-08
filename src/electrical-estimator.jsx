@@ -1664,7 +1664,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           </div>
         </div>
       </div>
-      </div>  {/* closes the showDashboard display:none wrapper */}
+      </div>
+      )}
 
       {/* ════════════ ACCOUNT MODAL ════════════ */}
       {showAccount && (
