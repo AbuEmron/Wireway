@@ -548,7 +548,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                   Account </button>
                 <button onClick={() => { setCompanyDraft(company); setLogoDataUrl(company.logoDataUrl||""); setEditingCompany(true); }} style={{ padding:"5px 10px", border:"none", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                   Company
-                </button> </div>
+                </button>
+              </div>
                 </div>
                 </div>
                 </div>
@@ -652,7 +653,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     <input type="date" value={invoiceDueDate} onChange={e => setInvoiceDueDate(e.target.value)} style={{ ...inputStyle, width:"auto", fontSize:11, padding:"3px 8px", colorScheme:"dark" }} onFocus={focusGold} onBlur={blurGray} />
                     <button onClick={() => setInvoicePaid(v => !v)} style={{ padding:"3px 9px", borderRadius:5, border: invoicePaid ? "1px solid rgba(100,220,130,0.4)" : "1px solid rgba(255,255,255,0.07)", background: invoicePaid ? "rgba(100,220,130,0.1)" : "transparent", color: invoicePaid ? "#7dcea0" : "rgba(255,255,255,0.35)", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                       {invoicePaid ? "✓ Paid" : "Mark paid"}
-                    </button> </div>
+                    </button>
+                  </div>
                     )}
                     </div>
                     )}
@@ -725,7 +727,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                   <div style={{ fontSize:13, color:"rgba(255,255,255,0.25)", marginBottom:16 }}>No services added yet</div>
                   <button onClick={() => setTab("services")} style={{ padding:"9px 20px", background:"rgba(232,201,122,0.08)", border:"1px solid rgba(232,201,122,0.22)", borderRadius:8, color:"#e8c97a", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                     Browse Services →
-                  </button> </div>
+                  </button>
+                </div>
               ) : (
                 <>
                   {/* ── STAT CARDS ── */}
@@ -860,7 +863,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     <button onClick={() => { setSigName(""); setSigDate(new Date().toLocaleDateString()); setSigSaved(false); setSignModal(true); }}
                       style={{ padding:"12px", background: currentQuoteStatus?.status === "accepted" ? "rgba(100,220,130,0.1)" : "rgba(255,255,255,0.04)", border: currentQuoteStatus?.status === "accepted" ? "1px solid rgba(100,220,130,0.35)" : "1px solid rgba(255,255,255,0.1)", borderRadius:10, color: currentQuoteStatus?.status === "accepted" ? "#7dcea0" : "rgba(255,255,255,0.5)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
                       {currentQuoteStatus?.status === "accepted" ? "✓ Client Signed" : "✍ Client Signature"}
-                    </button> </div>
+                    </button>
+                  </div>
 
                   {/* ── SEND ACTIONS ── */}
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8, marginBottom:8 }} className="no-print">
@@ -972,7 +976,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                   </div>
                   <button onClick={onShowPricing} style={{ padding:"8px 14px", borderRadius:8, border:"1px solid rgba(232,201,122,0.4)", background:"rgba(232,201,122,0.12)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>
                     Upgrade ⚡
-                  </button> </div>
+                  </button>
+                </div>
                   )}
               {savedQuotes.length === 0 ? (
                 <div style={{ textAlign:"center", padding:"48px 20px", color:"rgba(255,255,255,0.2)" }}>
@@ -1015,7 +1020,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                           Load → </button>
                         <button onClick={() => deleteQuote(q.id)} style={{ padding:"7px 10px", borderRadius:7, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"rgba(255,100,100,0.5)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                           ✕
-                        </button> </div>
+                        </button>
+                      </div>
                         </div>
                   ))}
                 </>
@@ -1171,7 +1177,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               window.location.reload();
             }} style={{ width:"100%", padding:"12px", background:"rgba(232,126,126,0.06)", border:"1px solid rgba(232,126,126,0.2)", borderRadius:10, color:"#e87e7e", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
               Sign Out
-            </button> </div>
+            </button>
+          </div>
             </div>
             )}
 
