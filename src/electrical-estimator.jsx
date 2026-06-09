@@ -1187,7 +1187,11 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
             <div style={{ textAlign:"center", marginTop:10, fontSize:10, color:"rgba(255,255,255,0.2)" }}>
               This is an electronic acknowledgment. Save or print a copy for your records.
-            </div> </div> </div> )} </div>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
 
       <WiremModals {...{
         wireCalcOpen,setWireCalcOpen,wireAmps,setWireAmps,wireLen,setWireLen,
