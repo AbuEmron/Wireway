@@ -255,4 +255,68 @@ const HOURLY_RATES   = [55, 65, 75, 85, 95, 110, 125, 150];
 const ALL_SERVICES   = CATEGORIES.flatMap(c => c.services.map(s => ({ ...s, catColor: c.color, catLabel: c.label })));
 
 
-export { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES };
+
+  const CHECKLISTS = {
+    service_upgrade: {
+      label: "Service Upgrade",
+      items: [
+        { id:"su1",  nec:"NEC 230.67",      text:"Whole-home surge protector installed (required 2023)" },
+        { id:"su2",  nec:"NEC 230.79",      text:"Service disconnect rated correctly (min 100A residential)" },
+        { id:"su3",  nec:"NEC 230.24",      text:"Service entrance clearances met (10 ft min at grade)" },
+        { id:"su4",  nec:"NEC 250.50",      text:"Grounding electrode system complete and bonded" },
+        { id:"su5",  nec:"NEC 250.104",     text:"Water and gas piping bonded" },
+        { id:"su6",  nec:"NEC 250.28",      text:"Main bonding jumper installed at panel" },
+        { id:"su7",  nec:"NEC 408.4",       text:"All circuits labeled on directory" },
+        { id:"su8",  nec:"NEC 110.26",      text:"36 in. working clearance maintained in front of panel" },
+        { id:"su9",  nec:"NEC 230.85",      text:"Exterior emergency disconnect installed (required 2023)" },
+        { id:"su10", nec:"NEC 408.7",       text:"All unused knockouts sealed" },
+      ],
+    },
+    new_circuit: {
+      label: "New Circuit / Rough-In",
+      items: [
+        { id:"nc1",  nec:"NEC 210.12",      text:"AFCI protection on all required circuits" },
+        { id:"nc2",  nec:"NEC 210.8",       text:"GFCI protection in all required locations" },
+        { id:"nc3",  nec:"NEC 300.4",       text:"Nail plates installed within 1.25 in. of framing edge" },
+        { id:"nc4",  nec:"NEC 300.14",      text:"6 in. free conductor at all boxes" },
+        { id:"nc5",  nec:"NEC 314.16",      text:"Box fill calculations verified (no overfill)" },
+        { id:"nc6",  nec:"NEC 334.30",      text:"NM cable secured within 12 in. of all boxes" },
+        { id:"nc7",  nec:"NEC 240.4",       text:"Conductor sized correctly for overcurrent device" },
+        { id:"nc8",  nec:"NEC 110.12",      text:"Workmanlike installation — cables properly routed" },
+        { id:"nc9",  nec:"NEC 406.12",      text:"All receptacles are tamper-resistant (TR rated)" },
+        { id:"nc10", nec:"NEC 210.52",      text:"Outlet spacing verified (no point more than 6 ft from outlet)" },
+      ],
+    },
+    pool: {
+      label: "Pool / Spa",
+      items: [
+        { id:"p1",   nec:"NEC 680.26",      text:"Equipotential bonding complete — all metal within 5 ft bonded" },
+        { id:"p2",   nec:"NEC 680.22",      text:"Receptacles at least 6 ft from pool edge (GFCI protected)" },
+        { id:"p3",   nec:"NEC 680.22",      text:"No luminaires within 12 ft horizontally of pool water" },
+        { id:"p4",   nec:"NEC 680.21(C)",   text:"GFCI protection on all pump motor circuits" },
+        { id:"p5",   nec:"NEC 680.23",      text:"Underwater lighting properly niched and rated" },
+        { id:"p6",   nec:"NEC 680.12",      text:"Equipment disconnect within sight of pool equipment" },
+        { id:"p7",   nec:"NEC 680.6",       text:"All equipment within 5 ft of pool grounded (insulated GEC)" },
+        { id:"p8",   nec:"NEC 680.42",      text:"Spa/hot tub has GFCI protection on all circuits" },
+      ],
+    },
+    final_inspection: {
+      label: "Final Inspection",
+      items: [
+        { id:"fi1",  nec:"NEC 314.25",      text:"All boxes have covers or faceplates" },
+        { id:"fi2",  nec:"NEC 408.4",       text:"Panel directory complete and legible" },
+        { id:"fi3",  nec:"NEC 410.16",      text:"Closet lighting fixtures are LED (no incandescent)" },
+        { id:"fi4",  nec:"NEC 200.11",      text:"All outlets tested — no reversed polarity" },
+        { id:"fi5",  nec:"NEC 210.8",       text:"GFCI outlets tested and functional" },
+        { id:"fi6",  nec:"NEC 210.12",      text:"AFCI breakers tested (test button)" },
+        { id:"fi7",  nec:"NEC 760.41",      text:"Smoke detectors interconnected and functional" },
+        { id:"fi8",  nec:"NEC 110.3(B)",    text:"All equipment installed per listing/labeling" },
+        { id:"fi9",  nec:"NEC 230.67",      text:"Surge protector installed and indicator light green" },
+        { id:"fi10", nec:"NEC 110.26",      text:"Panel working clearance verified and unobstructed" },
+        { id:"fi11", nec:"NEC 406.9",       text:"All outdoor outlets have in-use weatherproof covers" },
+        { id:"fi12", nec:"NEC 250.53",      text:"Ground rods driven full depth (8 ft min)" },
+      ],
+    },
+  };
+
+export { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES, CHECKLISTS };
