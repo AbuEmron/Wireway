@@ -912,13 +912,15 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                       activeItems={activeItems}
                       total={total} totLab={totLab} totMat={totMat}
                       markupAmt={markupAmt} taxAmt={taxAmt}
-                      taxRate={taxRate} taxEnabled={taxEnabled} /> </div>
+                      taxRate={taxRate} taxEnabled={taxEnabled} />
+                  </div>
 
                   {/* ── PHOTO ATTACHMENTS ── */}
                   {quoteId && (
                     <div style={{ marginTop:14, padding:"14px 16px", background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.055)", borderRadius:12 }} className="no-print">
-                      <PhotoAttachments user={user} quoteId={quoteId} /> </div>
-                      )}
+                      <PhotoAttachments user={user} quoteId={quoteId} />
+                    </div>
+                  )}
 
                   {/* ── UPGRADE PROMPT (trial / free users) ── */}
                           <button key={pct} onClick={() => setDepositPercent(pct)} style={{ flex:1, padding:"6px", borderRadius:6, border: depositPercent===pct ? "1px solid rgba(99,102,241,0.5)" : "1px solid rgba(255,255,255,0.08)", background: depositPercent===pct ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.03)", color: depositPercent===pct ? "#818cf8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>{pct}%</button>
@@ -1222,7 +1224,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               <div>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Client Full Name</div>
                 <input placeholder="Type full name to accept" value={sigName} onChange={e => setSigName(e.target.value)}
-                  style={{ ...inputStyle }} onFocus={focusGold} onBlur={blurGray} /> </div>
+                  style={{ ...inputStyle }} onFocus={focusGold} onBlur={blurGray} />
+              </div>
               <div>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Date</div>
                 <input type="date" value={sigDate} onChange={e => setSigDate(e.target.value)}
