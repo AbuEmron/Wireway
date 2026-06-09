@@ -933,11 +933,14 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     </div>
                   )}
 
-                  {/* ── UPGRADE PROMPT (trial / free users) ── */}
-                          <button key={pct} onClick={() => setDepositPercent(pct)} style={{ flex:1, padding:"6px", borderRadius:6, border: depositPercent===pct ? "1px solid rgba(99,102,241,0.5)" : "1px solid rgba(255,255,255,0.08)", background: depositPercent===pct ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.03)", color: depositPercent===pct ? "#818cf8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>{pct}%</button>
-                        ))}
-                      </div>
-                    )}
+                  {/* ── DEPOSIT PERCENT SELECTOR ── */}
+                  {depositOnly && (
+                    <div style={{ display:"flex", gap:4, marginBottom:10 }}>
+                      {[25,50,75,100].map(pct => (
+                        <button key={pct} onClick={() => setDepositPercent(pct)} style={{ flex:1, padding:"6px", borderRadius:6, border: depositPercent===pct ? "1px solid rgba(99,102,241,0.5)" : "1px solid rgba(255,255,255,0.08)", background: depositPercent===pct ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.03)", color: depositPercent===pct ? "#818cf8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>{pct}%</button>
+                      ))}
+                    </div>
+                  )}
 
                     {/* Amount preview */}
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", background:"rgba(255,255,255,0.04)", borderRadius:8, marginBottom:12 }}>
@@ -1138,6 +1141,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           <div style={{ textAlign:"center", marginTop:44, paddingTop:18, borderTop:"1px solid rgba(255,255,255,0.04)", fontSize:9, color:"rgba(255,255,255,0.13)", letterSpacing:"0.07em" }} className="no-print">
             WIREWAY · NEC 2023 · wireway.cc
           </div>
+      </div>
       </div>
 
       {/* ════════════ ACCOUNT MODAL ════════════ */}
