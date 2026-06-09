@@ -1270,8 +1270,6 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
         </div>
       )}
 
-      </div>
-
       <WiremModals {...{
         wireCalcOpen,setWireCalcOpen,wireAmps,setWireAmps,wireLen,setWireLen,
         wireVolt,setWireVolt,wireMat,setWireMat,wireResult,
