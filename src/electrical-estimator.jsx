@@ -1617,7 +1617,6 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           </div>
         </div>
       </div>
-      </div>
 
       {/* ════════════ ACCOUNT MODAL ════════════ */}
       {showAccount && (
@@ -2050,7 +2049,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
         </div>
       )}
       </div>
-      )}
+      </div>
 
       {/* ── PWA INSTALL BANNER ── */}
       {showInstall && (
