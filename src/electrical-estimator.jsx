@@ -926,6 +926,14 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                   )}
 
                   {/* ── DEPOSIT + PAYMENT ── */}
+                  <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+                    <button onClick={() => setDepositOnly(false)} style={{ flex:1, padding:"8px", borderRadius:7, border: !depositOnly ? "1px solid rgba(99,102,241,0.5)" : "1px solid rgba(255,255,255,0.08)", background: !depositOnly ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.03)", color: !depositOnly ? "#818cf8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                      Full Amount
+                    </button>
+                    <button onClick={() => setDepositOnly(true)} style={{ flex:1, padding:"8px", borderRadius:7, border: depositOnly ? "1px solid rgba(99,102,241,0.5)" : "1px solid rgba(255,255,255,0.08)", background: depositOnly ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.03)", color: depositOnly ? "#818cf8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                      Deposit Only
+                    </button>
+                  </div>
                   {depositOnly && (
                     <div style={{ display:"flex", gap:4, marginBottom:10 }}>
                       {[25,50,75,100].map(pct => (
