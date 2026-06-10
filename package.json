@@ -1,7 +1,7 @@
 {
   "name": "wireway",
   "version": "2.0.0",
-  "description": "Professional NEC 2023 Electrical Estimating — SaaS",
+  "description": "Professional NEC 2023 Electrical Estimating \u2014 SaaS",
   "private": true,
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
@@ -18,10 +18,24 @@
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
-    "extends": ["react-app", "react-app/jest"]
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
   },
   "browserslist": {
-    "production": [">0.2%", "not dead", "not op_mini all"],
-    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all",
+      "ios_saf >= 12",
+      "android >= 7",
+      "samsung >= 9"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }

@@ -175,7 +175,7 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
       <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 40% at 50% 0%,rgba(232,201,122,0.07) 0%,transparent 55%),#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:80 }}>
 
         {/* Header */}
-        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
+        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
           <div style={{ maxWidth:900, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <img src="/logo192.png" alt="Wireway" style={{ height:28, width:28, borderRadius:6, objectFit:"contain" }} />

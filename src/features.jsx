@@ -79,7 +79,7 @@ export function JobCalendar({ user, onClose }) {
       <div style={{ minHeight:"100vh", background:"#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:60 }}>
 
         {/* Header */}
-        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
+        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
           <div style={{ maxWidth:860, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", alignItems:"center", gap:12 }}>
               <button onClick={() => { setMonth(m => m===0 ? 11 : m-1); if(month===0) setYear(y=>y-1); }} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.08)", borderRadius:6, color:"rgba(255,255,255,0.5)", fontSize:16, cursor:"pointer", padding:"3px 10px" }}>‹</button>
@@ -166,7 +166,7 @@ export function JobCalendar({ user, onClose }) {
 
       {/* ── Job modal ── */}
       {modal && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", zIndex:200, display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"24px 16px" }}
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", zIndex:200, display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"24px 16px" }}
           onClick={e => e.target===e.currentTarget && setModal(null)}>
           <div style={{ background:"#111115", border:"1px solid rgba(255,255,255,0.1)", borderRadius:18, width:"100%", maxWidth:520, animation:"fadeUp 0.2s ease both", margin:"auto", padding:"24px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>

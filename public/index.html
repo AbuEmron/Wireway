@@ -16,6 +16,14 @@
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>Wireway</title>
+    <script>
+      window.onerror = function (msg, src, line) {
+        var el = document.getElementById("root");
+        if (el && !el.hasChildNodes()) {
+          el.innerHTML = '<div style="font-family:sans-serif;color:#fff;background:#0a0a0c;min-height:100vh;padding:40px 24px;text-align:center"><div style="font-size:40px;margin-bottom:16px">⚡</div><div style="font-size:16px;font-weight:700;margin-bottom:8px">Wireway had trouble loading in this browser</div><div style="font-size:13px;color:#aaa;margin-bottom:20px">Tap the menu and choose "Open in Browser" (Safari or Chrome) for the full experience.</div><div style="font-size:10px;color:#555">' + String(msg).slice(0,160) + '</div></div>';
+        }
+      };
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run Wireway.</noscript>

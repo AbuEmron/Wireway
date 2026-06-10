@@ -97,7 +97,7 @@ export default function QuotePublicPage({ quoteId }) {
       <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 40% at 50% 0%,rgba(232,201,122,0.07) 0%,transparent 55%),#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:60 }}>
 
         {/* Header */}
-        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", padding:"14px 20px", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)" }}>
+        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", padding:"14px 20px", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)" }}>
           <div style={{ maxWidth:600, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               {e?.logo_url

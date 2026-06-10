@@ -176,7 +176,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
         .ai-item:hover{background:rgba(255,255,255,0.04)!important}
       `}</style>
 
-      <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.82)", backdropFilter:"blur(12px)", zIndex:200, display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"20px 16px 40px" }}>
+      <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.82)", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", zIndex:200, display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"20px 16px 40px" }}>
         <div style={{ width:"100%", maxWidth:640, animation:"fadeUp 0.25s ease both" }}>
 
           {/* Header */}

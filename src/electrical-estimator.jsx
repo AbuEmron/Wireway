@@ -508,7 +508,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
         `}</style>
         <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 40% at 50% 0%,rgba(232,201,122,0.06) 0%,transparent 55%),#0a0a0c", fontFamily:"'DM Sans',sans-serif" }}>
-          <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
+          <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
             <div style={{ maxWidth:680, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                 <img src="/logo192.png" alt="Wireway" style={{ height:30, width:30, borderRadius:7, objectFit:"cover" }} />
@@ -542,7 +542,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           />
         )}
         {showAccount && (
-          <div onClick={e => e.target === e.currentTarget && setShowAccount(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", zIndex:400, display:"flex", alignItems:"center", justifyContent:"center", padding:"24px 16px" }}>
+          <div onClick={e => e.target === e.currentTarget && setShowAccount(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", zIndex:400, display:"flex", alignItems:"center", justifyContent:"center", padding:"24px 16px" }}>
           <div style={{ background:"#111115", border:"1px solid rgba(255,255,255,0.1)", borderRadius:18, width:"100%", maxWidth:380, padding:"24px", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
               <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800 }}>Account</span>
@@ -581,7 +581,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
       <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 45% at 50% -5%,rgba(232,201,122,0.065) 0%,transparent 55%),#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:80 }}>
 
         {/* ── HEADER ── */}
-        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.055)", background:"rgba(10,10,12,0.88)", backdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }} className="no-print">
+        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.055)", background:"rgba(10,10,12,0.88)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }} className="no-print">
           <div style={{ maxWidth:800, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", alignItems:"center", gap:9 }}>
               {logoDataUrl

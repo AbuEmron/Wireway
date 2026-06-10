@@ -27,7 +27,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
 
   const style = {
     page: { minHeight:"100vh", background:"#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", overflowX:"hidden" },
-    nav: { position:"fixed", top:0, left:0, right:0, zIndex:100, borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.92)", backdropFilter:"blur(20px)", padding:"0 24px" },
+    nav: { position:"fixed", top:0, left:0, right:0, zIndex:100, borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.92)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", padding:"0 24px" },
     navInner: { maxWidth:960, margin:"0 auto", height:56, display:"flex", alignItems:"center", justifyContent:"space-between" },
     section: { maxWidth:960, margin:"0 auto", padding:"0 24px" },
     h1: { fontFamily:"'Syne',sans-serif", fontSize:"clamp(32px,7vw,58px)", fontWeight:800, letterSpacing:"-0.04em", lineHeight:1.05, marginBottom:20 },
