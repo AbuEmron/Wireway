@@ -89,18 +89,18 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
     setSelected({});
 
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
+          max_tokens: 1500,
           system: buildSystemPrompt(),
           messages: [{ role: "user", content: prompt }],
         }),
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "AI request failed");
       const raw = data.content?.[0]?.text || "";
 
       // Extract JSON array
