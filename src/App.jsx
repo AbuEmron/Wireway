@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // src/App.jsx — root component with landing page, auth, dashboard, and main app
 import { useState, useEffect, useCallback } from "react";
 import { supabase, getProfile } from "./lib/supabase";

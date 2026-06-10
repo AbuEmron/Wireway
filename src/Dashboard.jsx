@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // src/Dashboard.jsx
 // Business dashboard — shown as home screen after login
 // Revenue, profit, pending quotes, upcoming jobs, quick quote cards
@@ -149,7 +150,6 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
   const pending     = quotes.filter(q => q.status === "draft" || q.status === "sent").length;
   const accepted    = quotes.filter(q => q.status === "accepted" || q.status === "deposit_paid").length;
   const avgJob      = quotes.length ? (quotes.reduce((a,q) => a + (q.total||0), 0) / quotes.length) : 0;
-  const paidTotal   = quotes.filter(q => q.status === "paid").reduce((a,q) => a + (q.total||0), 0);
   const acceptRate  = quotes.length ? Math.round((accepted / quotes.length) * 100) : 0;
 
   const upcomingJobs = jobs

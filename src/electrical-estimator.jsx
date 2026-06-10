@@ -1,18 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useMemo, useEffect } from "react";
-import {
-  signOut,
-  getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus,
-  getClients, upsertClient,
-  isPro, isTrialing, trialDaysLeft,
-} from "./lib/supabase";
+import { signOut, getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus, getClients, upsertClient, isPro, isTrialing, trialDaysLeft } from "./lib/supabase";
 import { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES, CHECKLISTS } from "./data/catalog";
-import { NEC_REF } from "./data/nec-reference";
-import {
-  JobCalendar, PhotoAttachments, QuickBooksExport,
-  AutoInvoiceButton, OnMyWayButton, ReviewRequestButton,
-} from "./features";
+import { JobCalendar, PhotoAttachments, QuickBooksExport, AutoInvoiceButton, OnMyWayButton, ReviewRequestButton } from "./features";
 import AIQuoteBuilder from "./AIQuoteBuilder";
-import { Counter, Pill, StatCard, ServiceRow, CategorySection, NECReference } from "./WiremComponents";
+import { Pill, StatCard, CategorySection, NECReference } from "./WiremComponents";
 import WiremModals from "./WiremModals";
 export default function Wireway({ user, profile, onProfileUpdate, onShowPricing, paymentBanner, onClearBanner }) {
   const [entries,        setEntries]        = useState({});

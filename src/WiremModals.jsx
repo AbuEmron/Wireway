@@ -1,5 +1,4 @@
 // src/WiremModals.jsx
-import { useState } from "react";
 export default function WiremModals({
   wireCalcOpen,setWireCalcOpen,wireAmps,setWireAmps,wireLen,setWireLen,wireVolt,setWireVolt,wireMat,setWireMat,wireResult,
   loadCalcOpen,setLoadCalcOpen,sqft,setSqft,smallAppl,setSmallAppl,laundry,setLaundry,dryer,setDryer,range,setRange,acTons,setAcTons,heatKw,setHeatKw,loadResult,

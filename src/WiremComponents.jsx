@@ -1,18 +1,6 @@
 // Wireway v2.1 build:1780961706
-import { useState, useMemo, useEffect } from "react";
-import {
-  signOut,
-  getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus,
-  getClients, upsertClient,
-  isPro, isTrialing, trialDaysLeft,
-} from "./lib/supabase";
-import { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES } from "./data/catalog";
+import { useState } from "react";
 import { NEC_REF } from "./data/nec-reference";
-import {
-  JobCalendar, PhotoAttachments, QuickBooksExport,
-  AutoInvoiceButton, OnMyWayButton, ReviewRequestButton,
-} from "./features";
-import AIQuoteBuilder from "./AIQuoteBuilder";
 
 
 

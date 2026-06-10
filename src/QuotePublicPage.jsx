@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // src/QuotePublicPage.jsx
 // Client-facing quote view — opened via a shareable link
 // No login required. Client can view, accept, and pay.

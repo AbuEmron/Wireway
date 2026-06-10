@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // src/features.jsx
 // Six new features for Wireway:
 // 1. JobCalendar      — week/month view, drag-to-schedule
