@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useMemo, useEffect } from "react";
-import { signOut, getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus, getClients, upsertClient, isPro, isTrialing, trialDaysLeft } from "./lib/supabase";
+import { signOut, getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus, getClients, upsertClient, isPro, isTrialing, trialDaysLeft, saveThemePref } from "./lib/supabase";
 import { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES, CHECKLISTS } from "./data/catalog";
 import { JobCalendar, PhotoAttachments, QuickBooksExport, AutoInvoiceButton, OnMyWayButton, ReviewRequestButton } from "./features";
 import AIQuoteBuilder from "./AIQuoteBuilder";
@@ -8,6 +8,7 @@ import ProposalView from "./ProposalView";
 import CustomersView from "./CustomersView";
 import { THEMES, applyTheme, getSavedTheme, saveTheme } from "./themes";
 import MaterialsListView from "./MaterialsListView";
+import { WirewayMark } from "./Logo";
 import Dashboard from "./Dashboard";
 import { Pill, StatCard, CategorySection, NECReference } from "./WiremComponents";
 import WiremModals from "./WiremModals";
@@ -70,7 +71,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showPullList,   setShowPullList]   = useState(false);
   const [showCustomers,  setShowCustomers]  = useState(false);
   const [showDashboard,  setShowDashboard]  = useState(true);
-  const [theme,          setTheme]          = useState(getSavedTheme());
+  const [theme,          setTheme]          = useState(() => profile?.theme || getSavedTheme());
   useEffect(() => { applyTheme(theme); }, [theme]);
   const [proGateMsg,     setProGateMsg]     = useState("");
 
@@ -524,7 +525,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
             <div style={{ maxWidth:680, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <img src="/logo192.png" alt="Wireway" style={{ height:30, width:30, borderRadius:7, objectFit:"cover" }} />
+                <WirewayMark size={30} />
                 <span style={{ fontFamily:"'Syne',sans-serif", fontSize:15, fontWeight:800, letterSpacing:"-0.02em", whiteSpace:"nowrap", flexShrink:0, color:"#fff" }}>
                   <span style={{ color:"var(--accent)" }}>WIRE</span>WAY
                 </span>
@@ -573,6 +574,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     onClick={() => {
                       if (locked) { setShowAccount(false); if (onShowPricing) onShowPricing(); return; }
                       setTheme(t.id); saveTheme(t.id);
+                      if (user?.id) saveThemePref(user.id, t.id);
                     }}
                     style={{ display:"flex", alignItems:"center", gap:11, padding:"9px 11px", marginBottom:5, borderRadius:10, cursor:"pointer",
                       border: active ? `1px solid ${t.accent}` : "1px solid rgba(255,255,255,0.06)",
@@ -629,7 +631,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             <div style={{ display:"flex", alignItems:"center", gap:9 }}>
               {logoDataUrl
                 ? <img src={logoDataUrl} alt="logo" style={{ height:32, width:"auto", borderRadius:6, objectFit:"contain" }} />
-                : <img src="/logo192.png" alt="Wireway" style={{ height:32, width:32, borderRadius:6, objectFit:"contain" }} />
+                : <WirewayMark size={32} />
               }
               <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, letterSpacing:"-0.03em" }}>{company.name || "Wireway"}</span>
               <span style={{ fontSize:8, fontWeight:700, color:"rgba(var(--accent-rgb),0.6)", background:"rgba(var(--accent-rgb),0.07)", border:"1px solid rgba(var(--accent-rgb),0.16)", padding:"1px 5px", borderRadius:3, letterSpacing:"0.08em", textTransform:"uppercase" }}>NEC 2023</span>
@@ -855,7 +857,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:16, paddingBottom:16, borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
                       {logoDataUrl
                         ? <img src={logoDataUrl} alt="logo" style={{ height:48, width:"auto", maxWidth:120, objectFit:"contain", borderRadius:6 }} />
-                        : <img src="/logo192.png" alt="Wireway" style={{ height:48, width:48, borderRadius:8, objectFit:"contain" }} />
+                        : <WirewayMark size={44} glow={false} />
                       }
                       <div style={{ flex:1 }}>
                         <div style={{ fontFamily:"'Syne',sans-serif", fontSize:15, fontWeight:800, color:"#fff", letterSpacing:"-0.02em" }}>{company.name || "Your Company Name"}</div>

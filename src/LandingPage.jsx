@@ -1,3 +1,4 @@
+import { WirewayMark } from "./Logo";
 // src/LandingPage.jsx
 // Public landing page shown at wireway.cc before the user signs in
 // Converts visitors into signups — headline, features, proof, CTA
@@ -58,7 +59,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
         <nav style={style.nav}>
           <div style={style.navInner}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <img src="/logo192.png" alt="Wireway" style={{ height:30, width:30, borderRadius:7, objectFit:"cover" }} />
+              <WirewayMark size={30} />
               <span style={{ fontFamily:"'Syne',sans-serif", fontSize:17, fontWeight:800, letterSpacing:"-0.02em" }}>
                 <span style={{ color:"#e8c97a" }}>WIRE</span>WAY
               </span>
@@ -108,7 +109,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
             {/* Fake app header */}
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, paddingBottom:16, borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <img src="/logo192.png" alt="" style={{ height:26, width:26, borderRadius:5, objectFit:"cover" }} />
+                <WirewayMark size={26} glow={false} />
                 <span style={{ fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:800 }}><span style={{ color:"#e8c97a" }}>WIRE</span>WAY</span>
               </div>
               <div style={{ fontFamily:"'DM Mono',monospace", fontSize:18, fontWeight:600, color:"#e8c97a" }}>$4,280</div>
@@ -212,7 +213,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
         {/* ── FOOTER ── */}
         <footer style={{ borderTop:"1px solid rgba(255,255,255,0.05)", padding:"24px", textAlign:"center" }}>
           <div style={{ display:"flex", alignItems:"center", gap:8, justifyContent:"center", marginBottom:8 }}>
-            <img src="/logo192.png" alt="" style={{ height:20, width:20, borderRadius:4, objectFit:"cover" }} />
+            <WirewayMark size={20} glow={false} />
             <span style={{ fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:800 }}><span style={{ color:"#e8c97a" }}>WIRE</span>WAY</span>
           </div>
           <div style={{ fontSize:11, color:"rgba(255,255,255,0.2)", letterSpacing:"0.04em" }}>

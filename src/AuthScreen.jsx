@@ -1,3 +1,4 @@
+import { WirewayMark } from "./Logo";
 // src/AuthScreen.jsx
 import { useState } from "react";
 import { signIn, signUp, resetPassword } from "./lib/supabase";
@@ -65,7 +66,7 @@ export default function AuthScreen({ onAuth, initialMode = "signin", onBack }) {
       <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"radial-gradient(ellipse 80% 50% at 50% 0%,rgba(232,201,122,0.07) 0%,transparent 60%),#0a0a0c", fontFamily:"'DM Sans',sans-serif", padding:"24px 20px" }}>
 
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:40, animation:"fadeUp 0.4s ease both" }}>
-          <img src="/logo192.png" alt="Wireway" style={{ height:52, width:52, borderRadius:12, objectFit:"contain" }} />
+          <WirewayMark size={52} />
           <div>
             <div style={{ fontFamily:"'Syne',sans-serif", fontSize:22, fontWeight:800, letterSpacing:"-0.03em", color:"#fff", lineHeight:1.1 }}>
               <span style={{ color:"#e8c97a" }}>WIRE</span><span style={{ color:"#fff" }}>WAY</span>

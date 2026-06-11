@@ -4,8 +4,17 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl  = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnon = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
+// Safe storage — some in-app browsers (Facebook/Instagram/private mode) block
+// localStorage entirely, which crashes the client on init and white-screens the app.
+const memoryStore = {};
+const safeStorage = {
+  getItem: (k) => { try { return window.localStorage.getItem(k); } catch { return memoryStore[k] ?? null; } },
+  setItem: (k, v) => { try { window.localStorage.setItem(k, v); } catch { memoryStore[k] = v; } },
+  removeItem: (k) => { try { window.localStorage.removeItem(k); } catch { delete memoryStore[k]; } },
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnon, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: safeStorage },
 });
 
 // ── AUTH ────────────────────────────────────────────────────────────────────
@@ -264,4 +273,9 @@ export const uploadPhoto = async (userId, quoteId, file) => {
 export const deletePhoto = async (id) => {
   const { error } = await supabase.from("photos").delete().eq("id", id);
   return { error };
+};
+
+// ── THEME ────────────────────────────────
+export const saveThemePref = async (userId, theme) => {
+  try { await supabase.from("profiles").update({ theme }).eq("id", userId); } catch { /* non-critical */ }
 };
