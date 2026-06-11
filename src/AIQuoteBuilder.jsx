@@ -170,7 +170,9 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
   };
 
   const selectedItems  = result?.items.filter(i => selected[i.id]) || [];
-  const totalMat = selectedItems.reduce((a, i) => a + i.mat, 0);
+  const effBuys  = (i) => matSupplier === "client" ? true : !!i.clientBuys;
+  const totalMat = selectedItems.reduce((a, i) => a + (effBuys(i) ? 0 : i.mat), 0);
+  const clientMat = selectedItems.reduce((a, i) => a + (effBuys(i) ? i.mat : 0), 0);
   const totalLab = selectedItems.reduce((a, i) => a + i.lab, 0);
   const totalHrs = selectedItems.reduce((a, i) => a + i.hrs, 0);
   const subtotal = totalMat + totalLab;
@@ -311,7 +313,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
 
                     {/* Line total */}
                     <div style={{ textAlign:"right", flexShrink:0 }}>
-                      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:14, fontWeight:600, color: selected[item.id] ? "var(--accent)" : "rgba(255,255,255,0.25)", transition:"color 0.15s" }}>${item.lineTotal.toLocaleString()}</div>
+                      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:14, fontWeight:600, color: selected[item.id] ? "var(--accent)" : "rgba(255,255,255,0.25)", transition:"color 0.15s" }}>${(effBuys(item) ? item.lab : item.lineTotal).toLocaleString()}</div>
                       <div style={{ fontSize:9, color:"rgba(255,255,255,0.25)", fontFamily:"'DM Mono',monospace" }}>{item.hrs.toFixed(1)}h</div>
                     </div>
                   </div>
