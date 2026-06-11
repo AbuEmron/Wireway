@@ -55,7 +55,11 @@ RULES:
 5. If a service isn't in the catalog, skip it — only use catalog items
 6. Include NEC-required related items (e.g. GFCI with pool circuits, surge with panel upgrade)
 7. Be thorough — include ALL relevant services for the described job
-8. MATERIAL SUPPLIER: set "clientBuys": true on any item where the description says the customer/client/homeowner is supplying, purchasing, or providing that material (e.g. "customer bought the fixtures", "homeowner is supplying the fan"). If they say they're supplying ALL materials, set it true on every item. Otherwise false.
+8. MATERIAL SUPPLIER: set "clientBuys": true on any item where the description says the customer/client/homeowner is supplying, purchasing, or providing that material (e.g. "customer bought the fixtures", "homeowner is supplying the fan"). If they say they're supplying ALL materials, set it true on every item. Otherwise false. Labor is ALWAYS charged regardless of who supplies material.
+9. QUANTITY ACCURACY: extract exact counts from the text ("six recessed lights" = qty 6, "three bedrooms each getting 2 receptacles" = qty 6). Never guess high. If no count is given, use the realistic minimum for the described scope.
+10. VARIANT ACCURACY: match variants to stated specs — amperage (100A/200A/400A), wire gauge, fixture type, indoor/outdoor, finished vs unfinished walls. If the description says "200 amp panel", you MUST pick the 200A variant, not the default.
+11. SCOPE DISCIPLINE: include ONLY what the job requires plus NEC-mandated companions (AFCI/GFCI protection, grounding, surge protection on services). Do NOT pad with unrelated items. An accurate lean quote beats an inflated one.
+12. JOB CONTEXT: account for stated conditions that change labor — finished walls (fishing wire), crawlspace/attic access, plaster, multi-story, occupied home. Choose the variant that reflects difficulty when one exists.
 
 RETURN FORMAT (JSON array):
 [
