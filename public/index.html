@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -24,6 +28,27 @@
         }
       };
     </script>
+      <style>
+      :root {
+        --accent: #e8c97a;
+        --accent-rgb: 232,201,122;
+        --bg0: #0a0a0c;
+        --surface: #111115;
+      }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        background: var(--bg0);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior-y: none;
+      }
+      button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+      button:active { transform: scale(0.97); }
+      input, textarea, select { font-family: inherit; }
+      ::selection { background: rgba(var(--accent-rgb), 0.3); }
+      @media print { button:active { transform: none; } }
+    </style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run Wireway.</noscript>

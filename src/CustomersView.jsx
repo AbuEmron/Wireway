@@ -40,7 +40,7 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
   const card = { background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12 };
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:300, background:"radial-gradient(ellipse 80% 40% at 50% 0%,rgba(232,201,122,0.06) 0%,transparent 55%),#0a0a0c", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
+    <div style={{ position:"fixed", inset:0, zIndex:300, background:"radial-gradient(ellipse 80% 40% at 50% 0%,rgba(var(--accent-rgb),0.06) 0%,transparent 55%),var(--bg0)", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         .cust-row:hover{background:rgba(255,255,255,0.045)!important}`}</style>
 
@@ -82,7 +82,7 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
             {filtered.map(c => (
               <div key={c.id} className="cust-row" onClick={() => setSelected(c)}
                 style={{ ...card, display:"flex", alignItems:"center", gap:12, padding:"13px 15px", marginBottom:7, cursor:"pointer", transition:"background 0.15s" }}>
-                <div style={{ width:38, height:38, borderRadius:10, background:"rgba(232,201,122,0.1)", border:"1px solid rgba(232,201,122,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:800, color:"#e8c97a", flexShrink:0 }}>
+                <div style={{ width:38, height:38, borderRadius:10, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:800, color:"var(--accent)", flexShrink:0 }}>
                   {(c.name || "?").charAt(0).toUpperCase()}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
@@ -92,7 +92,7 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
                   </div>
                 </div>
                 <div style={{ textAlign:"right", flexShrink:0 }}>
-                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:14, fontWeight:600, color: c.revenue > 0 ? "#e8c97a" : "rgba(255,255,255,0.25)" }}>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:14, fontWeight:600, color: c.revenue > 0 ? "var(--accent)" : "rgba(255,255,255,0.25)" }}>
                     ${Math.round(c.revenue).toLocaleString()}
                   </div>
                   <div style={{ fontSize:9, color:"rgba(255,255,255,0.25)" }}>lifetime</div>
@@ -115,7 +115,7 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
                     {selected.email && <div>✉️ <a href={`mailto:${selected.email}`} style={{ color:"#7eb8e8", textDecoration:"none" }}>{selected.email}</a></div>}
                   </div>
                 </div>
-                <button onClick={() => onNewEstimate(selected)} style={{ padding:"9px 16px", borderRadius:9, background:"linear-gradient(135deg,rgba(232,201,122,0.2),rgba(232,201,122,0.07))", border:"1px solid rgba(232,201,122,0.4)", color:"#e8c97a", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
+                <button onClick={() => onNewEstimate(selected)} style={{ padding:"9px 16px", borderRadius:9, background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.07))", border:"1px solid rgba(var(--accent-rgb),0.4)", color:"var(--accent)", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
                   + New Estimate
                 </button>
               </div>
@@ -127,7 +127,7 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
                 { l:"Quotes",   v: selected.quoteCount,                                  c:"#7eb8e8" },
                 { l:"Won",      v: selected.wonCount,                                    c:"#7dcea0" },
                 { l:"Win rate", v: `${selected.winRate}%`,                               c:"#b87ee8" },
-                { l:"Revenue",  v: `$${Math.round(selected.revenue).toLocaleString()}`,  c:"#e8c97a" },
+                { l:"Revenue",  v: `$${Math.round(selected.revenue).toLocaleString()}`,  c:"var(--accent)" },
               ].map(s => (
                 <div key={s.l} style={{ ...card, padding:"10px 8px", textAlign:"center" }}>
                   <div style={{ fontFamily:"'DM Mono',monospace", fontSize:15, fontWeight:600, color:s.c }}>{s.v}</div>
@@ -153,7 +153,7 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
                   </div>
                 </div>
                 <div style={{ textAlign:"right", flexShrink:0 }}>
-                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:600, color:"#e8c97a" }}>${(q.total || 0).toLocaleString()}</div>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:600, color:"var(--accent)" }}>${(q.total || 0).toLocaleString()}</div>
                   <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", marginTop:1 }}>{STATUS_LABEL[q.status] || "Draft"}</div>
                 </div>
               </div>

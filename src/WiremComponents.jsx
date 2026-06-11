@@ -8,9 +8,9 @@ import { NEC_REF } from "./data/nec-reference";
 export function Counter({ value, onChange }) {
   return (
     <div style={{ display:"flex", alignItems:"center", background:"rgba(255,255,255,0.04)", borderRadius:7, border:"1px solid rgba(255,255,255,0.07)", overflow:"hidden" }}>
-      <button onClick={() => onChange(Math.max(0, value-1))} style={{ width:26, height:26, border:"none", background:"transparent", color: value===0 ? "rgba(255,255,255,0.12)" : "#e8c97a", fontSize:16, cursor: value===0 ? "default" : "pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"inherit" }}>−</button>
+      <button onClick={() => onChange(Math.max(0, value-1))} style={{ width:26, height:26, border:"none", background:"transparent", color: value===0 ? "rgba(255,255,255,0.12)" : "var(--accent)", fontSize:16, cursor: value===0 ? "default" : "pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"inherit" }}>−</button>
       <span style={{ width:22, textAlign:"center", fontFamily:"'DM Mono',monospace", fontSize:12, fontWeight:700, color:"#fff" }}>{value}</span>
-      <button onClick={() => onChange(value+1)} style={{ width:26, height:26, border:"none", background:"transparent", color:"#e8c97a", fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"inherit" }}>+</button>
+      <button onClick={() => onChange(value+1)} style={{ width:26, height:26, border:"none", background:"transparent", color:"var(--accent)", fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"inherit" }}>+</button>
     </div>
   );
 }
@@ -47,7 +47,7 @@ export function ServiceRow({ service, entry, onUpdate, accentColor, hourlyRate, 
               {/* Variant */}
               {service.variants.length > 1 && (
                 <select value={variantIdx} onChange={e => onUpdate({ qty, variantIdx: Number(e.target.value), clientBuys: cBuys })}
-                  style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:5, color:"#e8c97a", fontSize:10, padding:"3px 5px", fontFamily:"inherit", cursor:"pointer", maxWidth:130 }}>
+                  style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:5, color:"var(--accent)", fontSize:10, padding:"3px 5px", fontFamily:"inherit", cursor:"pointer", maxWidth:130 }}>
                   {service.variants.map((v,i) => <option key={i} value={i} style={{ background:"#1a1a1e" }}>{v.label}</option>)}
                 </select>
               )}
@@ -118,14 +118,14 @@ export function CategorySection({ category, entries, onUpdate, hourlyRate, clien
 }
 
 // ─── PILL BUTTON ─────────────────────────────────────────────────────────────
-export function Pill({ label, active, onClick, color = "#e8c97a" }) {
+export function Pill({ label, active, onClick, color = "var(--accent)" }) {
   return (
     <button onClick={onClick} style={{ padding:"4px 9px", borderRadius:5, fontSize:11, fontWeight:600, border: active ? `1px solid ${color}45` : "1px solid rgba(255,255,255,0.07)", background: active ? `${color}12` : "transparent", color: active ? color : "rgba(255,255,255,0.38)", cursor:"pointer", transition:"all 0.15s", fontFamily:"inherit" }}>{label}</button>
   );
 }
 
 // ─── STAT CARD ────────────────────────────────────────────────────────────────
-export function StatCard({ label, value, sub, color = "#e8c97a" }) {
+export function StatCard({ label, value, sub, color = "var(--accent)" }) {
   return (
     <div style={{ flex:1, minWidth:90, background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:9, padding:"10px 12px" }}>
       <div style={{ fontSize:8, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>{label}</div>
@@ -201,7 +201,7 @@ export function NECReference() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 9, padding: "11px 14px", fontSize: 13, color: "#fff", fontFamily: "inherit", marginBottom: 10, transition: "border-color 0.15s" }}
-          onFocus={e => e.target.style.borderColor = "rgba(232,201,122,0.4)"}
+          onFocus={e => e.target.style.borderColor = "rgba(var(--accent-rgb),0.4)"}
           onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
         />
 
@@ -210,9 +210,9 @@ export function NECReference() {
           {TAGS.map(t => (
             <button key={t.id} onClick={() => setFilterTag(t.id)}
               style={{ padding: "4px 10px", borderRadius: 5, fontSize: 10, fontWeight: 700, letterSpacing: "0.03em", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
-                border: filterTag === t.id ? "1px solid rgba(232,201,122,0.5)" : "1px solid rgba(255,255,255,0.08)",
-                background: filterTag === t.id ? "rgba(232,201,122,0.12)" : "rgba(255,255,255,0.03)",
-                color: filterTag === t.id ? "#e8c97a" : "rgba(255,255,255,0.38)" }}>
+                border: filterTag === t.id ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid rgba(255,255,255,0.08)",
+                background: filterTag === t.id ? "rgba(var(--accent-rgb),0.12)" : "rgba(255,255,255,0.03)",
+                color: filterTag === t.id ? "var(--accent)" : "rgba(255,255,255,0.38)" }}>
               {t.label}
             </button>
           ))}

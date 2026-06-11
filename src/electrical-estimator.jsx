@@ -6,6 +6,8 @@ import { JobCalendar, PhotoAttachments, QuickBooksExport, AutoInvoiceButton, OnM
 import AIQuoteBuilder from "./AIQuoteBuilder";
 import ProposalView from "./ProposalView";
 import CustomersView from "./CustomersView";
+import { THEMES, applyTheme, getSavedTheme, saveTheme } from "./themes";
+import MaterialsListView from "./MaterialsListView";
 import Dashboard from "./Dashboard";
 import { Pill, StatCard, CategorySection, NECReference } from "./WiremComponents";
 import WiremModals from "./WiremModals";
@@ -65,8 +67,11 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showCalendar,   setShowCalendar]   = useState(false);
   const [showAIBuilder,  setShowAIBuilder]  = useState(false);
   const [showProposal,   setShowProposal]   = useState(false);
+  const [showMaterials,  setShowMaterials]  = useState(false);
   const [showCustomers,  setShowCustomers]  = useState(false);
   const [showDashboard,  setShowDashboard]  = useState(true);
+  const [theme,          setTheme]          = useState(getSavedTheme());
+  useEffect(() => { applyTheme(theme); }, [theme]);
   const [proGateMsg,     setProGateMsg]     = useState("");
 
   const wireResult = useMemo(() => {
@@ -500,11 +505,11 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   };
 
   const TAB = (id, lbl) => (
-    <button onClick={() => setTab(id)} style={{ flex:1, padding:"9px 6px", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, letterSpacing:"0", transition:"all 0.2s", background: tab===id ? "rgba(232,201,122,0.08)" : "transparent", color: tab===id ? "#e8c97a" : "rgba(255,255,255,0.32)", borderBottom: tab===id ? "2px solid #e8c97a" : "2px solid transparent", whiteSpace:"nowrap" }}>{lbl}</button>
+    <button onClick={() => setTab(id)} style={{ flex:1, padding:"9px 6px", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, letterSpacing:"0", transition:"all 0.2s", background: tab===id ? "rgba(var(--accent-rgb),0.08)" : "transparent", color: tab===id ? "var(--accent)" : "rgba(255,255,255,0.32)", borderBottom: tab===id ? "2px solid var(--accent)" : "2px solid transparent", whiteSpace:"nowrap" }}>{lbl}</button>
   );
 
   const inputStyle = { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:7, padding:"8px 11px", fontSize:13, color:"#fff", fontFamily:"inherit", width:"100%", transition:"border-color 0.15s" };
-  const focusGold = e => e.target.style.borderColor = "rgba(232,201,122,0.4)";
+  const focusGold = e => e.target.style.borderColor = "rgba(var(--accent-rgb),0.4)";
   const blurGray  = e => e.target.style.borderColor = "rgba(255,255,255,0.07)";
 
   // ── DASHBOARD HOME (early return) ──
@@ -512,22 +517,21 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     return (
       <>
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
           *{box-sizing:border-box;margin:0;padding:0}
           @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
         `}</style>
-        <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 40% at 50% 0%,rgba(232,201,122,0.06) 0%,transparent 55%),#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
+        <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 40% at 50% 0%,rgba(var(--accent-rgb),0.06) 0%,transparent 55%),var(--bg0)", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
           <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
             <div style={{ maxWidth:680, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                 <img src="/logo192.png" alt="Wireway" style={{ height:30, width:30, borderRadius:7, objectFit:"cover" }} />
                 <span style={{ fontFamily:"'Syne',sans-serif", fontSize:15, fontWeight:800, letterSpacing:"-0.02em", whiteSpace:"nowrap", flexShrink:0, color:"#fff" }}>
-                  <span style={{ color:"#e8c97a" }}>WIRE</span>WAY
+                  <span style={{ color:"var(--accent)" }}>WIRE</span>WAY
                 </span>
               </div>
               <div style={{ display:"flex", gap:6 }}>
                 <button onClick={() => setShowCustomers(true)} title="Customers" style={{ padding:"6px 11px", borderRadius:7, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>👥</button>
-                <button onClick={() => { newQuote(true); setShowDashboard(false); }} style={{ padding:"6px 11px", borderRadius:7, background:"rgba(232,201,122,0.1)", border:"1px solid rgba(232,201,122,0.3)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>+ New</button>
+                <button onClick={() => { newQuote(true); setShowDashboard(false); }} style={{ padding:"6px 11px", borderRadius:7, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>+ New</button>
                 <button onClick={() => setShowAccount(true)} title="Account" style={{ padding:"6px 10px", borderRadius:7, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>⚙</button>
               </div>
             </div>
@@ -552,14 +556,45 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
         )}
         {showAccount && (
           <div onClick={e => e.target === e.currentTarget && setShowAccount(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", zIndex:400, display:"flex", alignItems:"center", justifyContent:"center", padding:"24px 16px" }}>
-          <div style={{ background:"#111115", border:"1px solid rgba(255,255,255,0.1)", borderRadius:18, width:"100%", maxWidth:380, padding:"24px", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
+          <div style={{ background:"var(--surface)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:18, width:"100%", maxWidth:380, padding:"24px", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
               <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800 }}>Account</span>
               <button onClick={() => setShowAccount(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:20, cursor:"pointer" }}>✕</button>
             </div>
             <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:16 }}>{user?.email}</div>
+
+            <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Appearance</div>
+            <div style={{ marginBottom:16 }}>
+              {THEMES.map(t => {
+                const locked = !t.free && !userIsPro;
+                const active = theme === t.id;
+                return (
+                  <div key={t.id}
+                    onClick={() => {
+                      if (locked) { setShowAccount(false); if (onShowPricing) onShowPricing(); return; }
+                      setTheme(t.id); saveTheme(t.id);
+                    }}
+                    style={{ display:"flex", alignItems:"center", gap:11, padding:"9px 11px", marginBottom:5, borderRadius:10, cursor:"pointer",
+                      border: active ? `1px solid ${t.accent}` : "1px solid rgba(255,255,255,0.06)",
+                      background: active ? `rgba(${t.accentRgb},0.08)` : "rgba(255,255,255,0.02)",
+                      opacity: locked ? 0.55 : 1, transition:"all 0.15s" }}>
+                    <span style={{ width:22, height:22, borderRadius:7, flexShrink:0, background:`linear-gradient(135deg, ${t.accent}, rgba(${t.accentRgb},0.4))`, border:"1px solid rgba(255,255,255,0.15)" }} />
+                    <span style={{ flex:1, minWidth:0 }}>
+                      <span style={{ display:"block", fontSize:12.5, fontWeight:700, color: active ? t.accent : "rgba(255,255,255,0.8)" }}>{t.name}</span>
+                      <span style={{ display:"block", fontSize:10, color:"rgba(255,255,255,0.3)" }}>{t.desc}</span>
+                    </span>
+                    {locked ? <span style={{ fontSize:11 }}>🔒</span> : active ? <span style={{ fontSize:11, color:t.accent }}>✓</span> : null}
+                  </div>
+                );
+              })}
+              {!userIsPro && (
+                <div style={{ fontSize:9.5, color:"rgba(255,255,255,0.25)", textAlign:"center", marginTop:4 }}>
+                  Themes unlock with Pro
+                </div>
+              )}
+            </div>
             {onShowPricing && profile?.subscription_status !== "active" && (
-              <button onClick={onShowPricing} style={{ width:"100%", padding:"12px", marginBottom:8, background:"rgba(232,201,122,0.1)", border:"1px solid rgba(232,201,122,0.3)", borderRadius:10, color:"#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>⚡ Upgrade to Pro</button>
+              <button onClick={onShowPricing} style={{ width:"100%", padding:"12px", marginBottom:8, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", borderRadius:10, color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>⚡ Upgrade to Pro</button>
             )}
             <button onClick={async () => { await signOut(); window.location.reload(); }} style={{ width:"100%", padding:"12px", background:"rgba(232,126,126,0.06)", border:"1px solid rgba(232,126,126,0.2)", borderRadius:10, color:"#e87e7e", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Sign Out</button>
           </div>
@@ -572,9 +607,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#0a0a0c}
+        body{background:var(--bg0)}
         ::-webkit-scrollbar{width:3px}
         ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
         input,textarea,select{outline:none}
@@ -583,11 +617,11 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         @keyframes modalIn{from{opacity:0;transform:scale(0.96) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
         .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px}
-        .modal-box{background:#111115;border:1px solid rgba(255,255,255,0.1);border-radius:18px;width:100%;max-width:600px;animation:modalIn 0.25s ease both;margin:auto}
+        .modal-box{background:var(--surface);border:1px solid rgba(255,255,255,0.1);border-radius:18px;width:100%;max-width:600px;animation:modalIn 0.25s ease both;margin:auto}
         @media print{.no-print{display:none!important}.print-quote{background:#fff!important;color:#000!important;padding:32px!important}}
       `}</style>
 
-      <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 45% at 50% -5%,rgba(232,201,122,0.065) 0%,transparent 55%),#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:80 }}>
+      <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 45% at 50% -5%,rgba(var(--accent-rgb),0.065) 0%,transparent 55%),var(--bg0)", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:80 }}>
 
         {/* ── HEADER ── */}
         <div style={{ borderBottom:"1px solid rgba(255,255,255,0.055)", background:"rgba(10,10,12,0.88)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }} className="no-print">
@@ -598,16 +632,16 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 : <img src="/logo192.png" alt="Wireway" style={{ height:32, width:32, borderRadius:6, objectFit:"contain" }} />
               }
               <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, letterSpacing:"-0.03em" }}>{company.name || "Wireway"}</span>
-              <span style={{ fontSize:8, fontWeight:700, color:"rgba(232,201,122,0.6)", background:"rgba(232,201,122,0.07)", border:"1px solid rgba(232,201,122,0.16)", padding:"1px 5px", borderRadius:3, letterSpacing:"0.08em", textTransform:"uppercase" }}>NEC 2023</span>
+              <span style={{ fontSize:8, fontWeight:700, color:"rgba(var(--accent-rgb),0.6)", background:"rgba(var(--accent-rgb),0.07)", border:"1px solid rgba(var(--accent-rgb),0.16)", padding:"1px 5px", borderRadius:3, letterSpacing:"0.08em", textTransform:"uppercase" }}>NEC 2023</span>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               {hasItems && (
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"#e8c97a", letterSpacing:"-0.02em" }}>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"var(--accent)", letterSpacing:"-0.02em" }}>
                   ${total.toLocaleString()}
                 </span>
             )}
               {onShowPricing && profile?.subscription_status !== "active" && (
-                <button onClick={onShowPricing} style={{ padding:"5px 11px", borderRadius:6, background:"linear-gradient(135deg,rgba(232,201,122,0.18),rgba(232,201,122,0.06))", border:"1px solid rgba(232,201,122,0.3)", color:"#e8c97a", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
+                <button onClick={onShowPricing} style={{ padding:"5px 11px", borderRadius:6, background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-rgb),0.06))", border:"1px solid rgba(var(--accent-rgb),0.3)", color:"var(--accent)", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
                   ⚡ {onTrial && daysLeft > 0 ? `${daysLeft}d left` : "Upgrade"}
                 </button>
             )}
@@ -643,13 +677,13 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 </div>
                 )}
               {proGateMsg && (
-                <div style={{ padding:"9px 14px", background:"rgba(232,201,122,0.06)", border:"1px solid rgba(232,201,122,0.2)", borderRadius:9, fontSize:11, color:"rgba(232,201,122,0.9)", fontWeight:600 }}>
+                <div style={{ padding:"9px 14px", background:"rgba(var(--accent-rgb),0.06)", border:"1px solid rgba(var(--accent-rgb),0.2)", borderRadius:9, fontSize:11, color:"rgba(var(--accent-rgb),0.9)", fontWeight:600 }}>
                   ⚡ {proGateMsg} </div>
                   )}
               {onTrial && daysLeft <= 30 && daysLeft > 0 && (
-                <div style={{ padding:"9px 14px", background:"rgba(232,201,122,0.05)", border:"1px solid rgba(232,201,122,0.15)", borderRadius:9, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontSize:11, color:"rgba(232,201,122,0.75)" }}>⏳ {daysLeft} day{daysLeft!==1?"s":""} remaining in your trial.</span>
-                  {onShowPricing && <button onClick={onShowPricing} style={{ padding:"4px 10px", borderRadius:5, border:"1px solid rgba(232,201,122,0.35)", background:"rgba(232,201,122,0.1)", color:"#e8c97a", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Upgrade</button>}
+                <div style={{ padding:"9px 14px", background:"rgba(var(--accent-rgb),0.05)", border:"1px solid rgba(var(--accent-rgb),0.15)", borderRadius:9, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span style={{ fontSize:11, color:"rgba(var(--accent-rgb),0.75)" }}>⏳ {daysLeft} day{daysLeft!==1?"s":""} remaining in your trial.</span>
+                  {onShowPricing && <button onClick={onShowPricing} style={{ padding:"4px 10px", borderRadius:5, border:"1px solid rgba(var(--accent-rgb),0.35)", background:"rgba(var(--accent-rgb),0.1)", color:"var(--accent)", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Upgrade</button>}
                 </div>
                 )}
               {!userIsPro && savedQuotes.length >= 3 && (
@@ -677,7 +711,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
               <div style={{ flex:1, minWidth:200 }}>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginBottom:7 }}>
-                  Hourly — <span style={{ color:"#e8c97a", fontFamily:"'DM Mono',monospace", fontWeight:700 }}>${hourlyRate}/hr</span>
+                  Hourly — <span style={{ color:"var(--accent)", fontFamily:"'DM Mono',monospace", fontWeight:700 }}>${hourlyRate}/hr</span>
                 </div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                   {HOURLY_RATES.map(r => <Pill key={r} label={`$${r}`} active={r===hourlyRate} onClick={() => setHourlyRate(r)} />)}
@@ -685,7 +719,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 </div>
               <div style={{ flex:1, minWidth:150 }}>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginBottom:7 }}>
-                  Markup — <span style={{ color:"#e8c97a", fontFamily:"'DM Mono',monospace", fontWeight:700 }}>{(markup*100).toFixed(0)}%</span>
+                  Markup — <span style={{ color:"var(--accent)", fontFamily:"'DM Mono',monospace", fontWeight:700 }}>{(markup*100).toFixed(0)}%</span>
                 </div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                   {MARKUP_OPTIONS.map(m => <Pill key={m.v} label={m.label} active={m.v===markup} onClick={() => setMarkup(m.v)} />)}
@@ -700,7 +734,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             {/* Row 1: toggles */}
             <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:10 }}>
               {[
-                { label: showMaterials ? "Mat · On" : "Mat · Off",     active: showMaterials,  action: () => setShowMaterials(v=>!v),  color:"#e8c97a" },
+                { label: showMaterials ? "Mat · On" : "Mat · Off",     active: showMaterials,  action: () => setShowMaterials(v=>!v),  color:"var(--accent)" },
                 { label: clientBuysAll ? "Client buys" : "You supply", active: clientBuysAll,  action: () => setClientBuysAll(v=>!v), color:"#7ec8e8" },
                 { label: flatRateMode  ? "Flat rate" : "Itemized",     active: flatRateMode,   action: () => setFlatRateMode(v=>!v),  color:"#a8e87e" },
                 { label: invoiceMode   ? "Invoice" : "Estimate",       active: invoiceMode,    action: () => setInvoiceMode(v=>!v),   color:"#b87ee8" },
@@ -746,9 +780,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 { label:"+ Custom",   action:addCustomItem                },
                 hasItems ? { label:"Pull List", action:buildMaterialList } : null,
               ].filter(Boolean).map(btn => (
-                <button key={btn.label} onClick={btn.action} style={{ padding:"4px 10px", borderRadius:6, fontSize:10, fontWeight: btn.highlight ? 700 : 600, border: btn.highlight ? "1px solid rgba(232,201,122,0.3)" : "1px solid rgba(255,255,255,0.07)", background: btn.highlight ? "rgba(232,201,122,0.08)" : "transparent", color: btn.highlight ? "#e8c97a" : "rgba(255,255,255,0.45)", cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = btn.highlight ? "rgba(232,201,122,0.15)" : "rgba(255,255,255,0.06)"; e.currentTarget.style.color = btn.highlight ? "#e8c97a" : "#fff"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = btn.highlight ? "rgba(232,201,122,0.08)" : "transparent"; e.currentTarget.style.color = btn.highlight ? "#e8c97a" : "rgba(255,255,255,0.45)"; }}>
+                <button key={btn.label} onClick={btn.action} style={{ padding:"4px 10px", borderRadius:6, fontSize:10, fontWeight: btn.highlight ? 700 : 600, border: btn.highlight ? "1px solid rgba(var(--accent-rgb),0.3)" : "1px solid rgba(255,255,255,0.07)", background: btn.highlight ? "rgba(var(--accent-rgb),0.08)" : "transparent", color: btn.highlight ? "var(--accent)" : "rgba(255,255,255,0.45)", cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = btn.highlight ? "rgba(var(--accent-rgb),0.15)" : "rgba(255,255,255,0.06)"; e.currentTarget.style.color = btn.highlight ? "var(--accent)" : "#fff"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = btn.highlight ? "rgba(var(--accent-rgb),0.08)" : "transparent"; e.currentTarget.style.color = btn.highlight ? "var(--accent)" : "rgba(255,255,255,0.45)"; }}>
                   {btn.label} </button>
               ))}
               </div>
@@ -756,8 +790,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
           {/* Custom line items */}
           {customItems.length > 0 && (
-            <div style={{ background:"rgba(232,201,122,0.04)", border:"1px solid rgba(232,201,122,0.12)", borderRadius:12, padding:"14px 16px", marginBottom:14 }} className="no-print">
-              <div style={{ fontSize:10, color:"rgba(232,201,122,0.6)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Custom Line Items</div>
+            <div style={{ background:"rgba(var(--accent-rgb),0.04)", border:"1px solid rgba(var(--accent-rgb),0.12)", borderRadius:12, padding:"14px 16px", marginBottom:14 }} className="no-print">
+              <div style={{ fontSize:10, color:"rgba(var(--accent-rgb),0.6)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Custom Line Items</div>
               {customItems.map(item => (
                 <div key={item.id} style={{ display:"grid", gridTemplateColumns:"1fr 55px 75px 75px 65px 30px", gap:5, marginBottom:7, alignItems:"center" }}>
                   <input placeholder="Description" value={item.label} onChange={e => updateCustomItem(item.id, { label:e.target.value })} style={{ ...inputStyle, fontSize:12 }} onFocus={focusGold} onBlur={blurGray} />
@@ -779,7 +813,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             {TAB("profit",   "Profit")}
             {TAB("nec",      "NEC 2023")}
             {onShowPricing && profile?.subscription_status !== "active" && (
-              <button onClick={onShowPricing} style={{ padding:"9px 10px", border:"none", background:"linear-gradient(135deg,rgba(232,201,122,0.18),rgba(232,201,122,0.06))", color:"#e8c97a", fontSize:11, fontWeight:800, cursor:"pointer", fontFamily:"'Syne',sans-serif", borderLeft:"1px solid rgba(232,201,122,0.2)", letterSpacing:"-0.01em", whiteSpace:"nowrap" }}>
+              <button onClick={onShowPricing} style={{ padding:"9px 10px", border:"none", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-rgb),0.06))", color:"var(--accent)", fontSize:11, fontWeight:800, cursor:"pointer", fontFamily:"'Syne',sans-serif", borderLeft:"1px solid rgba(var(--accent-rgb),0.2)", letterSpacing:"-0.01em", whiteSpace:"nowrap" }}>
                 ⚡ {onTrial ? `${daysLeft}d left` : "Upgrade"}
               </button>
           )}
@@ -801,7 +835,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               {!hasItems ? (
                 <div style={{ textAlign:"center", padding:"52px 20px 40px" }} className="no-print">
                   <div style={{ fontSize:13, color:"rgba(255,255,255,0.25)", marginBottom:16 }}>No services added yet</div>
-                  <button onClick={() => setTab("services")} style={{ padding:"9px 20px", background:"rgba(232,201,122,0.08)", border:"1px solid rgba(232,201,122,0.22)", borderRadius:8, color:"#e8c97a", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                  <button onClick={() => setTab("services")} style={{ padding:"9px 20px", background:"rgba(var(--accent-rgb),0.08)", border:"1px solid rgba(var(--accent-rgb),0.22)", borderRadius:8, color:"var(--accent)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                     Browse Services →
                   </button>
                 </div>
@@ -809,7 +843,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 <>
                   {/* ── STAT CARDS ── */}
                   <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }} className="no-print">
-                    <StatCard label="Total Estimate"      value={`$${total.toLocaleString()}`}           color="#e8c97a" />
+                    <StatCard label="Total Estimate"      value={`$${total.toLocaleString()}`}           color="var(--accent)" />
                     <StatCard label="Labor Only"          value={`$${totLab.toLocaleString()}`}          color="#a8e87e" sub={`${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr`} />
                     {showMaterials && <StatCard label="Materials (You)"    value={`$${totMat.toLocaleString()}`}          color="#7eb8e8" />}
                     {totClientBuysMat > 0 && <StatCard label="Client Buys (est.)" value={`$${totClientBuysMat.toLocaleString()}`} color="#e87eb8" sub="not charged to you" />}
@@ -830,7 +864,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                         </div>
                         </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
-                        {quoteNumber && <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, color:"#e8c97a", marginBottom:3 }}>{quoteNumber}</div>}
+                        {quoteNumber && <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, color:"var(--accent)", marginBottom:3 }}>{quoteNumber}</div>}
                         <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em" }}>Date</div>
                         <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"'DM Mono',monospace" }}>{new Date().toLocaleDateString()}</div>
                         {currentQuoteStatus?.status === "accepted" && (
@@ -882,7 +916,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     })}
 
                     {/* Totals */}
-                    <div style={{ background:"linear-gradient(135deg,rgba(232,201,122,0.065) 0%,rgba(255,255,255,0.018) 100%)", border:"1px solid rgba(232,201,122,0.18)", borderRadius:10, padding:"14px 16px", marginTop:8 }}>
+                    <div style={{ background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.065) 0%,rgba(255,255,255,0.018) 100%)", border:"1px solid rgba(var(--accent-rgb),0.18)", borderRadius:10, padding:"14px 16px", marginTop:8 }}>
                       {[
                         showMaterials && { label:"Materials (supplied by us)", val:totMat, color:"#7eb8e8" },
                         { label:`Labor — ${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr`, val:totLab, color:"#a8e87e" },
@@ -899,9 +933,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                           <span style={{ fontFamily:"'DM Mono',monospace", color:"rgba(126,200,232,0.45)" }}>~${totClientBuysMat.toLocaleString()}</span>
                         </div>
                         )}
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:12, marginTop:6, borderTop:"1px solid rgba(232,201,122,0.18)" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:12, marginTop:6, borderTop:"1px solid rgba(var(--accent-rgb),0.18)" }}>
                         <span style={{ fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:800, color:"#fff" }}>Total Estimate</span>
-                        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:500, color:"#e8c97a", letterSpacing:"-0.03em" }}>${total.toLocaleString()}</span>
+                        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:500, color:"var(--accent)", letterSpacing:"-0.03em" }}>${total.toLocaleString()}</span>
                       </div>
                       </div>
 
@@ -939,7 +973,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
                   {/* ── SAVE + SIGN BUTTONS ── */}
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }} className="no-print">
-                    <button onClick={() => { if (!userIsPro && savedQuotes.length >= 3) { if(onShowPricing) onShowPricing(); return; } saveQuote(); }} style={{ padding:"12px", background: saveMsg ? "rgba(100,220,130,0.1)" : "linear-gradient(135deg,rgba(232,201,122,0.18),rgba(232,201,122,0.07))", border: saveMsg ? "1px solid rgba(100,220,130,0.38)" : "1px solid rgba(232,201,122,0.35)", borderRadius:10, color: saveMsg ? "#7dcea0" : "#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
+                    <button onClick={() => { if (!userIsPro && savedQuotes.length >= 3) { if(onShowPricing) onShowPricing(); return; } saveQuote(); }} style={{ padding:"12px", background: saveMsg ? "rgba(100,220,130,0.1)" : "linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-rgb),0.07))", border: saveMsg ? "1px solid rgba(100,220,130,0.38)" : "1px solid rgba(var(--accent-rgb),0.35)", borderRadius:10, color: saveMsg ? "#7dcea0" : "var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
                       {saveMsg ? "✓ Saved" : "💾 Save Quote"} </button>
                     <button onClick={() => { setSigName(""); setSigDate(new Date().toLocaleDateString()); setSigSaved(false); setSignModal(true); }}
                       style={{ padding:"12px", background: currentQuoteStatus?.status === "accepted" ? "rgba(100,220,130,0.1)" : "rgba(255,255,255,0.04)", border: currentQuoteStatus?.status === "accepted" ? "1px solid rgba(100,220,130,0.35)" : "1px solid rgba(255,255,255,0.1)", borderRadius:10, color: currentQuoteStatus?.status === "accepted" ? "#7dcea0" : "rgba(255,255,255,0.5)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
@@ -952,7 +986,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     {[
                       { icon:"✉", label:"Email",      desc: clientEmail || "Mail app",    action: emailQuote,  color:"#7eb8e8" },
                       { icon:"💬", label:"Text",       desc: clientPhone || "Messages",    action: smsQuote,    color:"#a8e87e" },
-                      { icon:"⎘",  label:"Copy",       desc: copied ? "Copied!" : "Text", action: copyQuote,   color: copied ? "#7dcea0" : "#e8c97a" },
+                      { icon:"⎘",  label:"Copy",       desc: copied ? "Copied!" : "Text", action: copyQuote,   color: copied ? "#7dcea0" : "var(--accent)" },
                       { icon:"🔗", label:"Share Link", desc: quoteId ? "Client link" : "Save first", action: () => {
                         if (!quoteId) { setSaveMsg("Save the quote first."); setTimeout(() => setSaveMsg(""), 2000); return; }
                         const link = `${window.location.origin}/quote/${quoteId}`;
@@ -970,8 +1004,12 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     ))}
                     </div>
 
-                  <button onClick={() => setShowProposal(true)} style={{ width:"100%", padding:"13px", background:"linear-gradient(135deg,rgba(232,201,122,0.18),rgba(232,201,122,0.06))", border:"1px solid rgba(232,201,122,0.35)", borderRadius:10, color:"#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }} className="no-print">
+                  <button onClick={() => setShowProposal(true)} style={{ width:"100%", padding:"13px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-rgb),0.06))", border:"1px solid rgba(var(--accent-rgb),0.35)", borderRadius:10, color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }} className="no-print">
                     📄 Generate Proposal (PDF)
+                  </button>
+
+                  <button onClick={() => setShowMaterials(true)} style={{ width:"100%", padding:"12px", marginTop:6, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, color:"rgba(255,255,255,0.6)", fontSize:12.5, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }} className="no-print">
+                    🧾 Material Pull List & Prices
                   </button>
 
                   {/* ── ON MY WAY + REVIEW ── */}
@@ -1071,12 +1109,12 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             <div style={{ animation:"fadeUp 0.3s ease both" }} className="no-print">
               {/* Free tier limit warning */}
               {!userIsPro && savedQuotes.length >= 3 && onShowPricing && (
-                <div style={{ marginBottom:14, padding:"14px 16px", background:"linear-gradient(135deg,rgba(232,201,122,0.08),rgba(99,102,241,0.05))", border:"1px solid rgba(232,201,122,0.2)", borderRadius:12, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+                <div style={{ marginBottom:14, padding:"14px 16px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.08),rgba(99,102,241,0.05))", border:"1px solid rgba(var(--accent-rgb),0.2)", borderRadius:12, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
                   <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:"#e8c97a", marginBottom:2 }}>Free plan limit reached</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:"var(--accent)", marginBottom:2 }}>Free plan limit reached</div>
                     <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>You're using {savedQuotes.length}/3 saved quote slots. Upgrade for unlimited.</div>
                   </div>
-                  <button onClick={onShowPricing} style={{ padding:"8px 14px", borderRadius:8, border:"1px solid rgba(232,201,122,0.4)", background:"rgba(232,201,122,0.12)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>
+                  <button onClick={onShowPricing} style={{ padding:"8px 14px", borderRadius:8, border:"1px solid rgba(var(--accent-rgb),0.4)", background:"rgba(var(--accent-rgb),0.12)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>
                     Upgrade ⚡
                   </button>
                 </div>
@@ -1100,7 +1138,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     }}>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-                          <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, color:"#e8c97a" }}>{q.quoteNumber}</span>
+                          <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, color:"var(--accent)" }}>{q.quoteNumber}</span>
                           {q.status === "accepted" && (
                             <span style={{ fontSize:9, fontWeight:700, color:"#7dcea0", background:"rgba(100,220,130,0.12)", border:"1px solid rgba(100,220,130,0.25)", padding:"1px 6px", borderRadius:4, letterSpacing:"0.05em" }}>
                               ✓ ACCEPTED
@@ -1120,7 +1158,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                         </div>
                         </div>
                       <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                        <button onClick={() => loadQuote(q)} style={{ padding:"7px 14px", borderRadius:7, border:"1px solid rgba(232,201,122,0.3)", background:"rgba(232,201,122,0.08)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                        <button onClick={() => loadQuote(q)} style={{ padding:"7px 14px", borderRadius:7, border:"1px solid rgba(var(--accent-rgb),0.3)", background:"rgba(var(--accent-rgb),0.08)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                           Load → </button>
                         <button onClick={() => deleteQuote(q.id)} style={{ padding:"7px 10px", borderRadius:7, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"rgba(255,100,100,0.5)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                           ✕
@@ -1146,10 +1184,10 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                   {/* Key metrics */}
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:16 }}>
                     {[
-                      { label:"Total Revenue",     val:`$${total.toLocaleString()}`,         color:"#e8c97a", sub:"what client pays" },
+                      { label:"Total Revenue",     val:`$${total.toLocaleString()}`,         color:"var(--accent)", sub:"what client pays" },
                       { label:"Your Labor",         val:`$${totLab.toLocaleString()}`,         color:"#a8e87e", sub:`${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr` },
                       { label:"Materials Cost",     val:`$${totMat.toLocaleString()}`,         color:"#7eb8e8", sub:"your out-of-pocket" },
-                      { label:"Gross Profit",       val:`$${markupAmt.toLocaleString()}`,      color:"#e8c97a", sub:`${marginPct}% margin` },
+                      { label:"Gross Profit",       val:`$${markupAmt.toLocaleString()}`,      color:"var(--accent)", sub:`${marginPct}% margin` },
                       { label:"Effective Rate",     val:`$${effectiveRate}/hr`,                color:"#a8e87e", sub:"revenue per hour" },
                       { label:"Labor %",            val:`${laborPct}%`,                        color:"#7eb8e8", sub:"of total invoice" },
                     ].map(c => (
@@ -1162,7 +1200,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     </div>
 
                   {/* Profitability grade */}
-                  <div style={{ background: Number(marginPct) >= 30 ? "rgba(100,220,130,0.06)" : Number(marginPct) >= 20 ? "rgba(232,201,122,0.06)" : "rgba(232,120,120,0.06)", border: `1px solid ${Number(marginPct) >= 30 ? "rgba(100,220,130,0.2)" : Number(marginPct) >= 20 ? "rgba(232,201,122,0.2)" : "rgba(232,120,120,0.2)"}`, borderRadius:12, padding:"16px 18px", marginBottom:14 }}>
+                  <div style={{ background: Number(marginPct) >= 30 ? "rgba(100,220,130,0.06)" : Number(marginPct) >= 20 ? "rgba(var(--accent-rgb),0.06)" : "rgba(232,120,120,0.06)", border: `1px solid ${Number(marginPct) >= 30 ? "rgba(100,220,130,0.2)" : Number(marginPct) >= 20 ? "rgba(var(--accent-rgb),0.2)" : "rgba(232,120,120,0.2)"}`, borderRadius:12, padding:"16px 18px", marginBottom:14 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                       <div>
                         <div style={{ fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:800, color:"#fff" }}>
@@ -1171,7 +1209,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                           {Number(marginPct) >= 30 ? "Industry benchmark: 25–35% is healthy for residential electrical." : Number(marginPct) >= 20 ? "Consider raising markup or hourly rate to improve margins." : "Increase markup or hourly rate — you may be underpriced."}
                         </div>
                         </div>
-                      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:28, fontWeight:700, color: Number(marginPct) >= 30 ? "#7dcea0" : Number(marginPct) >= 20 ? "#e8c97a" : "#e87e7e" }}>
+                      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:28, fontWeight:700, color: Number(marginPct) >= 30 ? "#7dcea0" : Number(marginPct) >= 20 ? "var(--accent)" : "#e87e7e" }}>
                         {marginPct}% </div>
                         </div>
                         </div>
@@ -1192,7 +1230,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                             </div>
                             </div>
                           <div style={{ textAlign:"right", flexShrink:0 }}>
-                            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:700, color:"#e8c97a" }}>${itemRevenue.toLocaleString()}</div>
+                            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:700, color:"var(--accent)" }}>${itemRevenue.toLocaleString()}</div>
                             <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", fontFamily:"'DM Mono',monospace" }}>{itemMargin}% margin</div>
                           </div>
                           </div>
@@ -1241,17 +1279,17 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             </div>
 
             {/* Plan status */}
-            <div style={{ background: userIsPro ? "rgba(100,220,130,0.06)" : "rgba(232,201,122,0.06)", border: userIsPro ? "1px solid rgba(100,220,130,0.2)" : "1px solid rgba(232,201,122,0.2)", borderRadius:10, padding:"12px 14px", marginBottom:16 }}>
+            <div style={{ background: userIsPro ? "rgba(100,220,130,0.06)" : "rgba(var(--accent-rgb),0.06)", border: userIsPro ? "1px solid rgba(100,220,130,0.2)" : "1px solid rgba(var(--accent-rgb),0.2)", borderRadius:10, padding:"12px 14px", marginBottom:16 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                 <div>
-                  <div style={{ fontSize:12, fontWeight:700, color: userIsPro ? "#7dcea0" : "#e8c97a" }}>
+                  <div style={{ fontSize:12, fontWeight:700, color: userIsPro ? "#7dcea0" : "var(--accent)" }}>
                     {userIsPro ? (onTrial ? `Pro Trial — ${daysLeft} days left` : "Wireway Pro") : "Free Plan"} </div>
                   <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:2 }}>
                     {userIsPro ? "All features unlocked" : "3 quote limit · upgrade to unlock everything"}
                   </div>
                   </div>
                 {!userIsPro && onShowPricing && (
-                  <button onClick={() => { setShowAccount(false); onShowPricing(); }} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(232,201,122,0.4)", background:"rgba(232,201,122,0.1)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                  <button onClick={() => { setShowAccount(false); onShowPricing(); }} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(var(--accent-rgb),0.4)", background:"rgba(var(--accent-rgb),0.1)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                     Upgrade ⚡
                   </button>
               )}
@@ -1274,7 +1312,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 { label:"Accepted", val: savedQuotes.filter(q=>q.status==="accepted"||q.status==="paid").length },
               ].map(s => (
                 <div key={s.label} style={{ background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:8, padding:"10px", textAlign:"center" }}>
-                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:20, fontWeight:700, color:"#e8c97a" }}>{s.val}</div>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:20, fontWeight:700, color:"var(--accent)" }}>{s.val}</div>
                   <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginTop:2 }}>{s.label}</div>
                   </div>
               ))}
@@ -1310,18 +1348,18 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginBottom:8 }}>Scope Summary</div>
               {activeItems.slice(0, 5).map(i => (
                 <div key={i.id} style={{ fontSize:11, color:"rgba(255,255,255,0.6)", padding:"3px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
-                  {i.label} ({i.variantLabel}) × {i.qty} — <span style={{ color:"#e8c97a", fontFamily:"'DM Mono',monospace" }}>${i.lineTotal.toLocaleString()}</span>
+                  {i.label} ({i.variantLabel}) × {i.qty} — <span style={{ color:"var(--accent)", fontFamily:"'DM Mono',monospace" }}>${i.lineTotal.toLocaleString()}</span>
                 </div>
               ))}
               {activeItems.length > 5 && <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", paddingTop:6 }}>+ {activeItems.length - 5} more services</div>}
-              <div style={{ display:"flex", justifyContent:"space-between", paddingTop:10, marginTop:6, borderTop:"1px solid rgba(232,201,122,0.15)" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", paddingTop:10, marginTop:6, borderTop:"1px solid rgba(var(--accent-rgb),0.15)" }}>
                 <span style={{ fontSize:12, color:"rgba(255,255,255,0.5)" }}>Total</span>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"#e8c97a" }}>${total.toLocaleString()}</span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"var(--accent)" }}>${total.toLocaleString()}</span>
               </div>
               </div>
 
             {/* Acceptance statement */}
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", lineHeight:1.7, marginBottom:20, padding:"12px 14px", background:"rgba(232,201,122,0.04)", borderRadius:8, border:"1px solid rgba(232,201,122,0.12)" }}>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", lineHeight:1.7, marginBottom:20, padding:"12px 14px", background:"rgba(var(--accent-rgb),0.04)", borderRadius:8, border:"1px solid rgba(var(--accent-rgb),0.12)" }}>
               By entering your name and date below, you acknowledge that you have reviewed this estimate, agree to the scope of work and pricing, and authorize {company.name || "the electrician"} to proceed.
               {company.terms && <div style={{ marginTop:8, color:"rgba(255,255,255,0.3)", fontSize:10 }}>{company.terms}</div>}
             </div>
@@ -1364,6 +1402,15 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           onLoadQuote={(q) => { loadQuote(q); setShowCustomers(false); }}
           onNewEstimate={(cl) => { newQuote(true); setClientName(cl.name || ""); setClientEmail(cl.email || ""); setClientPhone(cl.phone || ""); setShowCustomers(false); setTab("services"); }}
           onClose={() => setShowCustomers(false)}
+        />
+      )}
+
+      {showMaterials && (
+        <MaterialsListView
+          activeItems={activeItems}
+          totMat={totMat}
+          jobName={jobName}
+          onClose={() => setShowMaterials(false)}
         />
       )}
 

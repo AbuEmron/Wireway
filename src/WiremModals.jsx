@@ -34,13 +34,13 @@ export default function WiremModals({
               <div>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginBottom:5 }}>Voltage</div>
                 <div style={{ display:"flex", gap:5 }}>
-                  {["120","240"].map(v => <button key={v} onClick={() => setWireVolt(v)} style={{ flex:1, padding:"8px", borderRadius:6, border: wireVolt===v ? "1px solid rgba(232,201,122,0.5)" : "1px solid rgba(255,255,255,0.08)", background: wireVolt===v ? "rgba(232,201,122,0.1)" : "rgba(255,255,255,0.03)", color: wireVolt===v ? "#e8c97a" : "rgba(255,255,255,0.4)", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>{v}V</button>)}
+                  {["120","240"].map(v => <button key={v} onClick={() => setWireVolt(v)} style={{ flex:1, padding:"8px", borderRadius:6, border: wireVolt===v ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid rgba(255,255,255,0.08)", background: wireVolt===v ? "rgba(var(--accent-rgb),0.1)" : "rgba(255,255,255,0.03)", color: wireVolt===v ? "var(--accent)" : "rgba(255,255,255,0.4)", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>{v}V</button>)}
                 </div>
               </div>
               <div>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginBottom:5 }}>Conductor</div>
                 <div style={{ display:"flex", gap:5 }}>
-                  {["copper","aluminum"].map(m => <button key={m} onClick={() => setWireMat(m)} style={{ flex:1, padding:"8px", borderRadius:6, border: wireMat===m ? "1px solid rgba(232,201,122,0.5)" : "1px solid rgba(255,255,255,0.08)", background: wireMat===m ? "rgba(232,201,122,0.1)" : "rgba(255,255,255,0.03)", color: wireMat===m ? "#e8c97a" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>{m[0].toUpperCase()+m.slice(1)}</button>)}
+                  {["copper","aluminum"].map(m => <button key={m} onClick={() => setWireMat(m)} style={{ flex:1, padding:"8px", borderRadius:6, border: wireMat===m ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid rgba(255,255,255,0.08)", background: wireMat===m ? "rgba(var(--accent-rgb),0.1)" : "rgba(255,255,255,0.03)", color: wireMat===m ? "var(--accent)" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>{m[0].toUpperCase()+m.slice(1)}</button>)}
                 </div>
               </div>
             </div>
@@ -48,7 +48,7 @@ export default function WiremModals({
               <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"16px" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:12 }}>
                   <div style={{ textAlign:"center" }}>
-                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:28, fontWeight:700, color:"#e8c97a" }}># {wireResult.awg}</div>
+                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:28, fontWeight:700, color:"var(--accent)" }}># {wireResult.awg}</div>
                     <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>AWG minimum</div>
                   </div>
                   <div style={{ textAlign:"center" }}>
@@ -63,7 +63,7 @@ export default function WiremModals({
                   </div>
                 </div>
                 <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", lineHeight:1.7, borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:10 }}>
-                  <span style={{ color:"rgba(232,201,122,0.7)", fontFamily:"'DM Mono',monospace" }}>{wireResult.nec}</span> — continuous load ({wireResult.continuous}A at 125%) requires #{wireResult.awg} AWG {wireMat}.
+                  <span style={{ color:"rgba(var(--accent-rgb),0.7)", fontFamily:"'DM Mono',monospace" }}>{wireResult.nec}</span> — continuous load ({wireResult.continuous}A at 125%) requires #{wireResult.awg} AWG {wireMat}.
                   {wireLen && !wireResult.vDropOk && <span style={{ color:"#e87e7e" }}> ⚠ Voltage drop exceeds 3% — consider upsizing one AWG.</span>}
                   {wireLen && wireResult.vDropOk && <span style={{ color:"#a8e87e" }}> ✓ Voltage drop within 3% limit.</span>}
                 </div>
@@ -104,7 +104,7 @@ export default function WiremModals({
               <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"16px" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:12, textAlign:"center" }}>
                   <div>
-                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, fontWeight:700, color:"#e8c97a" }}>{loadResult.amps240}A</div>
+                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, fontWeight:700, color:"var(--accent)" }}>{loadResult.amps240}A</div>
                     <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>calculated load @240V</div>
                   </div>
                   <div>
@@ -169,7 +169,7 @@ export default function WiremModals({
                       </div>
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:12, color: checkedItems[item.id] ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.8)", textDecoration: checkedItems[item.id] ? "line-through" : "none", lineHeight:1.4 }}>{item.text}</div>
-                        <div style={{ fontSize:9, color:"rgba(232,201,122,0.5)", fontFamily:"'DM Mono',monospace", marginTop:2 }}>{item.nec}</div>
+                        <div style={{ fontSize:9, color:"rgba(var(--accent-rgb),0.5)", fontFamily:"'DM Mono',monospace", marginTop:2 }}>{item.nec}</div>
                       </div>
                     </div>
                   ))}
@@ -204,7 +204,7 @@ export default function WiremModals({
             ) : (
               clients.filter(c => !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
                 <div key={c.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
-                  <div style={{ width:36, height:36, borderRadius:8, background:"rgba(232,201,122,0.1)", border:"1px solid rgba(232,201,122,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:800, color:"#e8c97a", flexShrink:0 }}>
+                  <div style={{ width:36, height:36, borderRadius:8, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:800, color:"var(--accent)", flexShrink:0 }}>
                     {c.name[0].toUpperCase()}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
@@ -213,7 +213,7 @@ export default function WiremModals({
                       {[c.phone, c.email].filter(Boolean).join(" · ")} {c.jobCount > 1 ? `· ${c.jobCount} jobs` : ""}
                     </div>
                   </div>
-                  <button onClick={() => loadClient(c)} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(232,201,122,0.3)", background:"rgba(232,201,122,0.08)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>
+                  <button onClick={() => loadClient(c)} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(var(--accent-rgb),0.3)", background:"rgba(var(--accent-rgb),0.08)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>
                     Load
                   </button>
                 </div>
@@ -242,7 +242,7 @@ export default function WiremModals({
                   : <div style={{ width:52, height:52, borderRadius:10, overflow:"hidden" }}><img src="/logo192.png" alt="Wireway" style={{ width:"100%", height:"100%", objectFit:"contain" }} /></div>
                 }
                 <div style={{ flex:1 }}>
-                  <label style={{ display:"inline-block", padding:"8px 14px", background:"rgba(232,201,122,0.1)", border:"1px solid rgba(232,201,122,0.3)", borderRadius:7, color:"#e8c97a", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                  <label style={{ display:"inline-block", padding:"8px 14px", background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", borderRadius:7, color:"var(--accent)", fontSize:12, fontWeight:600, cursor:"pointer" }}>
                     {logoDataUrl ? "Change Logo" : "Upload Logo"}
                     <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display:"none" }} />
                   </label>
@@ -298,7 +298,7 @@ export default function WiremModals({
             </div>
 
             <div style={{ display:"flex", gap:8 }}>
-              <button onClick={saveCompany} disabled={companySaving} style={{ flex:1, padding:"12px", background:"linear-gradient(135deg,rgba(232,201,122,0.2),rgba(232,201,122,0.08))", border:"1px solid rgba(232,201,122,0.4)", borderRadius:10, color: companySaving ? "rgba(232,201,122,0.4)" : "#e8c97a", fontSize:13, fontWeight:700, cursor: companySaving ? "default" : "pointer", fontFamily:"inherit" }}>
+              <button onClick={saveCompany} disabled={companySaving} style={{ flex:1, padding:"12px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.08))", border:"1px solid rgba(var(--accent-rgb),0.4)", borderRadius:10, color: companySaving ? "rgba(var(--accent-rgb),0.4)" : "var(--accent)", fontSize:13, fontWeight:700, cursor: companySaving ? "default" : "pointer", fontFamily:"inherit" }}>
                 {companySaving ? "Saving..." : "Save Profile"}
               </button>
               <button onClick={() => setEditingCompany(false)} style={{ padding:"12px 20px", background:"transparent", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, color:"rgba(255,255,255,0.4)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>

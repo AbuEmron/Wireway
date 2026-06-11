@@ -11,7 +11,7 @@ const QUICK_JOBS = [
     id: "panel_upgrade",
     label: "Panel Upgrade",
     icon: "⚡",
-    color: "#e8c97a",
+    color: "var(--accent)",
     desc: "100A–400A service upgrade",
     services: ["panel_200a", "surge_protector", "grounding_electrode"],
   },
@@ -100,7 +100,7 @@ const STATUS_COLORS = {
   cancelled:    { bg:"rgba(232,126,126,0.08)",       text:"#e87e7e",               label:"Cancelled" },
 };
 
-function MetricCard({ label, value, sub, color = "#e8c97a", icon }) {
+function MetricCard({ label, value, sub, color = "var(--accent)", icon }) {
   return (
     <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:12, padding:"14px 16px" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
@@ -169,7 +169,7 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         .qcard:hover{background:rgba(255,255,255,0.045)!important;border-color:rgba(255,255,255,0.1)!important;transform:translateY(-1px)}
         .qrow:hover{background:rgba(255,255,255,0.035)!important}
-        .dash-ai:hover{background:linear-gradient(135deg,rgba(232,201,122,0.2),rgba(232,201,122,0.06))!important}
+        .dash-ai:hover{background:linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.06))!important}
       `}</style>
 
       <div style={{ fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:60 }}>
@@ -186,7 +186,7 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
 
         {/* ── METRICS ── */}
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:8, marginBottom:20, animation:"fadeUp 0.4s ease 0.05s both" }}>
-          <MetricCard label="Revenue this month" value={loading ? "..." : `$${Math.round(revenue).toLocaleString()}`} icon="💰" color="#e8c97a" sub="paid jobs" />
+          <MetricCard label="Revenue this month" value={loading ? "..." : `$${Math.round(revenue).toLocaleString()}`} icon="💰" color="var(--accent)" sub="paid jobs" />
           <MetricCard label="Pending quotes"      value={loading ? "..." : pending}    icon="📋" color="#7eb8e8" sub="awaiting response" />
           <MetricCard label="Accepted"            value={loading ? "..." : accepted}   icon="✓"  color="#7dcea0" sub={`${acceptRate}% win rate`} />
           <MetricCard label="Avg job size"        value={loading ? "..." : `$${Math.round(avgJob).toLocaleString()}`} icon="📊" color="#b87ee8" sub="all time" />
@@ -195,19 +195,19 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
         </div>
 
         {/* ── AI QUOTE BUILDER CTA ── */}
-        <div onClick={onShowAI} className="dash-ai" style={{ background:"linear-gradient(135deg,rgba(232,201,122,0.1),rgba(232,201,122,0.04))", border:"1px solid rgba(232,201,122,0.25)", borderRadius:14, padding:"18px 20px", marginBottom:20, cursor:"pointer", transition:"all 0.2s", animation:"fadeUp 0.4s ease 0.08s both" }}>
+        <div onClick={onShowAI} className="dash-ai" style={{ background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.1),rgba(var(--accent-rgb),0.04))", border:"1px solid rgba(var(--accent-rgb),0.25)", borderRadius:14, padding:"18px 20px", marginBottom:20, cursor:"pointer", transition:"all 0.2s", animation:"fadeUp 0.4s ease 0.08s both" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
                 <span style={{ fontSize:18 }}>⚡</span>
                 <span style={{ fontFamily:"'Syne',sans-serif", fontSize:15, fontWeight:800, color:"#fff" }}>AI Quote Builder</span>
-                <span style={{ fontSize:9, fontWeight:700, color:"#e8c97a", background:"rgba(232,201,122,0.15)", border:"1px solid rgba(232,201,122,0.3)", padding:"2px 6px", borderRadius:4, letterSpacing:"0.05em" }}>AI</span>
+                <span style={{ fontSize:9, fontWeight:700, color:"var(--accent)", background:"rgba(var(--accent-rgb),0.15)", border:"1px solid rgba(var(--accent-rgb),0.3)", padding:"2px 6px", borderRadius:4, letterSpacing:"0.05em" }}>AI</span>
               </div>
               <div style={{ fontSize:12, color:"rgba(255,255,255,0.45)" }}>
                 Describe any job → get a full NEC estimate in seconds
               </div>
             </div>
-            <div style={{ fontSize:20, color:"rgba(232,201,122,0.5)" }}>→</div>
+            <div style={{ fontSize:20, color:"rgba(var(--accent-rgb),0.5)" }}>→</div>
           </div>
         </div>
 
@@ -231,7 +231,7 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
           <div style={{ marginBottom:20, animation:"fadeUp 0.4s ease 0.12s both" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
               <div style={{ fontSize:10, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em" }}>Upcoming jobs</div>
-              <button onClick={onOpenCalendar} style={{ fontSize:11, color:"rgba(232,201,122,0.6)", background:"transparent", border:"none", cursor:"pointer", fontFamily:"inherit" }}>View calendar →</button>
+              <button onClick={onOpenCalendar} style={{ fontSize:11, color:"rgba(var(--accent-rgb),0.6)", background:"transparent", border:"none", cursor:"pointer", fontFamily:"inherit" }}>View calendar →</button>
             </div>
             {upcomingJobs.map(job => (
               <div key={job.id} className="qrow" style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.055)", borderRadius:10, marginBottom:6, cursor:"default", transition:"background 0.15s" }}>
@@ -264,7 +264,7 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
                     </div>
                   </div>
                   <div style={{ textAlign:"right", flexShrink:0 }}>
-                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:600, color:"#e8c97a" }}>${(q.total || 0).toLocaleString()}</div>
+                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:600, color:"var(--accent)" }}>${(q.total || 0).toLocaleString()}</div>
                     <div style={{ fontSize:9, fontWeight:700, color:sc.text, background:sc.bg, padding:"2px 6px", borderRadius:4, marginTop:2 }}>{sc.label}</div>
                   </div>
                 </div>
@@ -279,7 +279,7 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
             <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
             <div style={{ fontSize:14, marginBottom:6 }}>No quotes yet</div>
             <div style={{ fontSize:12, marginBottom:20 }}>Tap any quick quote card above or use the AI builder to create your first estimate</div>
-            <button onClick={onShowAI} style={{ padding:"10px 22px", background:"rgba(232,201,122,0.1)", border:"1px solid rgba(232,201,122,0.3)", borderRadius:9, color:"#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+            <button onClick={onShowAI} style={{ padding:"10px 22px", background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", borderRadius:9, color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
               ⚡ Build first quote with AI
             </button>
           </div>

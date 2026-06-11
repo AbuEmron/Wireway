@@ -14,12 +14,12 @@ import { getJobs, upsertJob, deleteJob, updateJobStatus, getPhotos, uploadPhoto,
 // ─── SHARED STYLES ────────────────────────────────────────────────────────────
 const card = { background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:12 };
 const IS   = { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:7, padding:"8px 11px", fontSize:13, color:"#fff", fontFamily:"inherit", width:"100%", outline:"none" };
-const focusGold = e => e.target.style.borderColor = "rgba(232,201,122,0.4)";
+const focusGold = e => e.target.style.borderColor = "rgba(var(--accent-rgb),0.4)";
 const blurGray  = e => e.target.style.borderColor = "rgba(255,255,255,0.07)";
 
 const STATUS_COLOR = {
   scheduled:   "#7eb8e8",
-  in_progress: "#e8c97a",
+  in_progress: "var(--accent)",
   complete:    "#7dcea0",
   cancelled:   "#e87e7e",
 };
@@ -74,9 +74,9 @@ export function JobCalendar({ user, onClose }) {
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');*{box-sizing:border-box;margin:0;padding:0}body{background:#0a0a0c}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg0)}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-      <div style={{ minHeight:"100vh", background:"#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:60 }}>
+      <div style={{ minHeight:"100vh", background:"var(--bg0)", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:60 }}>
 
         {/* Header */}
         <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
@@ -88,7 +88,7 @@ export function JobCalendar({ user, onClose }) {
               <button onClick={() => { setYear(today.getFullYear()); setMonth(today.getMonth()); }} style={{ padding:"4px 10px", borderRadius:5, border:"1px solid rgba(255,255,255,0.07)", background:"transparent", color:"rgba(255,255,255,0.35)", fontSize:10, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Today</button>
             </div>
             <div style={{ display:"flex", gap:8 }}>
-              <button onClick={() => { setModal({ date: `${year}-${String(month+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}` }); setDraft({ scheduled_date: `${year}-${String(month+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`, duration_hours: 2, status:"scheduled" }); }} style={{ padding:"6px 14px", borderRadius:7, background:"rgba(232,201,122,0.1)", border:"1px solid rgba(232,201,122,0.3)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+              <button onClick={() => { setModal({ date: `${year}-${String(month+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}` }); setDraft({ scheduled_date: `${year}-${String(month+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`, duration_hours: 2, status:"scheduled" }); }} style={{ padding:"6px 14px", borderRadius:7, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                 + New Job
               </button>
               {onClose && <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"rgba(255,255,255,0.4)", fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>← Back</button>}
@@ -113,11 +113,11 @@ export function JobCalendar({ user, onClose }) {
               const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
               return (
                 <div key={d} onClick={() => { setDraft({ scheduled_date:ds, duration_hours:2, status:"scheduled" }); setModal({ date:ds }); }}
-                  style={{ minHeight:80, background: isToday ? "rgba(232,201,122,0.07)" : "rgba(255,255,255,0.018)", border: isToday ? "1px solid rgba(232,201,122,0.25)" : "1px solid rgba(255,255,255,0.05)", borderRadius:8, padding:"6px 6px 4px", cursor:"pointer", transition:"background 0.15s" }}
+                  style={{ minHeight:80, background: isToday ? "rgba(var(--accent-rgb),0.07)" : "rgba(255,255,255,0.018)", border: isToday ? "1px solid rgba(var(--accent-rgb),0.25)" : "1px solid rgba(255,255,255,0.05)", borderRadius:8, padding:"6px 6px 4px", cursor:"pointer", transition:"background 0.15s" }}
                   onMouseEnter={e => !isToday && (e.currentTarget.style.background="rgba(255,255,255,0.03)")}
                   onMouseLeave={e => !isToday && (e.currentTarget.style.background="rgba(255,255,255,0.018)")}
                 >
-                  <div style={{ fontSize:11, fontWeight: isToday ? 800 : 500, color: isToday ? "#e8c97a" : "rgba(255,255,255,0.5)", marginBottom:4 }}>{d}</div>
+                  <div style={{ fontSize:11, fontWeight: isToday ? 800 : 500, color: isToday ? "var(--accent)" : "rgba(255,255,255,0.5)", marginBottom:4 }}>{d}</div>
                   {dayJobs.slice(0,3).map(job => (
                     <div key={job.id} onClick={e => { e.stopPropagation(); setModal({ job }); setDraft(job); }}
                       style={{ fontSize:9, fontWeight:700, color: STATUS_COLOR[job.status]||"#7eb8e8", background:`${STATUS_COLOR[job.status]||"#7eb8e8"}15`, borderRadius:3, padding:"2px 4px", marginBottom:2, overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis", cursor:"pointer" }}>
@@ -168,7 +168,7 @@ export function JobCalendar({ user, onClose }) {
       {modal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", zIndex:200, display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"24px 16px" }}
           onClick={e => e.target===e.currentTarget && setModal(null)}>
-          <div style={{ background:"#111115", border:"1px solid rgba(255,255,255,0.1)", borderRadius:18, width:"100%", maxWidth:520, animation:"fadeUp 0.2s ease both", margin:"auto", padding:"24px" }}>
+          <div style={{ background:"var(--surface)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:18, width:"100%", maxWidth:520, animation:"fadeUp 0.2s ease both", margin:"auto", padding:"24px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
               <div style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, color:"#fff" }}>
                 {modal.job ? "Edit Job" : "New Job"}
@@ -199,7 +199,7 @@ export function JobCalendar({ user, onClose }) {
             </div>
 
             <div style={{ display:"flex", gap:8, marginTop:16 }}>
-              <button onClick={saveJob} disabled={saving||!draft.title} style={{ flex:1, padding:"12px", background:"linear-gradient(135deg,rgba(232,201,122,0.2),rgba(232,201,122,0.08))", border:"1px solid rgba(232,201,122,0.35)", borderRadius:9, color:"#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+              <button onClick={saveJob} disabled={saving||!draft.title} style={{ flex:1, padding:"12px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.08))", border:"1px solid rgba(var(--accent-rgb),0.35)", borderRadius:9, color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                 {saving ? "Saving..." : "Save Job"}
               </button>
               {modal.job && (
@@ -282,7 +282,7 @@ export function PhotoAttachments({ user, quoteId, quoteName }) {
         <div style={{ fontSize:10, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em" }}>
           Photos {photos.length > 0 && `(${photos.length})`}
         </div>
-        <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ padding:"4px 10px", borderRadius:6, border:"1px solid rgba(232,201,122,0.3)", background:"rgba(232,201,122,0.08)", color:"#e8c97a", fontSize:10, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+        <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ padding:"4px 10px", borderRadius:6, border:"1px solid rgba(var(--accent-rgb),0.3)", background:"rgba(var(--accent-rgb),0.08)", color:"var(--accent)", fontSize:10, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
           {uploading ? "Uploading..." : "+ Add Photo"}
         </button>
         <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" style={{ display:"none" }} onChange={e => handleFiles(e.target.files)} />

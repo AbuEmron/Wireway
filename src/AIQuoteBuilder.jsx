@@ -85,7 +85,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
   const [selected,  setSelected]  = useState({});   // id -> bool
   const [applying,  setApplying]  = useState(false);
 
-  const focusGold = e => e.target.style.borderColor = "rgba(232,201,122,0.4)";
+  const focusGold = e => e.target.style.borderColor = "rgba(var(--accent-rgb),0.4)";
   const blurGray  = e => e.target.style.borderColor = "rgba(255,255,255,0.08)";
 
   const analyze = async () => {
@@ -180,7 +180,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
       <style>{`
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         @keyframes spin{to{transform:rotate(360deg)}}
-        .ai-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(232,201,122,0.2);border-top-color:#e8c97a;border-radius:50%;animation:spin 0.8s linear infinite}
+        .ai-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(var(--accent-rgb),0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
         .ai-item:hover{background:rgba(255,255,255,0.04)!important}
       `}</style>
 
@@ -191,7 +191,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
             <div>
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
-                <div style={{ width:32, height:32, borderRadius:8, background:"linear-gradient(135deg,rgba(232,201,122,0.25),rgba(232,201,122,0.08))", border:"1px solid rgba(232,201,122,0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>⚡</div>
+                <div style={{ width:32, height:32, borderRadius:8, background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.25),rgba(var(--accent-rgb),0.08))", border:"1px solid rgba(var(--accent-rgb),0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>⚡</div>
                 <span style={{ fontFamily:"'Syne',sans-serif", fontSize:20, fontWeight:800, color:"#fff", letterSpacing:"-0.03em" }}>AI Quote Builder</span>
               </div>
               <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginLeft:42 }}>
@@ -205,7 +205,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
           <div style={{ background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"16px", marginBottom:12 }}>
             <div style={{ display:"flex", gap:6, marginBottom:10 }}>
 
-              <button onClick={() => setMatSupplier("me")} style={{ flex:1, padding:"8px", borderRadius:7, border: matSupplier==="me" ? "1px solid rgba(232,201,122,0.5)" : "1px solid rgba(255,255,255,0.08)", background: matSupplier==="me" ? "rgba(232,201,122,0.12)" : "rgba(255,255,255,0.03)", color: matSupplier==="me" ? "#e8c97a" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+              <button onClick={() => setMatSupplier("me")} style={{ flex:1, padding:"8px", borderRadius:7, border: matSupplier==="me" ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid rgba(255,255,255,0.08)", background: matSupplier==="me" ? "rgba(var(--accent-rgb),0.12)" : "rgba(255,255,255,0.03)", color: matSupplier==="me" ? "var(--accent)" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
 
                 ⚡ I supply materials
 
@@ -251,7 +251,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
               <button
                 onClick={analyze}
                 disabled={!prompt.trim() || loading}
-                style={{ padding:"10px 24px", background: (!prompt.trim() || loading) ? "rgba(232,201,122,0.06)" : "linear-gradient(135deg,rgba(232,201,122,0.22),rgba(232,201,122,0.08))", border:`1px solid ${(!prompt.trim() || loading) ? "rgba(232,201,122,0.15)" : "rgba(232,201,122,0.4)"}`, borderRadius:9, color: (!prompt.trim() || loading) ? "rgba(232,201,122,0.3)" : "#e8c97a", fontSize:13, fontWeight:700, cursor: (!prompt.trim() || loading) ? "default" : "pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:8, transition:"all 0.2s" }}>
+                style={{ padding:"10px 24px", background: (!prompt.trim() || loading) ? "rgba(var(--accent-rgb),0.06)" : "linear-gradient(135deg,rgba(var(--accent-rgb),0.22),rgba(var(--accent-rgb),0.08))", border:`1px solid ${(!prompt.trim() || loading) ? "rgba(var(--accent-rgb),0.15)" : "rgba(var(--accent-rgb),0.4)"}`, borderRadius:9, color: (!prompt.trim() || loading) ? "rgba(var(--accent-rgb),0.3)" : "var(--accent)", fontSize:13, fontWeight:700, cursor: (!prompt.trim() || loading) ? "default" : "pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:8, transition:"all 0.2s" }}>
                 {loading ? <><span className="ai-spinner"/>Analyzing job...</> : "⚡ Analyze Job"}
               </button>
             </div>
@@ -270,8 +270,8 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
 
               {/* AI Summary */}
               {result.summary && (
-                <div style={{ padding:"12px 16px", background:"rgba(232,201,122,0.06)", border:"1px solid rgba(232,201,122,0.15)", borderRadius:11, marginBottom:12 }}>
-                  <div style={{ fontSize:10, color:"rgba(232,201,122,0.6)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:5 }}>AI Analysis</div>
+                <div style={{ padding:"12px 16px", background:"rgba(var(--accent-rgb),0.06)", border:"1px solid rgba(var(--accent-rgb),0.15)", borderRadius:11, marginBottom:12 }}>
+                  <div style={{ fontSize:10, color:"rgba(var(--accent-rgb),0.6)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:5 }}>AI Analysis</div>
                   <div style={{ fontSize:13, color:"rgba(255,255,255,0.75)", lineHeight:1.6 }}>{result.summary}</div>
                 </div>
               )}
@@ -284,7 +284,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
                     <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginLeft:8 }}>· uncheck to remove</span>
                   </div>
                   <div style={{ display:"flex", gap:8 }}>
-                    <button onClick={() => { const s = {}; result.items.forEach(i => s[i.id]=true); setSelected(s); }} style={{ fontSize:10, color:"rgba(232,201,122,0.7)", background:"transparent", border:"none", cursor:"pointer", fontFamily:"inherit" }}>Select all</button>
+                    <button onClick={() => { const s = {}; result.items.forEach(i => s[i.id]=true); setSelected(s); }} style={{ fontSize:10, color:"rgba(var(--accent-rgb),0.7)", background:"transparent", border:"none", cursor:"pointer", fontFamily:"inherit" }}>Select all</button>
                     <button onClick={() => setSelected({})} style={{ fontSize:10, color:"rgba(255,255,255,0.35)", background:"transparent", border:"none", cursor:"pointer", fontFamily:"inherit" }}>Clear</button>
                   </div>
                 </div>
@@ -294,15 +294,15 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
                     style={{ display:"flex", alignItems:"flex-start", gap:12, padding:"11px 16px", borderBottom: idx < result.items.length-1 ? "1px solid rgba(255,255,255,0.04)" : "none", cursor:"pointer", background:"transparent", transition:"background 0.15s" }}>
 
                     {/* Checkbox */}
-                    <div style={{ width:18, height:18, borderRadius:4, flexShrink:0, border: selected[item.id] ? "1px solid #e8c97a" : "1px solid rgba(255,255,255,0.2)", background: selected[item.id] ? "rgba(232,201,122,0.15)" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", marginTop:1, transition:"all 0.15s" }}>
-                      {selected[item.id] && <span style={{ fontSize:10, color:"#e8c97a" }}>✓</span>}
+                    <div style={{ width:18, height:18, borderRadius:4, flexShrink:0, border: selected[item.id] ? "1px solid var(--accent)" : "1px solid rgba(255,255,255,0.2)", background: selected[item.id] ? "rgba(var(--accent-rgb),0.15)" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", marginTop:1, transition:"all 0.15s" }}>
+                      {selected[item.id] && <span style={{ fontSize:10, color:"var(--accent)" }}>✓</span>}
                     </div>
 
                     {/* Service info */}
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:2 }}>
                         <span style={{ fontSize:13, fontWeight:600, color: selected[item.id] ? "#fff" : "rgba(255,255,255,0.4)", transition:"color 0.15s" }}>{item.label}</span>
-                        <span style={{ fontSize:9, color:"rgba(232,201,122,0.5)", fontFamily:"'DM Mono',monospace" }}>{item.nec}</span>
+                        <span style={{ fontSize:9, color:"rgba(var(--accent-rgb),0.5)", fontFamily:"'DM Mono',monospace" }}>{item.nec}</span>
                         <span style={{ fontSize:10, color:"rgba(255,255,255,0.3)", background:"rgba(255,255,255,0.05)", padding:"1px 6px", borderRadius:4 }}>{item.variantLabel}</span>
                         <span style={{ fontSize:10, color:"rgba(255,255,255,0.3)" }}>× {item.qty}</span>
                       </div>
@@ -311,7 +311,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
 
                     {/* Line total */}
                     <div style={{ textAlign:"right", flexShrink:0 }}>
-                      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:14, fontWeight:600, color: selected[item.id] ? "#e8c97a" : "rgba(255,255,255,0.25)", transition:"color 0.15s" }}>${item.lineTotal.toLocaleString()}</div>
+                      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:14, fontWeight:600, color: selected[item.id] ? "var(--accent)" : "rgba(255,255,255,0.25)", transition:"color 0.15s" }}>${item.lineTotal.toLocaleString()}</div>
                       <div style={{ fontSize:9, color:"rgba(255,255,255,0.25)", fontFamily:"'DM Mono',monospace" }}>{item.hrs.toFixed(1)}h</div>
                     </div>
                   </div>
@@ -319,7 +319,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
               </div>
 
               {/* Totals */}
-              <div style={{ background:"linear-gradient(135deg,rgba(232,201,122,0.08),rgba(255,255,255,0.02))", border:"1px solid rgba(232,201,122,0.2)", borderRadius:12, padding:"14px 16px", marginBottom:14 }}>
+              <div style={{ background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.08),rgba(255,255,255,0.02))", border:"1px solid rgba(var(--accent-rgb),0.2)", borderRadius:12, padding:"14px 16px", marginBottom:14 }}>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12 }}>
                   {[
                     { label:"Materials",  val:`$${totalMat.toLocaleString()}` },
@@ -329,7 +329,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
                   ].map(s => (
                     <div key={s.label} style={{ textAlign:"center" }}>
                       <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>{s.label}</div>
-                      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"#e8c97a" }}>{s.val}</div>
+                      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"var(--accent)" }}>{s.val}</div>
                     </div>
                   ))}
                 </div>
@@ -346,7 +346,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
               {/* Actions */}
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={applyToEstimate} disabled={selectedItems.length === 0}
-                  style={{ flex:1, padding:"14px", background: selectedItems.length > 0 ? "linear-gradient(135deg,rgba(232,201,122,0.22),rgba(232,201,122,0.08))" : "rgba(255,255,255,0.04)", border:`1px solid ${selectedItems.length > 0 ? "rgba(232,201,122,0.4)" : "rgba(255,255,255,0.08)"}`, borderRadius:11, color: selectedItems.length > 0 ? "#e8c97a" : "rgba(255,255,255,0.25)", fontSize:14, fontWeight:700, cursor: selectedItems.length > 0 ? "pointer" : "default", fontFamily:"inherit", transition:"all 0.2s" }}>
+                  style={{ flex:1, padding:"14px", background: selectedItems.length > 0 ? "linear-gradient(135deg,rgba(var(--accent-rgb),0.22),rgba(var(--accent-rgb),0.08))" : "rgba(255,255,255,0.04)", border:`1px solid ${selectedItems.length > 0 ? "rgba(var(--accent-rgb),0.4)" : "rgba(255,255,255,0.08)"}`, borderRadius:11, color: selectedItems.length > 0 ? "var(--accent)" : "rgba(255,255,255,0.25)", fontSize:14, fontWeight:700, cursor: selectedItems.length > 0 ? "pointer" : "default", fontFamily:"inherit", transition:"all 0.2s" }}>
                   Apply {selectedItems.length} service{selectedItems.length !== 1 ? "s" : ""} to Estimate →
                 </button>
                 <button onClick={() => { setResult(null); setPrompt(""); setSelected({}); }}
