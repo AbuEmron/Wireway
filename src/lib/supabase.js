@@ -312,9 +312,11 @@ export const deleteEliteEstimate = async (id) =>
 
 // Dark until launch: unlocks for plan="elite" profiles, or on this device
 // via localStorage "wireway_elite_preview" = "1" for pre-launch testing.
+const ELITE_PREVIEW_ACCOUNTS = ["elite@wirewaypro.com"];
+
 export const isElite = (profile) => {
   if (profile?.plan === "elite") return true;
-  try { return window.localStorage.getItem("wireway_elite_preview") === "1"; } catch { return false; }
+  return !!profile?.email && ELITE_PREVIEW_ACCOUNTS.includes(profile.email.toLowerCase());
 };
 
 // ── THEME ────────────────────────────────
