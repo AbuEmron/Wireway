@@ -16,6 +16,10 @@ export const CONDITIONS = [
   { id: "underground",label: "Trench / under slab",             factor: 1.20 },
   { id: "mechroom",   label: "Congested mechanical space",      factor: 1.10 },
   { id: "offhours",   label: "Night / weekend shift",           factor: 1.35 },
+  { id: "shutdown",   label: "Shutdown / outage window",        factor: 1.40 },
+  { id: "remote",     label: "Remote site / long mobilization", factor: 1.20 },
+  { id: "clearance",  label: "Security clearance facility",     factor: 1.15 },
+  { id: "winter",     label: "Winter / weather exposure",       factor: 1.15 },
 ];
 
 export function conditionFactor(conditionIds = []) {

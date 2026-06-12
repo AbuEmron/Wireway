@@ -1,9 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useMemo, useEffect } from "react";
-import { signOut, getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus, getClients, upsertClient, isPro, isTrialing, trialDaysLeft, saveThemePref } from "./lib/supabase";
+import { signOut, getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus, getClients, upsertClient, isPro, isTrialing, trialDaysLeft, saveThemePref, isElite } from "./lib/supabase";
 import { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES, CHECKLISTS } from "./data/catalog";
 import { JobCalendar, PhotoAttachments, QuickBooksExport, AutoInvoiceButton, OnMyWayButton, ReviewRequestButton } from "./features";
 import AIQuoteBuilder from "./AIQuoteBuilder";
+import EliteMode from "./EliteMode";
 import ProposalView from "./ProposalView";
 import CustomersView from "./CustomersView";
 import { THEMES, applyTheme, getSavedTheme, saveTheme } from "./themes";
@@ -93,6 +94,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showAccount,    setShowAccount]    = useState(false);
   const [showCalendar,   setShowCalendar]   = useState(false);
   const [showAIBuilder,  setShowAIBuilder]  = useState(false);
+  const [showElite,      setShowElite]      = useState(false);
   const [onboard,        setOnboard]        = useState(getOnboardState());
   const [aiSeed,         setAiSeed]         = useState("");
   const [showProposal,   setShowProposal]   = useState(false);
@@ -566,6 +568,14 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             </div>
           </div>
           <div style={{ maxWidth:680, margin:"0 auto", padding:"20px 20px 60px" }}>
+            {showElite && <EliteMode profile={profile} onClose={() => setShowElite(false)} />}
+            {isElite(profile) && (
+              <button onClick={() => setShowElite(true)} style={{ width:"100%", marginBottom:16, padding:"13px 16px", borderRadius:12, background:"linear-gradient(135deg, rgba(240,168,24,0.14), rgba(240,168,24,0.04))", border:"1px solid rgba(240,168,24,0.45)", color:"#f0a818", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"inherit", letterSpacing:"0.04em", textAlign:"left", display:"flex", alignItems:"center", gap:10 }}>
+                <span style={{ fontSize:16 }}>⚙</span>
+                <span style={{ flex:1 }}>WIREWAY ELITE — Industrial Estimator</span>
+                <span style={{ fontSize:14 }}>→</span>
+              </button>
+            )}
             {savedQuotes.length === 0 && !onboard.heroDone && (
               <WelcomeHero
                 onStartAI={() => {
