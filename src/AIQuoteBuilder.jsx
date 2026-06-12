@@ -77,8 +77,8 @@ RETURN FORMAT (JSON array):
 After the JSON array, on a new line starting with "SUMMARY:", write a 2-sentence plain-English summary of the scope and what the electrician should know about this job.`;
 }
 
-export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
-  const [prompt,    setPrompt]    = useState("");
+export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt }) {
+  const [prompt,    setPrompt]    = useState(initialPrompt || "");
   const [matSupplier, setMatSupplier] = useState("me"); // "me" | "client"
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState("");

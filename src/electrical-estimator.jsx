@@ -9,6 +9,7 @@ import CustomersView from "./CustomersView";
 import { THEMES, applyTheme, getSavedTheme, saveTheme } from "./themes";
 import MaterialsListView from "./MaterialsListView";
 import { WirewayMark, WirewayLogo } from "./Logo";
+import { WelcomeHero, SetupChecklist, getOnboardState, setOnboardState } from "./Onboarding";
 import Dashboard from "./Dashboard";
 import { Pill, StatCard, CategorySection, NECReference } from "./WiremComponents";
 import WiremModals from "./WiremModals";
@@ -92,6 +93,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showAccount,    setShowAccount]    = useState(false);
   const [showCalendar,   setShowCalendar]   = useState(false);
   const [showAIBuilder,  setShowAIBuilder]  = useState(false);
+  const [onboard,        setOnboard]        = useState(getOnboardState());
+  const [aiSeed,         setAiSeed]         = useState("");
   const [showProposal,   setShowProposal]   = useState(false);
   const [showPullList,   setShowPullList]   = useState(SAVED ? !!SAVED.showPullList : false);
   const [showCustomers,  setShowCustomers]  = useState(false);
@@ -563,6 +566,31 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             </div>
           </div>
           <div style={{ maxWidth:680, margin:"0 auto", padding:"20px 20px 60px" }}>
+            {savedQuotes.length === 0 && !onboard.heroDone && (
+              <WelcomeHero
+                onStartAI={() => {
+                  setOnboardState({ heroDone: true }); setOnboard(o => ({ ...o, heroDone: true }));
+                  setAiSeed("Finished basement: add 8 recessed lights on a dimmer, 6 receptacles on a new 20A circuit, and a smoke/CO detector. Drywall is already up. Homeowner is supplying the light trims.");
+                  setShowDashboard(false); setTimeout(() => setShowAIBuilder(true), 100);
+                }}
+                onDismiss={() => { setOnboardState({ heroDone: true }); setOnboard(o => ({ ...o, heroDone: true })); }}
+              />
+            )}
+            {!onboard.listDone && (savedQuotes.length > 0 || onboard.heroDone) && (() => {
+              const items = [
+                { done: savedQuotes.length > 0, label: "Build your first estimate", hint: "Describe a job — AI does the rest",
+                  onClick: () => { setShowDashboard(false); setTimeout(() => setShowAIBuilder(true), 100); } },
+                { done: !!company.name, label: "Add your company info", hint: "Your name and logo go on every proposal",
+                  onClick: () => { setShowDashboard(false); setTimeout(() => setShowAccount(true), 100); } },
+                { done: clients.length > 0, label: "Save a customer", hint: "Client details auto-fill future quotes",
+                  onClick: () => setShowCustomers(true) },
+                { done: savedQuotes.some(q => ["accepted","paid","deposit_paid"].includes(q.status)), label: "Get a quote signed or paid", hint: "Send a proposal and text the pay link",
+                  onClick: () => { if (savedQuotes[0]) { loadQuote(savedQuotes[0]); setShowDashboard(false); setTab("summary"); } else { setShowDashboard(false); setTimeout(() => setShowAIBuilder(true), 100); } } },
+              ];
+              return items.every(i => i.done) ? null : (
+                <SetupChecklist items={items} onDismiss={() => { setOnboardState({ listDone: true }); setOnboard(o => ({ ...o, listDone: true })); }} />
+              );
+            })()}
             <Dashboard
               user={user} profile={profile}
               onNewQuote={(job) => { newQuote(true); setJobName(job.label); setShowDashboard(false); setTab("services"); }}
@@ -1274,6 +1302,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           {/* ════════════ AI QUOTE BUILDER ════════════ */}
           {showAIBuilder && (
             <AIQuoteBuilder
+              initialPrompt={aiSeed}
               onApplyEstimate={applyAIEstimate}
               onClose={() => setShowAIBuilder(false)}
             />
