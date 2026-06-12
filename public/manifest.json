@@ -1,22 +1,31 @@
 {
-  "short_name": "Wireway",
+  "id": "/",
   "name": "Wireway — Electrical Estimating",
-  "description": "Describe the job in plain English. Get an NEC-coded estimate, send a proposal, get paid by text.",
-  "icons": [
-    {
-      "src": "logo192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    }
-  ],
-  "start_url": ".",
+  "short_name": "Wireway",
+  "description": "Describe the job in plain English. Get an NEC 2023-coded estimate in seconds, send a professional proposal, and get paid by text. Built by an electrician, for electricians.",
+  "lang": "en-US",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "theme_color": "#0a0a0c",
   "background_color": "#080b10",
-  "orientation": "portrait"
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    { "src": "logo192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "logo512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "maskable-192.png", "type": "image/png", "sizes": "192x192", "purpose": "maskable" },
+    { "src": "maskable-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Estimate",
+      "short_name": "New Estimate",
+      "description": "Start a new electrical estimate",
+      "url": "/?action=new",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
 }

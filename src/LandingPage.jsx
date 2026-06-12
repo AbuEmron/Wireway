@@ -186,7 +186,12 @@ export default function LandingPage({ onSignIn, onSignUp }) {
             <span style={{ fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:800 }}><span style={{ color:"#e8c97a" }}>WIRE</span>WAY</span>
           </div>
           <div style={{ fontSize:11, color:"rgba(255,255,255,0.2)", letterSpacing:"0.04em" }}>
-            NEC 2023 Professional Electrical Estimating · wirewaypro.com
+            NEC 2023 Professional Electrical Estimating · wirewaypro.com<br/>
+            <a href="/privacy.html" style={{ color:"rgba(255,255,255,0.3)", textDecoration:"none", fontSize:10 }}>Privacy</a>
+            <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 8px", fontSize:10 }}>·</span>
+            <a href="/terms.html" style={{ color:"rgba(255,255,255,0.3)", textDecoration:"none", fontSize:10 }}>Terms</a>
+            <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 8px", fontSize:10 }}>·</span>
+            <a href="mailto:support@wirewaypro.com" style={{ color:"rgba(255,255,255,0.3)", textDecoration:"none", fontSize:10 }}>support@wirewaypro.com</a>
           </div>
         </footer>
       </div>
