@@ -4,6 +4,7 @@
 // calculate labor/materials, and populate the estimate automatically.
 
 import { useState } from "react";
+import { supabase } from "./lib/supabase";
 import { ALL_SERVICES, CATEGORIES } from "./data/catalog";
 
 const IS = {
@@ -96,9 +97,10 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
     setSelected({});
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch("/api/claude", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
         body: JSON.stringify({
           max_tokens: 1500,
           system: buildSystemPrompt(),

@@ -1,5 +1,5 @@
-// api/claude.js — server-side proxy for the AI Quote Builder
-// Keeps the Anthropic API key secret; the browser calls /api/claude instead.
+// api/claude.js — server-side proxy for AI features
+// Requires a valid Supabase session token: only signed-in Wireway users can call it.
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -7,6 +7,25 @@ export default async function handler(req, res) {
   }
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured in Vercel environment variables" });
+  }
+
+  // ── Auth gate: verify the caller is a signed-in Supabase user ──
+  const token = (req.headers.authorization || "").replace("Bearer ", "");
+  if (!token) {
+    return res.status(401).json({ error: "Sign in required" });
+  }
+  try {
+    const authRes = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        apikey: process.env.REACT_APP_SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!authRes.ok) {
+      return res.status(401).json({ error: "Session expired — sign in again" });
+    }
+  } catch {
+    return res.status(401).json({ error: "Could not verify session" });
   }
 
   try {
@@ -20,7 +39,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: max_tokens || 1500,
+        max_tokens: Math.min(max_tokens || 1500, 3000),
         system: system || "",
         messages: messages || [],
       }),

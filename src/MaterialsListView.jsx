@@ -5,6 +5,7 @@
 // search links, and a comparison against the quote's material budget.
 
 import { useState, useEffect } from "react";
+import { supabase } from "./lib/supabase";
 
 const hdLink = (q) => `https://www.homedepot.com/s/${encodeURIComponent(q)}`;
 const lwLink = (q) => `https://www.lowes.com/search?searchTerm=${encodeURIComponent(q)}`;
@@ -24,9 +25,10 @@ export default function MaterialsListView({ activeItems, totMat, jobName, onClos
         `- ${i.label}${i.variantLabel && i.variantLabel !== "Standard" ? ` (${i.variantLabel})` : ""} × ${i.qty}${i.cBuys ? " [client supplies materials]" : ""}`
       ).join("\n");
 
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch("/api/claude", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
         body: JSON.stringify({
           max_tokens: 2500,
           system: `You are a master electrician with 30 years of residential experience writing a material pull list for a supply run. You know exactly what each job needs, including the consumables everyone forgets (staples, wire nuts, connectors, straps, tape).
