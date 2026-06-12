@@ -7,6 +7,23 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 
+// Parse the AI's JSON, recovering gracefully if the response was cut off mid-list.
+function parsePullList(raw) {
+  const s = raw.slice(raw.indexOf("{"));
+  // 1. Clean parse
+  try { return JSON.parse(s.slice(0, s.lastIndexOf("}") + 1)); } catch { /* try salvage */ }
+  // 2. Truncated mid-items: cut back to the last complete item and close the structure
+  let cut = s.lastIndexOf("},");
+  while (cut > -1) {
+    try {
+      const fixed = JSON.parse(s.slice(0, cut + 1) + "]}]}");
+      fixed._salvaged = true;
+      return fixed;
+    } catch { cut = s.lastIndexOf("},", cut - 1); }
+  }
+  return null;
+}
+
 const hdLink = (q) => `https://www.homedepot.com/s/${encodeURIComponent(q)}`;
 const lwLink = (q) => `https://www.lowes.com/search?searchTerm=${encodeURIComponent(q)}`;
 
@@ -30,7 +47,7 @@ export default function MaterialsListView({ activeItems, totMat, jobName, onClos
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
         body: JSON.stringify({
-          max_tokens: 2500,
+          max_tokens: 4000,
           system: `You are a master electrician with 30 years of residential experience writing a material pull list for a supply run. You know exactly what each job needs, including the consumables everyone forgets (staples, wire nuts, connectors, straps, tape).
 
 RULES:
@@ -49,8 +66,12 @@ Respond ONLY with JSON, no markdown fences:
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error || "AI request failed");
       const raw = (data.content?.[0]?.text || "").replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
-      if (!parsed.sections) throw new Error("Unexpected response shape");
+      const wasCut = data.stop_reason === "max_tokens";
+      const parsed = parsePullList(raw);
+      if (!parsed || !parsed.sections) throw new Error("Couldn't read the AI's list — tap Try Again");
+      if (wasCut && parsed._salvaged) {
+        parsed.notes = (parsed.notes ? parsed.notes + " " : "") + "⚠ Very large job — the list was trimmed for length. Tap Try Again if anything looks missing.";
+      }
       setList(parsed);
     } catch (err) {
       setError(err.message || "Couldn't build the list — try again");
