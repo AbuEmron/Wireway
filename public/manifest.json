@@ -1,13 +1,8 @@
 {
   "short_name": "Wireway",
-  "name": "Wireway — NEC 2023 Electrical Estimating",
-  "description": "Professional electrical estimating for residential work. NEC 2023 compliant, material vs labor split, client quotes and signatures.",
+  "name": "Wireway — Electrical Estimating",
+  "description": "Describe the job in plain English. Get an NEC-coded estimate, send a proposal, get paid by text.",
   "icons": [
-    {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
     {
       "src": "logo192.png",
       "type": "image/png",
@@ -22,8 +17,6 @@
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#0a0a0c",
-  "background_color": "#0a0a0c",
-  "orientation": "portrait-primary",
-  "categories": ["business", "productivity", "utilities"],
-  "screenshots": []
+  "background_color": "#080b10",
+  "orientation": "portrait"
 }
