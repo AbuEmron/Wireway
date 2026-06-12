@@ -5,6 +5,7 @@
 //   STRIPE_SECRET_KEY           — Wireway's Stripe secret key
 //   STRIPE_PRO_PRICE_ID         — Price ID for Wireway Pro ($12/mo) from Stripe dashboard
 //   STRIPE_TEAMS_PRICE_ID       — Price ID for Wireway Teams ($29/mo)
+//   STRIPE_ELITE_PRICE_ID       — Price ID for Wireway Elite ($99/mo industrial)
 //   SUPABASE_URL                — your Supabase project URL
 //   SUPABASE_SERVICE_ROLE_KEY   — service role key (bypasses RLS for server-side updates)
 
@@ -48,9 +49,12 @@ module.exports = async function handler(req, res) {
       await supabase.from("profiles").update({ stripe_customer_id: customerId }).eq("id", userId);
     }
 
-    const priceId = plan === "teams"
+    const priceId = plan === "elite"
+      ? process.env.STRIPE_ELITE_PRICE_ID
+      : plan === "teams"
       ? process.env.STRIPE_TEAMS_PRICE_ID
       : process.env.STRIPE_PRO_PRICE_ID;
+    if (!priceId) return res.status(400).json({ error: "Price not configured for plan: " + plan });
 
     // Create Stripe Billing checkout session
     const session = await stripe.checkout.sessions.create({
@@ -59,7 +63,7 @@ module.exports = async function handler(req, res) {
       line_items: [{ price: priceId, quantity: 1 }],
       allow_promotion_codes: true,
       subscription_data: {
-        trial_period_days: 30,
+        trial_period_days: plan === "elite" ? 14 : 30,
         metadata: { supabase_user_id: userId, plan },
       },
       success_url: `${origin}/?subscription=success&plan=${plan}`,

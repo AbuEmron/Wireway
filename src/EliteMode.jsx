@@ -6,8 +6,8 @@
 // change-order mode, confidence scoring, and a value-engineering copilot.
 // Renders ONLY behind the Elite tier gate — invisible to everyone else.
 
-import { useState, useMemo } from "react";
-import { supabase } from "./lib/supabase";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { supabase, getEliteEstimates, getEliteEstimate, upsertEliteEstimate, deleteEliteEstimate } from "./lib/supabase";
 import { INDUSTRIAL_ITEMS, CONDITIONS, computeIndustrialLine, findIndustrialItem } from "./data/industrial-catalog";
 import { ASSEMBLIES, CREWS, crewRate, expandAssembly } from "./data/industrial-assemblies";
 import INDUSTRIAL_NEC from "./data/industrial-nec";
@@ -45,6 +45,58 @@ export default function EliteMode({ profile, onClose }) {
 
   // Recap knobs
   const [recapIn, setRecapIn] = useState({ burdenPct: 28, matTaxPct: 8, contingencyPct: 3, overheadPct: 10, profitPct: 12, bondPct: 0, mobilization: 0 });
+
+  // Persistence
+  const [estId, setEstId]           = useState(null);
+  const [jobs, setJobs]             = useState([]);
+  const [saveBusy, setSaveBusy]     = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [panelBusy, setPanelBusy]   = useState(false);
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    if (profile?.id) getEliteEstimates(profile.id).then(({ data }) => setJobs(data || []));
+  }, []);
+
+  const saveEstimate = async () => {
+    if (!profile?.id || saveBusy || !specs.length) return;
+    setSaveBusy(true);
+    const row = {
+      ...(estId ? { id: estId } : {}),
+      user_id: profile.id,
+      job_name: jobName || (coMode ? "Untitled change order" : "Untitled estimate"),
+      co_mode: coMode,
+      parent_ref: parentRef || null,
+      payload: { specs, conditions, crewId, rate, recapIn },
+      totals: { mat: totals.mat, hrs: totals.hrs, bid: recap.bidTotal },
+    };
+    const { data } = await upsertEliteEstimate(row);
+    if (data?.id) {
+      setEstId(data.id);
+      setSavedFlash(true); setTimeout(() => setSavedFlash(false), 1800);
+      getEliteEstimates(profile.id).then(({ data: d }) => setJobs(d || []));
+    }
+    setSaveBusy(false);
+  };
+
+  const loadJob = async (id) => {
+    const { data } = await getEliteEstimate(id);
+    if (!data) return;
+    const p = data.payload || {};
+    setSpecs((p.specs || []).map(s => ({ ...s, key: Date.now() + Math.random() })));
+    setConditions(p.conditions || []);
+    setCrewId(p.crewId || "jw");
+    setRate(p.rate || 95);
+    setRecapIn(p.recapIn || { burdenPct: 28, matTaxPct: 8, contingencyPct: 3, overheadPct: 10, profitPct: 12, bondPct: 0, mobilization: 0 });
+    setJobName(data.job_name || ""); setCoMode(!!data.co_mode); setParentRef(data.parent_ref || "");
+    setEstId(data.id); setView("build");
+  };
+
+  const removeJob = async (id) => {
+    await deleteEliteEstimate(id);
+    if (id === estId) setEstId(null);
+    setJobs(j => j.filter(x => x.id !== id));
+  };
 
   // Manual add pickers
   const [pickAsm, setPickAsm]       = useState(ASSEMBLIES[0].id);
@@ -84,6 +136,24 @@ export default function EliteMode({ profile, onClose }) {
     return { asms, items };
   };
 
+  const applyParsed = (parsed) => {
+    const next = [];
+    for (const l of parsed.lines || []) {
+      const qty = Number(l.qty) || 0;
+      if (qty <= 0) continue;
+      if (l.type === "asm" && ASSEMBLIES.find(a => a.id === l.id)) next.push({ type: "asm", id: l.id, qty });
+      else if (l.type === "item") {
+        const item = findIndustrialItem(l.id);
+        if (item && item.variants.find(v => v.label === l.variant)) next.push({ type: "item", id: l.id, variant: l.variant, qty });
+      }
+    }
+    if (!next.length) throw new Error("Couldn't map that scope — try adding sizes and footages");
+    next.forEach(addSpec);
+    if (Array.isArray(parsed.conditions)) setConditions(prev => [...new Set([...prev, ...parsed.conditions.filter(c => CONDITIONS.find(x => x.id === c))])]);
+    if (typeof parsed.confidence === "number") setConfidence(Math.max(0, Math.min(100, parsed.confidence)));
+    setAssumptions([...(parsed.assumptions || []), ...(parsed.exclusions || []).map(e => "Excluded: " + e)]);
+  };
+
   const runTakeoff = async () => {
     if (!aiText.trim() || aiBusy) return;
     setAiBusy(true); setAiError(""); setConfidence(null); setAssumptions([]);
@@ -119,26 +189,62 @@ Respond ONLY with JSON, no markdown fences:
       const raw = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(raw);
 
-      const next = [];
-      for (const l of parsed.lines || []) {
-        const qty = Number(l.qty) || 0;
-        if (qty <= 0) continue;
-        if (l.type === "asm" && ASSEMBLIES.find(a => a.id === l.id)) next.push({ type: "asm", id: l.id, qty });
-        else if (l.type === "item") {
-          const item = findIndustrialItem(l.id);
-          if (item && item.variants.find(v => v.label === l.variant)) next.push({ type: "item", id: l.id, variant: l.variant, qty });
-        }
-      }
-      if (!next.length) throw new Error("Couldn't map that scope — try adding sizes and footages");
-      next.forEach(addSpec);
-      if (Array.isArray(parsed.conditions)) setConditions(prev => [...new Set([...prev, ...parsed.conditions.filter(c => CONDITIONS.find(x => x.id === c))])]);
-      if (typeof parsed.confidence === "number") setConfidence(Math.max(0, Math.min(100, parsed.confidence)));
-      setAssumptions([...(parsed.assumptions || []), ...(parsed.exclusions || []).map(e => "Excluded: " + e)]);
+      applyParsed(parsed);
       setAiText("");
     } catch (e) {
       setAiError(e.message || "Takeoff failed — try again");
     }
     setAiBusy(false);
+  };
+
+  // ── PANEL SCHEDULE PHOTO READER ──
+  const readPanelPhoto = async (file) => {
+    if (!file || panelBusy) return;
+    setPanelBusy(true); setAiError(""); setConfidence(null); setAssumptions([]);
+    try {
+      // Downscale on-device so the upload stays small and fast
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const b64 = canvas.toDataURL("image/jpeg", 0.82).split(",")[1];
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const { asms, items } = buildIndex();
+      const sys = `You are a chief industrial electrical estimator reading a PANEL SCHEDULE photo. Extract the circuits, then propose a takeoff for wiring those circuits using ONLY these libraries.
+
+ASSEMBLIES:\n${asms}\n\nCATALOG ITEMS:\n${items}
+
+RULES:
+1. Count branch circuits by breaker size/poles from the schedule.
+2. Assume 40 ft average run per branch circuit unless the photo indicates otherwise — state this in assumptions.
+3. Use asm_branch_emt for 20A 1-pole circuits (qty = circuits × 40 ft); larger circuits use catalog items.
+4. Skip spares and spaces. confidence: honest 0-100 (photo quality matters). List assumptions and exclusions.
+Respond ONLY with JSON, no markdown fences:
+{"lines":[...same schema...],"conditions":[],"confidence":0,"assumptions":["..."],"exclusions":["..."]}`;
+
+      const res = await fetch("/api/claude", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+        body: JSON.stringify({
+          max_tokens: 3000, system: sys,
+          messages: [{ role: "user", content: [
+            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
+            { type: "text", text: "Read this panel schedule and produce the takeoff JSON." },
+          ]}],
+        }),
+      });
+      if (!res.ok) throw new Error("Photo read failed — check connection");
+      const data = await res.json();
+      const raw = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").replace(/```json|```/g, "").trim();
+      applyParsed(JSON.parse(raw));
+    } catch (e) {
+      setAiError(e.message || "Couldn't read that photo — try a closer, straight-on shot");
+    }
+    setPanelBusy(false);
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   // ── VALUE ENGINEERING COPILOT ──
@@ -191,7 +297,11 @@ Respond ONLY with JSON, no markdown fences:
             <button style={tabS(view === "build")} onClick={() => setView("build")}>Build</button>
             <button style={tabS(view === "recap")} onClick={() => setView("recap")}>Recap</button>
             <button style={tabS(view === "nec")} onClick={() => setView("nec")}>NEC</button>
+            <button style={tabS(view === "jobs")} onClick={() => setView("jobs")}>Jobs</button>
           </div>
+          <button onClick={saveEstimate} disabled={saveBusy || !specs.length} aria-label="Save estimate" style={{ ...btn(false), padding: "9px 12px", color: savedFlash ? E.green : E.steel, borderColor: savedFlash ? E.green : E.lineStrong }}>
+            {savedFlash ? "✓" : saveBusy ? "…" : "💾"}
+          </button>
           <button onClick={onClose} aria-label="Exit Elite" style={{ ...btn(false), padding: "9px 12px" }}>✕</button>
         </div>
       </div>
@@ -218,9 +328,15 @@ Respond ONLY with JSON, no markdown fences:
                   : 'Describe the scope... e.g. "Pull 200ft of 400A feeder from the switchgear to MCC-2 at 25ft, terminate both ends, hook up a 30HP motor, occupied plant"'}
                 value={aiText} onChange={e => setAiText(e.target.value)}
               />
-              <button style={{ ...btn(true), width: "100%", marginTop: 10, opacity: aiBusy ? 0.6 : 1 }} onClick={runTakeoff} disabled={aiBusy}>
-                {aiBusy ? "Running takeoff..." : "Run AI Takeoff"}
-              </button>
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <button style={{ ...btn(true), flex: 2, opacity: aiBusy ? 0.6 : 1 }} onClick={runTakeoff} disabled={aiBusy || panelBusy}>
+                  {aiBusy ? "Running takeoff..." : "Run AI Takeoff"}
+                </button>
+                <button style={{ ...btn(false), flex: 1, opacity: panelBusy ? 0.6 : 1 }} onClick={() => fileRef.current?.click()} disabled={aiBusy || panelBusy}>
+                  {panelBusy ? "Reading..." : "📷 Panel"}
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => readPanelPhoto(e.target.files?.[0])} />
+              </div>
               {aiError && <div style={{ color: E.red, fontSize: 11.5, marginTop: 8 }}>{aiError}</div>}
               {confidence !== null && (
                 <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
@@ -360,6 +476,32 @@ Respond ONLY with JSON, no markdown fences:
             </div>
             <button style={{ ...btn(true), width: "100%" }} onClick={doExport} disabled={!priced.length}>⬇ Export Bid CSV (Excel)</button>
             <button style={{ ...btn(false), width: "100%", marginTop: 9 }} onClick={() => setView("build")}>← Back to takeoff</button>
+          </>
+        )}
+
+        {/* ── SAVED JOBS ── */}
+        {view === "jobs" && (
+          <>
+            {jobs.length === 0 && (
+              <div style={{ textAlign: "center", padding: "50px 20px", color: E.dim, fontSize: 13 }}>
+                No saved Elite estimates yet — build a takeoff and tap 💾
+              </div>
+            )}
+            {jobs.map(j => (
+              <div key={j.id} style={{ background: E.panel, border: `1px solid ${j.id === estId ? E.amber : E.line}`, borderRadius: 12, padding: "13px 14px", marginBottom: 9, display: "flex", alignItems: "center", gap: 11 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>
+                    {j.co_mode && <span style={{ color: E.amber, fontSize: 10, fontWeight: 800, marginRight: 6 }}>CO</span>}
+                    {j.job_name}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: E.dim, fontFamily: mono }}>
+                    {j.totals?.bid ? "$" + Math.round(j.totals.bid).toLocaleString() : "—"} · {new Date(j.updated_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <button style={btn(false)} onClick={() => loadJob(j.id)}>Open</button>
+                <button onClick={() => removeJob(j.id)} aria-label="Delete estimate" style={{ background: "transparent", border: "none", color: E.faint, cursor: "pointer", fontSize: 13, padding: 4, fontFamily: "inherit" }}>🗑</button>
+              </div>
+            ))}
           </>
         )}
 

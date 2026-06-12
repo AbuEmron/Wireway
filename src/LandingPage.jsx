@@ -1,4 +1,5 @@
 import { WirewayMark, WirewayLogo } from "./Logo";
+import { isElite } from "./lib/supabase";
 import DemoReel from "./DemoReel";
 // src/LandingPage.jsx
 // Public landing page shown at wirewaypro.com before the user signs in
@@ -178,6 +179,18 @@ export default function LandingPage({ onSignIn, onSignUp }) {
             <div style={{ fontSize:12, color:"rgba(255,255,255,0.2)", marginTop:12 }}>Then $12/mo · Cancel anytime</div>
           </div>
         </section>
+
+        {isElite(null) && (
+          <div style={{ maxWidth:960, margin:"0 auto", padding:"0 20px 70px" }}>
+            <div style={{ background:"linear-gradient(135deg, rgba(240,168,24,0.10), rgba(240,168,24,0.02))", border:"1px solid rgba(240,168,24,0.4)", borderRadius:18, padding:"30px 26px", textAlign:"center" }}>
+              <div style={{ fontSize:10, letterSpacing:"0.28em", color:"#f0a818", fontWeight:800, marginBottom:10 }}>COMING SOON</div>
+              <div style={{ fontFamily:"'Syne',sans-serif", fontSize:24, fontWeight:800, marginBottom:10 }}>WIREWAY <span style={{ color:"#f0a818" }}>ELITE</span></div>
+              <div style={{ fontSize:13.5, color:"rgba(255,255,255,0.6)", lineHeight:1.7, maxWidth:560, margin:"0 auto" }}>
+                Industrial estimating with AI takeoff — feeders, gear, motor circuits, and panel schedules priced from plain English. Bid recaps, change orders included, Excel export. $99/mo.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── FOOTER ── */}
         <footer style={{ borderTop:"1px solid rgba(255,255,255,0.05)", padding:"24px", textAlign:"center" }}>

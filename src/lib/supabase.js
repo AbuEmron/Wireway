@@ -292,6 +292,24 @@ export const deleteClient = async (userId, clientId) => {
 };
 
 // ── WIREWAY ELITE (industrial tier) ──────
+export const getEliteEstimates = async (userId) =>
+  supabase.from("elite_estimates")
+    .select("id, job_name, co_mode, parent_ref, totals, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+
+export const getEliteEstimate = async (id) =>
+  supabase.from("elite_estimates").select("*").eq("id", id).single();
+
+export const upsertEliteEstimate = async (row) =>
+  supabase.from("elite_estimates")
+    .upsert({ ...row, updated_at: new Date().toISOString() })
+    .select("id")
+    .single();
+
+export const deleteEliteEstimate = async (id) =>
+  supabase.from("elite_estimates").delete().eq("id", id);
+
 // Dark until launch: unlocks for plan="elite" profiles, or on this device
 // via localStorage "wireway_elite_preview" = "1" for pre-launch testing.
 export const isElite = (profile) => {

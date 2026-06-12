@@ -3,6 +3,7 @@
 // Matches Wireway's dark gold UI exactly
 
 import { useState } from "react";
+import { isElite } from "./lib/supabase";
 
 const PLANS = [
   {
@@ -85,6 +86,28 @@ const PLANS = [
     ctaDisabled: false,
   },
 ];
+
+const ELITE_PLAN = {
+  id: "elite",
+  name: "Elite",
+  price: 99,
+  period: "/mo",
+  description: "Industrial estimating — the whole bid desk",
+  color: "#f0a818",
+  features: [
+    { text: "Everything in Pro",                       included: true },
+    { text: "AI industrial takeoff (plain English)",   included: true },
+    { text: "Panel schedule photo reading",            included: true },
+    { text: "56-item industrial catalog + assemblies", included: true },
+    { text: "11 job-condition labor multipliers",      included: true },
+    { text: "Composite crew rates",                    included: true },
+    { text: "Bid recap: burden, OH&P, bond",           included: true },
+    { text: "Change orders — included, no upsell",     included: true },
+    { text: "Excel/CSV bid export",                    included: true },
+    { text: "Industrial NEC 2023 reference",           included: true },
+  ],
+  cta: "Upgrade to Elite",
+};
 
 const FAQS = [
   {
@@ -228,7 +251,7 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
 
           {/* Pricing cards */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))", gap:16, marginBottom:60, animation:"fadeUp 0.4s ease 0.05s both" }}>
-            {PLANS.map(plan => {
+            {[...PLANS, ...(isElite(profile) ? [ELITE_PLAN] : [])].map(plan => {
               const isCurrent  = currentPlan === plan.id;
               const isPopular  = plan.badge;
               const price      = annual && plan.annualPrice
