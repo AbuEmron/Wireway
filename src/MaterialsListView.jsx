@@ -88,14 +88,15 @@ export default function MaterialsListView({ activeItems, totMat, jobName, onClos
 RULES:
 1. Group materials BY SERVICE — one section per service line given.
 2. For each material: name (short, searchable — what you'd type into Home Depot's search), spec (gauge/amperage/size detail), qty (number), unit (ea, ft, box, roll), price (US big-box unit price in dollars, number only).
-2b. MANDATORY LIVE PRICING — your memorized prices for copper wire and cable are YEARS out of date and 40-60% TOO LOW. NEVER price wire or cable from memory. Before writing your answer you MUST run web searches for current Home Depot prices on: (a) EVERY wire/cable coil or spool — NM-B/Romex, THHN, MC, UF (search like: "Home Depot 250 ft 12/2 NM-B price"); (b) every panel/load center; (c) every breaker, especially AFCI/GFCI/dual-function; (d) EV chargers, disconnects, and any fixture/equipment over ~$50. Use the searched price EXACTLY and set "live": true on that item. Only commodity smalls (wire nuts, staples, straps, plates, boxes under ~$20) may use typical current prices — bias those slightly HIGH, never low.
+2b. MANDATORY LIVE PRICING AT BOTH STORES — your memorized prices for copper wire and cable are YEARS out of date and 40-60% TOO LOW. NEVER price wire, cable, panels, or breakers from memory. Before writing your answer you MUST web-search CURRENT prices at BOTH Home Depot AND Lowe's for: (a) EVERY wire/cable coil or spool — NM-B/Romex, THHN, MC, UF (search like "Home Depot 250 ft 12/2 NM-B price" AND "Lowe's 250 ft 12/2 NM-B price"); (b) every panel/load center; (c) every breaker, especially AFCI/GFCI/dual-function; (d) EV chargers, disconnects, and any item worth roughly $25 or more. Prioritize the most expensive items first if the list is very long. For each searched item set "hd" (Home Depot price) and "lw" (Lowe's price) when found, set "price" to the LOWEST live price you found, and set "live": true. Only commodity smalls (wire nuts, staples, straps, plates, boxes under ~$20) may use typical current prices — bias those slightly HIGH, never low, and leave hd/lw off.
 3. Wire quantities in feet with sensible slack (10-15% extra). Round to purchasable amounts (wire sold in 25/50/100/250ft).
 4. Skip materials for services marked [client supplies materials] but note them in "notes".
 5. Consolidate shared consumables (wire nuts, staples, tape) into a final section called "Consumables & Rough-In".
 6. In "notes": 1-3 sentences — anything client-supplied, items better bought at an electrical supply house than big-box, and any bulk-buy savings.
 
 Respond ONLY with JSON, no markdown fences:
-{"sections":[{"service":"...","items":[{"name":"...","spec":"...","qty":1,"unit":"ea","price":0.00,"live":true}]}],"notes":"..."}
+{"sections":[{"service":"...","items":[{"name":"...","spec":"...","qty":1,"unit":"ea","price":0.00,"hd":0.00,"lw":0.00,"live":true}]}],"notes":"..."}
+("hd"/"lw" = current Home Depot / Lowe's unit prices from your searches; "price" = the lower of the two; "live": true ONLY for searched prices.)
 ("live": true ONLY when that price came from a web search you ran; omit or false otherwise.)`,
           messages: [{ role: "user", content: `Job: ${jobName || "Residential electrical"}\nServices:\n${jobLines}` }],
         }),
@@ -153,7 +154,7 @@ Respond ONLY with JSON, no markdown fences:
           <div style={{ textAlign:"center", padding:"70px 20px" }}>
             <div style={{ display:"inline-block", width:22, height:22, border:"2px solid rgba(var(--accent-rgb),0.2)", borderTopColor:"var(--accent)", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-            <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)", marginTop:14 }}>Building your pull list and checking current store prices for {activeItems.length} service{activeItems.length !== 1 ? "s" : ""}... (~30s)</div>
+            <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)", marginTop:14 }}>Building your pull list and checking live prices at Home Depot & Lowe's for {activeItems.length} service{activeItems.length !== 1 ? "s" : ""}... (~45-60s)</div>
           </div>
         )}
 
@@ -218,9 +219,22 @@ Respond ONLY with JSON, no markdown fences:
                         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:600, color:"var(--accent)" }}>
                           ${((item.price || 0) * (item.qty || 1)).toFixed(2)}
                         </div>
-                        {item.live && (
+                        {(item.hd || item.lw) ? (
+                          <div style={{ fontSize:8.5, fontFamily:"'DM Mono',monospace", marginTop:3, lineHeight:1.5 }}>
+                            {item.hd ? (
+                              <div style={{ color: (!item.lw || item.hd <= item.lw) ? "#e8946a" : "rgba(232,148,106,0.45)", fontWeight: (!item.lw || item.hd <= item.lw) ? 800 : 500 }}>
+                                HD ${item.hd.toFixed(2)}{(!item.lw || item.hd <= item.lw) ? " ✓" : ""}
+                              </div>
+                            ) : null}
+                            {item.lw ? (
+                              <div style={{ color: (!item.hd || item.lw < item.hd) ? "#7eb8e8" : "rgba(126,184,232,0.45)", fontWeight: (!item.hd || item.lw < item.hd) ? 800 : 500 }}>
+                                LW ${item.lw.toFixed(2)}{(!item.hd || item.lw < item.hd) ? " ✓" : ""}
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : item.live ? (
                           <div style={{ fontSize:8, fontWeight:800, letterSpacing:"0.08em", color:"#7dcea0", marginTop:2 }}>● LIVE</div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   );
@@ -234,6 +248,20 @@ Respond ONLY with JSON, no markdown fences:
               <span style={{ fontFamily:"'DM Mono',monospace", fontSize:18, fontWeight:700, color:"var(--accent)" }}>${estTotal.toFixed(2)}</span>
             </div>
 
+            {(() => {
+              const dual = allItems.filter(i => i.hd && i.lw);
+              if (!dual.length) return null;
+              const hdOnly  = dual.reduce((a, i) => a + i.hd * (i.qty || 1), 0);
+              const lwOnly  = dual.reduce((a, i) => a + i.lw * (i.qty || 1), 0);
+              const best    = dual.reduce((a, i) => a + Math.min(i.hd, i.lw) * (i.qty || 1), 0);
+              const savings = Math.min(hdOnly, lwOnly) - best;
+              return savings >= 5 ? (
+                <div style={{ fontSize:11, color:"#7dcea0", background:"rgba(100,220,130,0.06)", border:"1px solid rgba(100,220,130,0.2)", borderRadius:9, padding:"9px 12px", marginTop:10, textAlign:"center" }}>
+                  💰 Shopping the ✓ best price per item saves ~${savings.toFixed(0)} vs one-store shopping
+                </div>
+              ) : null;
+            })()}
+
             {list.notes && (
               <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", lineHeight:1.7, marginTop:12, padding:"10px 13px", background:"rgba(var(--accent-rgb),0.04)", border:"1px solid rgba(var(--accent-rgb),0.12)", borderRadius:9 }}>
                 💡 {list.notes}
@@ -241,7 +269,7 @@ Respond ONLY with JSON, no markdown fences:
             )}
 
             <div style={{ fontSize:9, color:"rgba(255,255,255,0.2)", textAlign:"center", marginTop:14, lineHeight:1.6 }}>
-              Big-ticket prices checked against current store listings; small parts estimated — verify in cart before purchase.<br/>Supply houses (CED, City Electric, Graybar) often beat big-box on wire and breakers.
+              Wire, panels, breakers & big-ticket items priced live at Home Depot and Lowe's (✓ = cheaper store); small parts estimated — verify in cart.<br/>Supply houses (CED, City Electric, Graybar) often beat big-box on wire and breakers.
             </div>
           </>
         )}
