@@ -275,6 +275,21 @@ export const deletePhoto = async (id) => {
   return { error };
 };
 
+export const updateClient = async (userId, clientId, fields) => {
+  const { data, error } = await supabase
+    .from("clients")
+    .update({ name: fields.name, email: fields.email || null, phone: fields.phone || null })
+    .eq("id", clientId).eq("user_id", userId)
+    .select().single();
+  return { data, error };
+};
+
+export const deleteClient = async (userId, clientId) => {
+  const { error } = await supabase
+    .from("clients").delete().eq("id", clientId).eq("user_id", userId);
+  return { error };
+};
+
 // ── THEME ────────────────────────────────
 export const saveThemePref = async (userId, theme) => {
   try { await supabase.from("profiles").update({ theme }).eq("id", userId); } catch { /* non-critical */ }

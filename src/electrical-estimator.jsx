@@ -549,6 +549,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
         </div>
         {showCustomers && (
           <CustomersView
+            user={user} onClientsChange={setClients}
             clients={clients} savedQuotes={savedQuotes}
             onLoadQuote={(q) => { loadQuote(q); setShowCustomers(false); setShowDashboard(false); }}
             onNewEstimate={(cl) => { newQuote(true); setClientName(cl.name || ""); setClientEmail(cl.email || ""); setClientPhone(cl.phone || ""); setShowCustomers(false); setShowDashboard(false); setTab("services"); }}
@@ -1401,6 +1402,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
       {showCustomers && (
         <CustomersView
+          user={user} onClientsChange={setClients}
           clients={clients} savedQuotes={savedQuotes}
           onLoadQuote={(q) => { loadQuote(q); setShowCustomers(false); }}
           onNewEstimate={(cl) => { newQuote(true); setClientName(cl.name || ""); setClientEmail(cl.email || ""); setClientPhone(cl.phone || ""); setShowCustomers(false); setTab("services"); }}

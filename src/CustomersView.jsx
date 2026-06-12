@@ -3,15 +3,46 @@
 // revenue stats, and one-tap new estimate with their info pre-filled.
 
 import { useState, useMemo } from "react";
+import { updateClient, deleteClient } from "./lib/supabase";
 
 const STATUS_LABEL = {
   draft:"Draft", sent:"Sent", accepted:"Accepted", deposit_paid:"Deposit Paid",
   paid:"Paid", invoiced:"Invoiced", completed:"Complete", cancelled:"Cancelled",
 };
 
-export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNewEstimate, onClose }) {
+export default function CustomersView({ user, clients, savedQuotes, onLoadQuote, onNewEstimate, onClientsChange, onClose }) {
   const [search,   setSearch]   = useState("");
   const [selected, setSelected] = useState(null); // client object
+  const [editing,  setEditing]  = useState(false);
+  const [draft,    setDraft]    = useState({ name:"", email:"", phone:"" });
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [busy,     setBusy]     = useState(false);
+
+  const startEdit = () => { setDraft({ name:selected.name||"", email:selected.email||"", phone:selected.phone||"" }); setEditing(true); };
+
+  const saveEdit = async () => {
+    if (!draft.name.trim()) return;
+    setBusy(true);
+    const { data, error } = await updateClient(user.id, selected.id, draft);
+    setBusy(false);
+    if (!error && data) {
+      const next = clients.map(cl => cl.id === selected.id ? { ...cl, ...data } : cl);
+      if (onClientsChange) onClientsChange(next);
+      setSelected(prev => ({ ...prev, ...data }));
+      setEditing(false);
+    }
+  };
+
+  const doDelete = async () => {
+    setBusy(true);
+    const { error } = await deleteClient(user.id, selected.id);
+    setBusy(false);
+    if (!error) {
+      if (onClientsChange) onClientsChange(clients.filter(cl => cl.id !== selected.id));
+      setConfirmDel(false);
+      setSelected(null);
+    }
+  };
 
   // Group quotes by client (match on name, fall back to email)
   const enriched = useMemo(() => {
@@ -49,7 +80,7 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
         <div style={{ maxWidth:680, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             {selected && (
-              <button onClick={() => setSelected(null)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.5)", fontSize:18, cursor:"pointer", padding:"0 4px" }}>←</button>
+              <button onClick={() => { setSelected(null); setEditing(false); setConfirmDel(false); }} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.5)", fontSize:18, cursor:"pointer", padding:"0 4px" }}>←</button>
             )}
             <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, letterSpacing:"-0.02em" }}>
               {selected ? selected.name : "Customers"}
@@ -80,7 +111,7 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
             )}
 
             {filtered.map(c => (
-              <div key={c.id} className="cust-row" onClick={() => setSelected(c)}
+              <div key={c.id} className="cust-row" onClick={() => { setSelected(c); setEditing(false); setConfirmDel(false); }}
                 style={{ ...card, display:"flex", alignItems:"center", gap:12, padding:"13px 15px", marginBottom:7, cursor:"pointer", transition:"background 0.15s" }}>
                 <div style={{ width:38, height:38, borderRadius:10, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:800, color:"var(--accent)", flexShrink:0 }}>
                   {(c.name || "?").charAt(0).toUpperCase()}
@@ -107,18 +138,67 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
           <div style={{ animation:"fadeUp 0.3s ease both" }}>
             {/* Contact card */}
             <div style={{ ...card, padding:"16px 18px", marginBottom:12 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                <div>
-                  <div style={{ fontSize:17, fontWeight:800, fontFamily:"'Syne',sans-serif", marginBottom:5 }}>{selected.name}</div>
-                  <div style={{ fontSize:12, color:"rgba(255,255,255,0.45)", lineHeight:1.8 }}>
-                    {selected.phone && <div>📞 <a href={`tel:${selected.phone}`} style={{ color:"#7eb8e8", textDecoration:"none" }}>{selected.phone}</a></div>}
-                    {selected.email && <div>✉️ <a href={`mailto:${selected.email}`} style={{ color:"#7eb8e8", textDecoration:"none" }}>{selected.email}</a></div>}
+              {!editing ? (
+                <>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ fontSize:17, fontWeight:800, fontFamily:"'Syne',sans-serif", marginBottom:5 }}>{selected.name}</div>
+                      <div style={{ fontSize:12, color:"rgba(255,255,255,0.45)", lineHeight:1.8 }}>
+                        {selected.phone && <div>📞 <a href={`tel:${selected.phone}`} style={{ color:"#7eb8e8", textDecoration:"none" }}>{selected.phone}</a></div>}
+                        {selected.email && <div>✉️ <a href={`mailto:${selected.email}`} style={{ color:"#7eb8e8", textDecoration:"none" }}>{selected.email}</a></div>}
+                      </div>
+                    </div>
+                    <button onClick={() => onNewEstimate(selected)} style={{ padding:"9px 16px", borderRadius:9, background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.07))", border:"1px solid rgba(var(--accent-rgb),0.4)", color:"var(--accent)", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap", flexShrink:0 }}>
+                      + New Estimate
+                    </button>
                   </div>
-                </div>
-                <button onClick={() => onNewEstimate(selected)} style={{ padding:"9px 16px", borderRadius:9, background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.07))", border:"1px solid rgba(var(--accent-rgb),0.4)", color:"var(--accent)", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
-                  + New Estimate
-                </button>
-              </div>
+                  <div style={{ display:"flex", gap:6, marginTop:14, paddingTop:12, borderTop:"1px solid var(--line)" }}>
+                    <button onClick={startEdit} style={{ flex:1, padding:"8px", borderRadius:8, background:"var(--card)", border:"1px solid var(--line-strong)", color:"rgba(255,255,255,0.6)", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                      ✏️ Edit Info
+                    </button>
+                    {!confirmDel ? (
+                      <button onClick={() => setConfirmDel(true)} style={{ flex:1, padding:"8px", borderRadius:8, background:"rgba(232,126,126,0.05)", border:"1px solid rgba(232,126,126,0.2)", color:"#e87e7e", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                        🗑 Delete
+                      </button>
+                    ) : (
+                      <button onClick={doDelete} disabled={busy} style={{ flex:1.4, padding:"8px", borderRadius:8, background:"rgba(232,126,126,0.15)", border:"1px solid rgba(232,126,126,0.45)", color:"#e87e7e", fontSize:11.5, fontWeight:800, cursor:"pointer", fontFamily:"inherit" }}>
+                        {busy ? "Deleting..." : "Tap again to confirm delete"}
+                      </button>
+                    )}
+                    {confirmDel && (
+                      <button onClick={() => setConfirmDel(false)} style={{ padding:"8px 12px", borderRadius:8, background:"transparent", border:"1px solid var(--line)", color:"rgba(255,255,255,0.4)", fontSize:11.5, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                  {confirmDel && (
+                    <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:8, lineHeight:1.6 }}>
+                      Removes the customer card only — their saved quotes stay in your quote history.
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Edit Customer</div>
+                  {[
+                    { key:"name",  label:"Name",  type:"text" },
+                    { key:"phone", label:"Phone", type:"tel" },
+                    { key:"email", label:"Email", type:"email" },
+                  ].map(f => (
+                    <input key={f.key} type={f.type} placeholder={f.label} value={draft[f.key]}
+                      onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))}
+                      style={{ width:"100%", padding:"11px 13px", marginBottom:8, background:"var(--card)", border:"1px solid var(--line-strong)", borderRadius:9, color:"#fff", fontSize:13.5, fontFamily:"inherit", outline:"none", boxSizing:"border-box" }} />
+                  ))}
+                  <div style={{ display:"flex", gap:6, marginTop:4 }}>
+                    <button onClick={saveEdit} disabled={busy || !draft.name.trim()} style={{ flex:1, padding:"10px", borderRadius:9, background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.22),rgba(var(--accent-rgb),0.08))", border:"1px solid rgba(var(--accent-rgb),0.45)", color:"var(--accent)", fontSize:12, fontWeight:800, cursor:"pointer", fontFamily:"inherit", opacity: !draft.name.trim() ? 0.5 : 1 }}>
+                      {busy ? "Saving..." : "Save Changes"}
+                    </button>
+                    <button onClick={() => setEditing(false)} style={{ padding:"10px 16px", borderRadius:9, background:"transparent", border:"1px solid var(--line)", color:"rgba(255,255,255,0.4)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Stats */}
