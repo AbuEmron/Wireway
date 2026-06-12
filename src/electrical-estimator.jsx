@@ -93,14 +93,14 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showCalendar,   setShowCalendar]   = useState(false);
   const [showAIBuilder,  setShowAIBuilder]  = useState(false);
   const [showProposal,   setShowProposal]   = useState(false);
-  const [showPullList,   setShowPullList]   = useState(false);
+  const [showPullList,   setShowPullList]   = useState(SAVED ? !!SAVED.showPullList : false);
   const [showCustomers,  setShowCustomers]  = useState(false);
   const [showDashboard,  setShowDashboard]  = useState(SAVED ? !!SAVED.showDashboard : true);
   const [theme,          setTheme]          = useState(() => profile?.theme || getSavedTheme());
   useEffect(() => { applyTheme(theme); }, [theme]);
   useEffect(() => {
-    saveSession({ uid: user?.id, showDashboard, tab, entries, customItems, clientName, clientEmail, clientPhone, jobName, notes, quoteNumber, quoteId, depositOnly, depositPercent });
-  }, [showDashboard, tab, entries, customItems, clientName, clientEmail, clientPhone, jobName, notes, quoteNumber, quoteId, depositOnly, depositPercent]);
+    saveSession({ uid: user?.id, showDashboard, tab, entries, customItems, clientName, clientEmail, clientPhone, jobName, notes, quoteNumber, quoteId, depositOnly, depositPercent, showPullList });
+  }, [showDashboard, tab, entries, customItems, clientName, clientEmail, clientPhone, jobName, notes, quoteNumber, quoteId, depositOnly, depositPercent, showPullList]);
   const [proGateMsg,     setProGateMsg]     = useState("");
 
   const wireResult = useMemo(() => {

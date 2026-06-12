@@ -7,6 +7,24 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 
+// Cache the generated list per quote so leaving the app (store links, tab switches)
+// never loses it — coming back restores the same list and your shopping checkmarks.
+const PULL_CACHE_KEY = "wireway_pulllist_v1";
+function quoteSig(activeItems) {
+  return JSON.stringify(activeItems.map(i => [i.id || i.label, i.qty, i.variantLabel, !!i.cBuys]));
+}
+function loadPullCache(sig) {
+  try {
+    const raw = window.localStorage.getItem(PULL_CACHE_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    return c && c.sig === sig ? c : null;
+  } catch { return null; }
+}
+function savePullCache(sig, list, checked) {
+  try { window.localStorage.setItem(PULL_CACHE_KEY, JSON.stringify({ sig, list, checked })); } catch { /* ignore */ }
+}
+
 // Parse the AI's JSON, recovering gracefully if the response was cut off mid-list.
 function parsePullList(raw) {
   const s = raw.slice(raw.indexOf("{"));
@@ -33,7 +51,23 @@ export default function MaterialsListView({ activeItems, totMat, jobName, onClos
   const [list,    setList]    = useState(null);   // { sections:[{service, items:[{name,spec,qty,unit,price}]}], notes }
   const [checked, setChecked] = useState({});
 
-  useEffect(() => { generate(); }, []);
+  const sig = quoteSig(activeItems);
+
+  useEffect(() => {
+    const cached = loadPullCache(sig);
+    if (cached) {
+      setList(cached.list);
+      setChecked(cached.checked || {});
+      setLoading(false);
+    } else {
+      generate();
+    }
+  }, []);
+
+  // Persist checkmarks as you shop
+  useEffect(() => {
+    if (list) savePullCache(sig, list, checked);
+  }, [list, checked]);
 
   const generate = async () => {
     setLoading(true); setError("");
@@ -48,11 +82,13 @@ export default function MaterialsListView({ activeItems, totMat, jobName, onClos
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
         body: JSON.stringify({
           max_tokens: 4000,
+          web_search: true,
           system: `You are a master electrician with 30 years of residential experience writing a material pull list for a supply run. You know exactly what each job needs, including the consumables everyone forgets (staples, wire nuts, connectors, straps, tape).
 
 RULES:
 1. Group materials BY SERVICE — one section per service line given.
-2. For each material: name (short, searchable — what you'd type into Home Depot's search), spec (gauge/amperage/size detail), qty (number), unit (ea, ft, box, roll), price (realistic mid-range US big-box unit price in dollars, number only).
+2. For each material: name (short, searchable — what you'd type into Home Depot's search), spec (gauge/amperage/size detail), qty (number), unit (ea, ft, box, roll), price (US big-box unit price in dollars, number only).
+2b. LIVE PRICES: use web search to check CURRENT Home Depot/Lowe's prices for the highest-cost items (panels, wire spools, breakers, EV chargers, fixtures over ~$50) — copper and equipment prices move constantly. Use searched prices when found; use your knowledge of typical shelf prices for commodity small parts. Never inflate.
 3. Wire quantities in feet with sensible slack (10-15% extra). Round to purchasable amounts (wire sold in 25/50/100/250ft).
 4. Skip materials for services marked [client supplies materials] but note them in "notes".
 5. Consolidate shared consumables (wire nuts, staples, tape) into a final section called "Consumables & Rough-In".
@@ -65,7 +101,7 @@ Respond ONLY with JSON, no markdown fences:
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error || "AI request failed");
-      const raw = (data.content?.[0]?.text || "").replace(/```json|```/g, "").trim();
+      const raw = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").replace(/```json|```/g, "").trim();
       const wasCut = data.stop_reason === "max_tokens";
       const parsed = parsePullList(raw);
       if (!parsed || !parsed.sections) throw new Error("Couldn't read the AI's list — tap Try Again");
@@ -116,14 +152,14 @@ Respond ONLY with JSON, no markdown fences:
           <div style={{ textAlign:"center", padding:"70px 20px" }}>
             <div style={{ display:"inline-block", width:22, height:22, border:"2px solid rgba(var(--accent-rgb),0.2)", borderTopColor:"var(--accent)", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-            <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)", marginTop:14 }}>Building your pull list from {activeItems.length} service{activeItems.length !== 1 ? "s" : ""}...</div>
+            <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)", marginTop:14 }}>Building your pull list and checking current store prices for {activeItems.length} service{activeItems.length !== 1 ? "s" : ""}... (~30s)</div>
           </div>
         )}
 
         {error && !loading && (
           <div style={{ ...card, padding:"20px", textAlign:"center" }}>
             <div style={{ fontSize:12, color:"#e87e7e", marginBottom:12 }}>⚠ {error}</div>
-            <button onClick={generate} style={{ padding:"9px 18px", borderRadius:8, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", color:"var(--accent)", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Try Again</button>
+            <button onClick={() => { try { window.localStorage.removeItem(PULL_CACHE_KEY); } catch { /* ignore */ } generate(); }} style={{ padding:"9px 18px", borderRadius:8, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", color:"var(--accent)", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Try Again</button>
           </div>
         )}
 
@@ -199,7 +235,7 @@ Respond ONLY with JSON, no markdown fences:
             )}
 
             <div style={{ fontSize:9, color:"rgba(255,255,255,0.2)", textAlign:"center", marginTop:14, lineHeight:1.6 }}>
-              Prices are AI estimates of typical big-box shelf pricing — verify before purchase.<br/>Supply houses (CED, City Electric, Graybar) often beat big-box on wire and breakers.
+              Big-ticket prices checked against current store listings; small parts estimated — verify in cart before purchase.<br/>Supply houses (CED, City Electric, Graybar) often beat big-box on wire and breakers.
             </div>
           </>
         )}

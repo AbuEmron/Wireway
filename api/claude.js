@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { system, messages, max_tokens } = req.body || {};
+    const { system, messages, max_tokens, web_search } = req.body || {};
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -42,6 +42,7 @@ export default async function handler(req, res) {
         max_tokens: Math.min(max_tokens || 1500, 4096),
         system: system || "",
         messages: messages || [],
+        ...(web_search ? { tools: [{ type: "web_search_20250305", name: "web_search" }] } : {}),
       }),
     });
 
