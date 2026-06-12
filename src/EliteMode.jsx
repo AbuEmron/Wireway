@@ -284,25 +284,26 @@ Respond ONLY with JSON, no markdown fences:
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9000, background: E.bg, color: E.text, overflowY: "auto", fontFamily: "'Outfit','Syne',sans-serif" }}>
-      {/* ── HEADER ── */}
+     {/* ── HEADER ── */}
       <div style={{ position: "sticky", top: 0, zIndex: 10, background: "rgba(11,14,19,0.92)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${E.line}` }}>
-        <div style={{ maxWidth: 760, margin: "0 auto", padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ maxWidth: 760, margin: "0 auto", padding: "10px 16px 0", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 16, letterSpacing: "0.02em" }}>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 16, letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
               WIREWAY <span style={{ color: E.amber }}>ELITE</span>
             </div>
-            <div style={{ fontSize: 9, letterSpacing: "0.22em", color: E.faint, fontWeight: 700 }}>INDUSTRIAL ESTIMATOR</div>
+            <div style={{ fontSize: 9, letterSpacing: "0.22em", color: E.faint, fontWeight: 700, whiteSpace: "nowrap" }}>INDUSTRIAL ESTIMATOR</div>
           </div>
-          <div style={{ display: "flex", gap: 2, background: E.panel, borderRadius: 10, padding: 3 }}>
-            <button style={tabS(view === "build")} onClick={() => setView("build")}>Build</button>
-            <button style={tabS(view === "recap")} onClick={() => setView("recap")}>Recap</button>
-            <button style={tabS(view === "nec")} onClick={() => setView("nec")}>NEC</button>
-            <button style={tabS(view === "jobs")} onClick={() => setView("jobs")}>Jobs</button>
-          </div>
-          <button onClick={saveEstimate} disabled={saveBusy || !specs.length} aria-label="Save estimate" style={{ ...btn(false), padding: "9px 12px", color: savedFlash ? E.green : E.steel, borderColor: savedFlash ? E.green : E.lineStrong }}>
-            {savedFlash ? "✓" : saveBusy ? "…" : "💾"}
+          <button onClick={saveEstimate} disabled={saveBusy || !specs.length} aria-label="Save estimate" style={{ ...btn(false), padding: "8px 12px", flexShrink: 0, color: savedFlash ? E.green : E.steel, borderColor: savedFlash ? E.green : E.lineStrong, opacity: (saveBusy || !specs.length) ? 0.45 : 1 }}>
+            {savedFlash ? "✓ Saved" : saveBusy ? "…" : "💾 Save"}
           </button>
-          <button onClick={onClose} aria-label="Exit Elite" style={{ ...btn(false), padding: "9px 12px" }}>✕</button>
+          <button onClick={onClose} aria-label="Exit Elite" style={{ ...btn(false), padding: "8px 12px", flexShrink: 0 }}>✕</button>
+        </div>
+        <div style={{ maxWidth: 760, margin: "0 auto", padding: "10px 16px 12px" }}>
+          <div style={{ display: "flex", gap: 4, background: E.panel, borderRadius: 11, padding: 4 }}>
+            {[["build", "⚡ Build"], ["recap", "Σ Recap"], ["nec", "§ NEC"], ["jobs", "▤ Jobs"]].map(([id, label]) => (
+              <button key={id} style={{ ...tabS(view === id), flex: 1, padding: "10px 4px", textAlign: "center" }} onClick={() => setView(id)}>{label}</button>
+            ))}
+          </div>
         </div>
       </div>
 
