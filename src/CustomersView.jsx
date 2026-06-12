@@ -37,15 +37,15 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
     (c.phone || "").includes(search)
   );
 
-  const card = { background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12 };
+  const card = { background:"var(--card)", border:"1px solid var(--line)", borderRadius:12 };
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:300, background:"radial-gradient(ellipse 80% 40% at 50% 0%,rgba(var(--accent-rgb),0.06) 0%,transparent 55%),var(--bg0)", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
+    <div style={{ position:"fixed", inset:0, zIndex:300, background:"var(--bg-scene)", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         .cust-row:hover{background:rgba(255,255,255,0.045)!important}`}</style>
 
       {/* Header */}
-      <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.92)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:10, padding:"0 20px" }}>
+      <div style={{ borderBottom:"1px solid var(--line)", background:"rgba(10,10,12,0.92)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:10, padding:"0 20px" }}>
         <div style={{ maxWidth:680, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             {selected && (
@@ -56,7 +56,7 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
             </span>
             {!selected && <span style={{ fontSize:11, color:"rgba(255,255,255,0.3)" }}>{enriched.length} total</span>}
           </div>
-          <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>✕ Close</button>
+          <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>✕ Close</button>
         </div>
       </div>
 
@@ -69,7 +69,7 @@ export default function CustomersView({ clients, savedQuotes, onLoadQuote, onNew
               placeholder="Search name, email, or phone..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ width:"100%", padding:"12px 14px", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, color:"#fff", fontSize:14, fontFamily:"inherit", outline:"none", marginBottom:14, boxSizing:"border-box" }}
+              style={{ width:"100%", padding:"12px 14px", background:"var(--card)", border:"1px solid var(--line-strong)", borderRadius:10, color:"#fff", fontSize:14, fontFamily:"inherit", outline:"none", marginBottom:14, boxSizing:"border-box" }}
             />
 
             {filtered.length === 0 && (

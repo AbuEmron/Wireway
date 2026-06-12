@@ -102,7 +102,7 @@ const STATUS_COLORS = {
 
 function MetricCard({ label, value, sub, color = "var(--accent)", icon }) {
   return (
-    <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:12, padding:"14px 16px" }}>
+    <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid var(--line)", borderRadius:12, padding:"14px 16px" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
         <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", textTransform:"uppercase", letterSpacing:"0.08em" }}>{label}</div>
         {icon && <span style={{ fontSize:16, opacity:0.6 }}>{icon}</span>}
@@ -217,7 +217,7 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))", gap:8 }}>
             {QUICK_JOBS.map(job => (
               <div key={job.id} className="qcard" onClick={() => onNewQuote(job)}
-                style={{ background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:12, padding:"14px 14px", cursor:"pointer", transition:"all 0.2s" }}>
+                style={{ background:"var(--card)", border:"1px solid var(--line)", borderRadius:12, padding:"14px 14px", cursor:"pointer", transition:"all 0.2s" }}>
                 <div style={{ fontSize:22, marginBottom:8 }}>{job.icon}</div>
                 <div style={{ fontSize:12, fontWeight:700, color:"#fff", marginBottom:3, lineHeight:1.3 }}>{job.label}</div>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", lineHeight:1.4 }}>{job.desc}</div>
@@ -234,7 +234,7 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
               <button onClick={onOpenCalendar} style={{ fontSize:11, color:"rgba(var(--accent-rgb),0.6)", background:"transparent", border:"none", cursor:"pointer", fontFamily:"inherit" }}>View calendar →</button>
             </div>
             {upcomingJobs.map(job => (
-              <div key={job.id} className="qrow" style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.055)", borderRadius:10, marginBottom:6, cursor:"default", transition:"background 0.15s" }}>
+              <div key={job.id} className="qrow" style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:"rgba(255,255,255,0.022)", border:"1px solid var(--line)", borderRadius:10, marginBottom:6, cursor:"default", transition:"background 0.15s" }}>
                 <div style={{ width:3, height:32, background:"#7eb8e8", borderRadius:2, flexShrink:0 }}/>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:13, fontWeight:600 }}>{job.title}</div>
@@ -256,7 +256,7 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
               const sc = STATUS_COLORS[q.status] || STATUS_COLORS.draft;
               return (
                 <div key={q.id} className="qrow" onClick={() => onLoadQuote(q)}
-                  style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.055)", borderRadius:10, marginBottom:6, cursor:"pointer", transition:"background 0.15s" }}>
+                  style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"rgba(255,255,255,0.022)", border:"1px solid var(--line)", borderRadius:10, marginBottom:6, cursor:"pointer", transition:"background 0.15s" }}>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:13, fontWeight:600, color:"#fff" }}>{q.client_name || "No client"}</div>
                     <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:"'DM Mono',monospace" }}>

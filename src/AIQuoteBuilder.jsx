@@ -8,7 +8,7 @@ import { ALL_SERVICES, CATEGORIES } from "./data/catalog";
 
 const IS = {
   background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid var(--line-strong)",
   borderRadius: 10,
   padding: "12px 14px",
   fontSize: 14,
@@ -204,16 +204,16 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
           </div>
 
           {/* Input area */}
-          <div style={{ background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"16px", marginBottom:12 }}>
+          <div style={{ background:"var(--card)", border:"1px solid var(--line)", borderRadius:14, padding:"16px", marginBottom:12 }}>
             <div style={{ display:"flex", gap:6, marginBottom:10 }}>
 
-              <button onClick={() => setMatSupplier("me")} style={{ flex:1, padding:"8px", borderRadius:7, border: matSupplier==="me" ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid rgba(255,255,255,0.08)", background: matSupplier==="me" ? "rgba(var(--accent-rgb),0.12)" : "rgba(255,255,255,0.03)", color: matSupplier==="me" ? "var(--accent)" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+              <button onClick={() => setMatSupplier("me")} style={{ flex:1, padding:"8px", borderRadius:7, border: matSupplier==="me" ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid var(--line-strong)", background: matSupplier==="me" ? "rgba(var(--accent-rgb),0.12)" : "rgba(255,255,255,0.03)", color: matSupplier==="me" ? "var(--accent)" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
 
                 ⚡ I supply materials
 
               </button>
 
-              <button onClick={() => setMatSupplier("client")} style={{ flex:1, padding:"8px", borderRadius:7, border: matSupplier==="client" ? "1px solid rgba(126,200,232,0.5)" : "1px solid rgba(255,255,255,0.08)", background: matSupplier==="client" ? "rgba(126,200,232,0.1)" : "rgba(255,255,255,0.03)", color: matSupplier==="client" ? "#7ec8e8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+              <button onClick={() => setMatSupplier("client")} style={{ flex:1, padding:"8px", borderRadius:7, border: matSupplier==="client" ? "1px solid rgba(126,200,232,0.5)" : "1px solid var(--line-strong)", background: matSupplier==="client" ? "rgba(126,200,232,0.1)" : "rgba(255,255,255,0.03)", color: matSupplier==="client" ? "#7ec8e8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
 
                 👤 Client supplies
 
@@ -237,7 +237,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:7 }}>Try these</div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
                   {EXAMPLE_PROMPTS.slice(0, 4).map((ex, i) => (
-                    <button key={i} onClick={() => setPrompt(ex)} style={{ padding:"4px 10px", borderRadius:6, border:"1px solid rgba(255,255,255,0.08)", background:"rgba(255,255,255,0.03)", color:"rgba(255,255,255,0.4)", fontSize:10, cursor:"pointer", fontFamily:"inherit", textAlign:"left", lineHeight:1.4, transition:"all 0.15s" }}
+                    <button key={i} onClick={() => setPrompt(ex)} style={{ padding:"4px 10px", borderRadius:6, border:"1px solid var(--line-strong)", background:"var(--card)", color:"rgba(255,255,255,0.4)", fontSize:10, cursor:"pointer", fontFamily:"inherit", textAlign:"left", lineHeight:1.4, transition:"all 0.15s" }}
                       onMouseEnter={e => { e.currentTarget.style.background="rgba(255,255,255,0.07)"; e.currentTarget.style.color="#fff"; }}
                       onMouseLeave={e => { e.currentTarget.style.background="rgba(255,255,255,0.03)"; e.currentTarget.style.color="rgba(255,255,255,0.4)"; }}>
                       {ex.length > 55 ? ex.slice(0, 55) + "..." : ex}
@@ -279,8 +279,8 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
               )}
 
               {/* Service list */}
-              <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:13, overflow:"hidden", marginBottom:12 }}>
-                <div style={{ padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.06)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid var(--line)", borderRadius:13, overflow:"hidden", marginBottom:12 }}>
+                <div style={{ padding:"12px 16px", borderBottom:"1px solid var(--line)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <div>
                     <span style={{ fontSize:13, fontWeight:700, color:"#fff" }}>{result.items.length} services identified</span>
                     <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginLeft:8 }}>· uncheck to remove</span>
@@ -293,7 +293,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
 
                 {result.items.map((item, idx) => (
                   <div key={item.id} className="ai-item" onClick={() => setSelected(p => ({ ...p, [item.id]: !p[item.id] }))}
-                    style={{ display:"flex", alignItems:"flex-start", gap:12, padding:"11px 16px", borderBottom: idx < result.items.length-1 ? "1px solid rgba(255,255,255,0.04)" : "none", cursor:"pointer", background:"transparent", transition:"background 0.15s" }}>
+                    style={{ display:"flex", alignItems:"flex-start", gap:12, padding:"11px 16px", borderBottom: idx < result.items.length-1 ? "1px solid var(--line)" : "none", cursor:"pointer", background:"transparent", transition:"background 0.15s" }}>
 
                     {/* Checkbox */}
                     <div style={{ width:18, height:18, borderRadius:4, flexShrink:0, border: selected[item.id] ? "1px solid var(--accent)" : "1px solid rgba(255,255,255,0.2)", background: selected[item.id] ? "rgba(var(--accent-rgb),0.15)" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", marginTop:1, transition:"all 0.15s" }}>
@@ -352,7 +352,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose }) {
                   Apply {selectedItems.length} service{selectedItems.length !== 1 ? "s" : ""} to Estimate →
                 </button>
                 <button onClick={() => { setResult(null); setPrompt(""); setSelected({}); }}
-                  style={{ padding:"14px 18px", background:"transparent", border:"1px solid rgba(255,255,255,0.08)", borderRadius:11, color:"rgba(255,255,255,0.4)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                  style={{ padding:"14px 18px", background:"transparent", border:"1px solid var(--line-strong)", borderRadius:11, color:"rgba(255,255,255,0.4)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                   Start over
                 </button>
               </div>

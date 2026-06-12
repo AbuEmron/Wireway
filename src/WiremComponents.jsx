@@ -7,7 +7,7 @@ import { NEC_REF } from "./data/nec-reference";
 // ─── COUNTER ─────────────────────────────────────────────────────────────────
 export function Counter({ value, onChange }) {
   return (
-    <div style={{ display:"flex", alignItems:"center", background:"rgba(255,255,255,0.04)", borderRadius:7, border:"1px solid rgba(255,255,255,0.07)", overflow:"hidden" }}>
+    <div style={{ display:"flex", alignItems:"center", background:"var(--card)", borderRadius:7, border:"1px solid var(--line)", overflow:"hidden" }}>
       <button onClick={() => onChange(Math.max(0, value-1))} style={{ width:26, height:26, border:"none", background:"transparent", color: value===0 ? "rgba(255,255,255,0.12)" : "var(--accent)", fontSize:16, cursor: value===0 ? "default" : "pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"inherit" }}>−</button>
       <span style={{ width:22, textAlign:"center", fontFamily:"'DM Mono',monospace", fontSize:12, fontWeight:700, color:"#fff" }}>{value}</span>
       <button onClick={() => onChange(value+1)} style={{ width:26, height:26, border:"none", background:"transparent", color:"var(--accent)", fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"inherit" }}>+</button>
@@ -22,7 +22,7 @@ export function ServiceRow({ service, entry, onUpdate, accentColor, hourlyRate, 
   const cBuys      = entry?.clientBuys ?? clientBuys; // per-line override
 
   return (
-    <div style={{ borderBottom:"1px solid rgba(255,255,255,0.04)", padding:"11px 0", transition:"all 0.2s" }}>
+    <div style={{ borderBottom:"1px solid var(--line)", padding:"11px 0", transition:"all 0.2s" }}>
       <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
         {/* Name col */}
         <div style={{ flex:1, minWidth:0 }}>
@@ -30,7 +30,7 @@ export function ServiceRow({ service, entry, onUpdate, accentColor, hourlyRate, 
             {service.label}
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:3, flexWrap:"wrap" }}>
-            <span style={{ fontSize:9, fontFamily:"'DM Mono',monospace", color:"rgba(255,255,255,0.28)", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", padding:"1px 5px", borderRadius:3, letterSpacing:"0.03em" }}>{service.nec}</span>
+            <span style={{ fontSize:9, fontFamily:"'DM Mono',monospace", color:"rgba(255,255,255,0.28)", background:"rgba(255,255,255,0.05)", border:"1px solid var(--line-strong)", padding:"1px 5px", borderRadius:3, letterSpacing:"0.03em" }}>{service.nec}</span>
             <span style={{ fontSize:9, color:"rgba(255,255,255,0.22)", fontFamily:"'DM Mono',monospace" }}>
               mat ${service.materialCost} · lab ${service.laborCost}/{service.unit}
             </span>
@@ -47,7 +47,7 @@ export function ServiceRow({ service, entry, onUpdate, accentColor, hourlyRate, 
               {/* Variant */}
               {service.variants.length > 1 && (
                 <select value={variantIdx} onChange={e => onUpdate({ qty, variantIdx: Number(e.target.value), clientBuys: cBuys })}
-                  style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:5, color:"var(--accent)", fontSize:10, padding:"3px 5px", fontFamily:"inherit", cursor:"pointer", maxWidth:130 }}>
+                  style={{ background:"rgba(255,255,255,0.06)", border:"1px solid var(--line-strong)", borderRadius:5, color:"var(--accent)", fontSize:10, padding:"3px 5px", fontFamily:"inherit", cursor:"pointer", maxWidth:130 }}>
                   {service.variants.map((v,i) => <option key={i} value={i} style={{ background:"#1a1a1e" }}>{v.label}</option>)}
                 </select>
               )}
@@ -57,7 +57,7 @@ export function ServiceRow({ service, entry, onUpdate, accentColor, hourlyRate, 
                 {[{ lbl:"I buy parts", val: false }, { lbl:"Client buys", val: true }].map(opt => (
                   <button key={String(opt.val)} onClick={() => onUpdate({ qty, variantIdx, clientBuys: opt.val })}
                     style={{ padding:"2px 7px", borderRadius:4, fontSize:9, fontWeight:700, letterSpacing:"0.02em", cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s",
-                      border: cBuys===opt.val ? `1px solid ${accentColor}60` : "1px solid rgba(255,255,255,0.08)",
+                      border: cBuys===opt.val ? `1px solid ${accentColor}60` : "1px solid var(--line-strong)",
                       background: cBuys===opt.val ? `${accentColor}15` : "rgba(255,255,255,0.03)",
                       color: cBuys===opt.val ? accentColor : "rgba(255,255,255,0.35)" }}>
                     {opt.lbl}
@@ -93,7 +93,7 @@ export function CategorySection({ category, entries, onUpdate, hourlyRate, clien
   const active = category.services.filter(s => entries[s.id]?.qty > 0).length;
 
   return (
-    <div style={{ background: active>0 ? `linear-gradient(135deg,${category.color}07 0%,rgba(255,255,255,0.015) 100%)` : "rgba(255,255,255,0.018)", border: active>0 ? `1px solid ${category.color}25` : "1px solid rgba(255,255,255,0.055)", borderRadius:13, overflow:"hidden", transition:"all 0.25s", marginBottom:8 }}>
+    <div style={{ background: active>0 ? `linear-gradient(135deg,${category.color}07 0%,rgba(255,255,255,0.015) 100%)` : "rgba(255,255,255,0.018)", border: active>0 ? `1px solid ${category.color}25` : "1px solid var(--line)", borderRadius:13, overflow:"hidden", transition:"all 0.25s", marginBottom:8 }}>
       <button onClick={() => setOpen(o => !o)} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"13px 16px", background:"transparent", border:"none", cursor:"pointer", textAlign:"left" }}>
         <div style={{ width:30, height:30, borderRadius:7, flexShrink:0, background: active>0 ? `${category.color}18` : "rgba(255,255,255,0.05)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, color: active>0 ? category.color : "rgba(255,255,255,0.28)", transition:"all 0.2s" }}>{category.icon}</div>
         <div style={{ flex:1 }}>
@@ -120,14 +120,14 @@ export function CategorySection({ category, entries, onUpdate, hourlyRate, clien
 // ─── PILL BUTTON ─────────────────────────────────────────────────────────────
 export function Pill({ label, active, onClick, color = "var(--accent)" }) {
   return (
-    <button onClick={onClick} style={{ padding:"4px 9px", borderRadius:5, fontSize:11, fontWeight:600, border: active ? `1px solid ${color}45` : "1px solid rgba(255,255,255,0.07)", background: active ? `${color}12` : "transparent", color: active ? color : "rgba(255,255,255,0.38)", cursor:"pointer", transition:"all 0.15s", fontFamily:"inherit" }}>{label}</button>
+    <button onClick={onClick} style={{ padding:"4px 9px", borderRadius:5, fontSize:11, fontWeight:600, border: active ? `1px solid ${color}45` : "1px solid var(--line)", background: active ? `${color}12` : "transparent", color: active ? color : "rgba(255,255,255,0.38)", cursor:"pointer", transition:"all 0.15s", fontFamily:"inherit" }}>{label}</button>
   );
 }
 
 // ─── STAT CARD ────────────────────────────────────────────────────────────────
 export function StatCard({ label, value, sub, color = "var(--accent)" }) {
   return (
-    <div style={{ flex:1, minWidth:90, background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:9, padding:"10px 12px" }}>
+    <div style={{ flex:1, minWidth:90, background:"rgba(255,255,255,0.022)", border:"1px solid var(--line)", borderRadius:9, padding:"10px 12px" }}>
       <div style={{ fontSize:8, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>{label}</div>
       <div style={{ fontFamily:"'DM Mono',monospace", fontSize:17, fontWeight:500, color, letterSpacing:"-0.02em" }}>{value}</div>
       {sub && <div style={{ fontSize:9, color:"rgba(255,255,255,0.22)", marginTop:2, fontFamily:"'DM Mono',monospace" }}>{sub}</div>}
@@ -200,7 +200,7 @@ export function NECReference() {
           placeholder="Search article, code number, or keyword (e.g. GFCI, 210.8, tamper)..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 9, padding: "11px 14px", fontSize: 13, color: "#fff", fontFamily: "inherit", marginBottom: 10, transition: "border-color 0.15s" }}
+          style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid var(--line-strong)", borderRadius: 9, padding: "11px 14px", fontSize: 13, color: "#fff", fontFamily: "inherit", marginBottom: 10, transition: "border-color 0.15s" }}
           onFocus={e => e.target.style.borderColor = "rgba(var(--accent-rgb),0.4)"}
           onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
         />
@@ -210,7 +210,7 @@ export function NECReference() {
           {TAGS.map(t => (
             <button key={t.id} onClick={() => setFilterTag(t.id)}
               style={{ padding: "4px 10px", borderRadius: 5, fontSize: 10, fontWeight: 700, letterSpacing: "0.03em", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
-                border: filterTag === t.id ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid rgba(255,255,255,0.08)",
+                border: filterTag === t.id ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid var(--line-strong)",
                 background: filterTag === t.id ? "rgba(var(--accent-rgb),0.12)" : "rgba(255,255,255,0.03)",
                 color: filterTag === t.id ? "var(--accent)" : "rgba(255,255,255,0.38)" }}>
               {t.label}
@@ -235,7 +235,7 @@ export function NECReference() {
         filtered.map(art => {
           const isOpen = expanded[art.article];
           return (
-            <div key={art.article} style={{ background: isOpen ? `linear-gradient(135deg,${art.color}06 0%,rgba(255,255,255,0.015) 100%)` : "rgba(255,255,255,0.018)", border: isOpen ? `1px solid ${art.color}22` : "1px solid rgba(255,255,255,0.055)", borderRadius: 13, marginBottom: 8, overflow: "hidden", transition: "all 0.25s" }}>
+            <div key={art.article} style={{ background: isOpen ? `linear-gradient(135deg,${art.color}06 0%,rgba(255,255,255,0.015) 100%)` : "rgba(255,255,255,0.018)", border: isOpen ? `1px solid ${art.color}22` : "1px solid var(--line)", borderRadius: 13, marginBottom: 8, overflow: "hidden", transition: "all 0.25s" }}>
 
               {/* Article header */}
               <button onClick={() => toggleArticle(art.article)} style={{ width: "100%", display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
@@ -258,7 +258,7 @@ export function NECReference() {
               {isOpen && (
                 <div style={{ padding: "0 16px 16px" }}>
                   {/* Full summary */}
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.7, marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.7, marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid var(--line)" }}>
                     {art.summary}
                   </div>
 
@@ -268,14 +268,14 @@ export function NECReference() {
                     const rKey = `${art.article}-${ri}`;
                     const rOpen = expandedRule[rKey];
                     return (
-                      <div key={ri} style={{ background: rOpen ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, marginBottom: 5, overflow: "hidden", transition: "all 0.2s" }}>
+                      <div key={ri} style={{ background: rOpen ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)", border: "1px solid var(--line)", borderRadius: 8, marginBottom: 5, overflow: "hidden", transition: "all 0.2s" }}>
                         <button onClick={() => toggleRule(rKey)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
                           <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: art.color, fontWeight: 700, flexShrink: 0, minWidth: 60 }}>{rule.code}</span>
                           <span style={{ fontSize: 12, fontWeight: 600, color: rOpen ? "#fff" : "rgba(255,255,255,0.65)", flex: 1 }}>{rule.title}</span>
                           <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 14, transform: rOpen ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", lineHeight: 1, flexShrink: 0 }}>›</span>
                         </button>
                         {rOpen && (
-                          <div style={{ padding: "0 12px 12px", fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.75, borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 10 }}>
+                          <div style={{ padding: "0 12px 12px", fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.75, borderTop: "1px solid var(--line)", paddingTop: 10 }}>
                             {rule.text}
                           </div>
                         )}

@@ -71,19 +71,19 @@ Respond ONLY with JSON, no markdown fences:
     catch { window.prompt("Copy your pull list:", text); }
   };
 
-  const card = { background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12 };
+  const card = { background:"var(--card)", border:"1px solid var(--line)", borderRadius:12 };
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:350, background:"var(--bg0)", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
+    <div style={{ position:"fixed", inset:0, zIndex:350, background:"var(--bg-scene)", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
       {/* Header */}
-      <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.92)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:10, padding:"0 20px" }}>
+      <div style={{ borderBottom:"1px solid var(--line)", background:"rgba(10,10,12,0.92)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:10, padding:"0 20px" }}>
         <div style={{ maxWidth:680, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800 }}>🧾 Material Pull List</span>
           <div style={{ display:"flex", gap:6 }}>
             {list && (
               <button onClick={copyList} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(var(--accent-rgb),0.35)", background:"rgba(var(--accent-rgb),0.08)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Copy List</button>
             )}
-            <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>✕ Close</button>
+            <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>✕ Close</button>
           </div>
         </div>
       </div>

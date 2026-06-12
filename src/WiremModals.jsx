@@ -34,18 +34,18 @@ export default function WiremModals({
               <div>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginBottom:5 }}>Voltage</div>
                 <div style={{ display:"flex", gap:5 }}>
-                  {["120","240"].map(v => <button key={v} onClick={() => setWireVolt(v)} style={{ flex:1, padding:"8px", borderRadius:6, border: wireVolt===v ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid rgba(255,255,255,0.08)", background: wireVolt===v ? "rgba(var(--accent-rgb),0.1)" : "rgba(255,255,255,0.03)", color: wireVolt===v ? "var(--accent)" : "rgba(255,255,255,0.4)", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>{v}V</button>)}
+                  {["120","240"].map(v => <button key={v} onClick={() => setWireVolt(v)} style={{ flex:1, padding:"8px", borderRadius:6, border: wireVolt===v ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid var(--line-strong)", background: wireVolt===v ? "rgba(var(--accent-rgb),0.1)" : "rgba(255,255,255,0.03)", color: wireVolt===v ? "var(--accent)" : "rgba(255,255,255,0.4)", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>{v}V</button>)}
                 </div>
               </div>
               <div>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginBottom:5 }}>Conductor</div>
                 <div style={{ display:"flex", gap:5 }}>
-                  {["copper","aluminum"].map(m => <button key={m} onClick={() => setWireMat(m)} style={{ flex:1, padding:"8px", borderRadius:6, border: wireMat===m ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid rgba(255,255,255,0.08)", background: wireMat===m ? "rgba(var(--accent-rgb),0.1)" : "rgba(255,255,255,0.03)", color: wireMat===m ? "var(--accent)" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>{m[0].toUpperCase()+m.slice(1)}</button>)}
+                  {["copper","aluminum"].map(m => <button key={m} onClick={() => setWireMat(m)} style={{ flex:1, padding:"8px", borderRadius:6, border: wireMat===m ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid var(--line-strong)", background: wireMat===m ? "rgba(var(--accent-rgb),0.1)" : "rgba(255,255,255,0.03)", color: wireMat===m ? "var(--accent)" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>{m[0].toUpperCase()+m.slice(1)}</button>)}
                 </div>
               </div>
             </div>
             {wireResult && (
-              <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"16px" }}>
+              <div style={{ background:"var(--card)", border:"1px solid var(--line-strong)", borderRadius:12, padding:"16px" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:12 }}>
                   <div style={{ textAlign:"center" }}>
                     <div style={{ fontFamily:"'DM Mono',monospace", fontSize:28, fontWeight:700, color:"var(--accent)" }}># {wireResult.awg}</div>
@@ -62,7 +62,7 @@ export default function WiremModals({
                     <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>voltage drop</div>
                   </div>
                 </div>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", lineHeight:1.7, borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:10 }}>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", lineHeight:1.7, borderTop:"1px solid var(--line)", paddingTop:10 }}>
                   <span style={{ color:"rgba(var(--accent-rgb),0.7)", fontFamily:"'DM Mono',monospace" }}>{wireResult.nec}</span> — continuous load ({wireResult.continuous}A at 125%) requires #{wireResult.awg} AWG {wireMat}.
                   {wireLen && !wireResult.vDropOk && <span style={{ color:"#e87e7e" }}> ⚠ Voltage drop exceeds 3% — consider upsizing one AWG.</span>}
                   {wireLen && wireResult.vDropOk && <span style={{ color:"#a8e87e" }}> ✓ Voltage drop within 3% limit.</span>}
@@ -101,7 +101,7 @@ export default function WiremModals({
               ))}
             </div>
             {loadResult && (
-              <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"16px" }}>
+              <div style={{ background:"var(--card)", border:"1px solid var(--line-strong)", borderRadius:12, padding:"16px" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:12, textAlign:"center" }}>
                   <div>
                     <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, fontWeight:700, color:"var(--accent)" }}>{loadResult.amps240}A</div>
@@ -124,7 +124,7 @@ export default function WiremModals({
                   { label:"Ranges", val: loadResult.rangeVA },
                   { label:"HVAC (larger of AC/heat)", val: loadResult.hvac },
                 ].filter(r => r.val > 0).map(row => (
-                  <div key={row.label} style={{ display:"flex", justifyContent:"space-between", fontSize:11, padding:"3px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                  <div key={row.label} style={{ display:"flex", justifyContent:"space-between", fontSize:11, padding:"3px 0", borderBottom:"1px solid var(--line)" }}>
                     <span style={{ color:"rgba(255,255,255,0.4)" }}>{row.label}</span>
                     <span style={{ fontFamily:"'DM Mono',monospace", color:"rgba(255,255,255,0.6)" }}>{row.val.toLocaleString()} VA</span>
                   </div>
@@ -148,7 +148,7 @@ export default function WiremModals({
             </div>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:16 }}>
               {Object.entries(CHECKLISTS).map(([key, val]) => (
-                <button key={key} onClick={() => setChecklistType(key)} style={{ padding:"5px 10px", borderRadius:6, fontSize:10, fontWeight:700, border: checklistType===key ? "1px solid rgba(232,120,120,0.5)" : "1px solid rgba(255,255,255,0.08)", background: checklistType===key ? "rgba(232,120,120,0.1)" : "rgba(255,255,255,0.03)", color: checklistType===key ? "#e87e7e" : "rgba(255,255,255,0.4)", cursor:"pointer", fontFamily:"inherit" }}>{val.label}</button>
+                <button key={key} onClick={() => setChecklistType(key)} style={{ padding:"5px 10px", borderRadius:6, fontSize:10, fontWeight:700, border: checklistType===key ? "1px solid rgba(232,120,120,0.5)" : "1px solid var(--line-strong)", background: checklistType===key ? "rgba(232,120,120,0.1)" : "rgba(255,255,255,0.03)", color: checklistType===key ? "#e87e7e" : "rgba(255,255,255,0.4)", cursor:"pointer", fontFamily:"inherit" }}>{val.label}</button>
               ))}
             </div>
             {(() => {
@@ -163,7 +163,7 @@ export default function WiremModals({
                     </div>
                   </div>
                   {cl.items.map(item => (
-                    <div key={item.id} onClick={() => toggleCheck(item.id)} style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,0.04)", cursor:"pointer" }}>
+                    <div key={item.id} onClick={() => toggleCheck(item.id)} style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"10px 0", borderBottom:"1px solid var(--line)", cursor:"pointer" }}>
                       <div style={{ width:20, height:20, borderRadius:4, flexShrink:0, border: checkedItems[item.id] ? "1px solid #7dcea0" : "1px solid rgba(255,255,255,0.2)", background: checkedItems[item.id] ? "rgba(100,220,130,0.15)" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", marginTop:1, transition:"all 0.15s" }}>
                         {checkedItems[item.id] && <span style={{ fontSize:11, color:"#7dcea0" }}>✓</span>}
                       </div>
@@ -203,7 +203,7 @@ export default function WiremModals({
               </div>
             ) : (
               clients.filter(c => !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
-                <div key={c.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
+                <div key={c.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 0", borderBottom:"1px solid var(--line)" }}>
                   <div style={{ width:36, height:36, borderRadius:8, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:800, color:"var(--accent)", flexShrink:0 }}>
                     {c.name[0].toUpperCase()}
                   </div>
@@ -238,7 +238,7 @@ export default function WiremModals({
               <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Company Logo</div>
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                 {logoDataUrl
-                  ? <img src={logoDataUrl} alt="logo" style={{ height:52, width:"auto", maxWidth:140, objectFit:"contain", borderRadius:6, border:"1px solid rgba(255,255,255,0.1)" }} />
+                  ? <img src={logoDataUrl} alt="logo" style={{ height:52, width:"auto", maxWidth:140, objectFit:"contain", borderRadius:6, border:"1px solid var(--line-strong)" }} />
                   : <div style={{ width:52, height:52, borderRadius:10, overflow:"hidden" }}><img src="/logo192.png" alt="Wireway" style={{ width:"100%", height:"100%", objectFit:"contain" }} /></div>
                 }
                 <div style={{ flex:1 }}>
@@ -247,7 +247,7 @@ export default function WiremModals({
                     <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display:"none" }} />
                   </label>
                   {logoDataUrl && (
-                    <button onClick={() => setLogoDataUrl("")} style={{ marginLeft:8, padding:"8px 12px", background:"transparent", border:"1px solid rgba(255,255,255,0.1)", borderRadius:7, color:"rgba(255,255,255,0.4)", fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>Remove</button>
+                    <button onClick={() => setLogoDataUrl("")} style={{ marginLeft:8, padding:"8px 12px", background:"transparent", border:"1px solid var(--line-strong)", borderRadius:7, color:"rgba(255,255,255,0.4)", fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>Remove</button>
                   )}
                   <div style={{ fontSize:10, color:"rgba(255,255,255,0.2)", marginTop:5 }}>PNG, JPG, SVG · max 2MB · appears on quotes</div>
                 </div>
@@ -301,7 +301,7 @@ export default function WiremModals({
               <button onClick={saveCompany} disabled={companySaving} style={{ flex:1, padding:"12px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.08))", border:"1px solid rgba(var(--accent-rgb),0.4)", borderRadius:10, color: companySaving ? "rgba(var(--accent-rgb),0.4)" : "var(--accent)", fontSize:13, fontWeight:700, cursor: companySaving ? "default" : "pointer", fontFamily:"inherit" }}>
                 {companySaving ? "Saving..." : "Save Profile"}
               </button>
-              <button onClick={() => setEditingCompany(false)} style={{ padding:"12px 20px", background:"transparent", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, color:"rgba(255,255,255,0.4)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+              <button onClick={() => setEditingCompany(false)} style={{ padding:"12px 20px", background:"transparent", border:"1px solid var(--line-strong)", borderRadius:10, color:"rgba(255,255,255,0.4)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                 Cancel
               </button>
             </div>
