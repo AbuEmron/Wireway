@@ -106,6 +106,15 @@ export default function AuthScreen({ onAuth, initialMode = "signin", onBack }) {
             {loading ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
           </button>
 
+          {mode === "signup" && (
+            <p style={{ fontSize:11, lineHeight:1.5, color:"rgba(255,255,255,0.4)", textAlign:"center", marginTop:12 }}>
+              By creating an account, you agree to our{" "}
+              <a href="/terms.html" target="_blank" rel="noreferrer" style={{ color:"rgba(255,255,255,0.62)" }}>Terms of Service</a>
+              {" "}and{" "}
+              <a href="/privacy.html" target="_blank" rel="noreferrer" style={{ color:"rgba(255,255,255,0.62)" }}>Privacy Policy</a>.
+            </p>
+          )}
+
           <div className="switches">
             {mode === "signin" && (
               <>
