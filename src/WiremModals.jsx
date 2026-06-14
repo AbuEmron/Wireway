@@ -1,4 +1,82 @@
 // src/WiremModals.jsx
+import { useState, useEffect } from "react";
+import { supabase } from "./lib/supabase";
+
+// Stripe Connect — lets each electrician connect their OWN Stripe account so client
+// payments go straight to them. Replaces the old (unsafe) "paste your secret key" box.
+function ConnectStripeSection({ profile }) {
+  const [busy, setBusy]                   = useState(false);
+  const [err, setErr]                     = useState("");
+  const [chargesEnabled, setChargesEnabled] = useState(!!profile?.stripe_charges_enabled);
+
+  async function getToken() {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  }
+
+  // When the settings modal opens, ask Stripe whether this account can take payments yet.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch("/api/connect-onboarding", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "status" }),
+        });
+        const data = await res.json();
+        if (!cancelled && data) setChargesEnabled(!!data.charges_enabled);
+      } catch { /* ignore — just show the connect button */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const startConnect = async () => {
+    setBusy(true); setErr("");
+    try {
+      const token = await getToken();
+      if (!token) { setErr("Please sign in again."); setBusy(false); return; }
+      const res = await fetch("/api/connect-onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "link" }),
+      });
+      const data = await res.json();
+      if (data.url) { window.location.href = data.url; }   // off to Stripe's hosted onboarding
+      else { setErr(data.error || "Could not start Stripe Connect."); setBusy(false); }
+    } catch {
+      setErr("Network error. Please try again."); setBusy(false);
+    }
+  };
+
+  const started = !!profile?.stripe_account_id && !chargesEnabled;
+
+  return (
+    <div style={{ marginBottom:16, padding:"14px", background:"rgba(99,102,241,0.06)", border:"1px solid rgba(99,102,241,0.18)", borderRadius:10 }}>
+      <div style={{ fontSize:10, color:"rgba(129,140,248,0.8)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>⚡ Get Paid — Stripe</div>
+      {chargesEnabled ? (
+        <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+          <span style={{ fontSize:12, color:"#7dcea0", fontWeight:700 }}>✓ Stripe connected</span>
+          <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)" }}>Client payments go straight to your account.</span>
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", marginBottom:10, lineHeight:1.6 }}>
+            Connect your own Stripe account so clients can pay you directly — the money goes straight to you, and Wireway never touches it. You'll sign in to Stripe (or create an account) and come right back.
+          </div>
+          <button onClick={startConnect} disabled={busy} style={{ width:"100%", padding:"11px", borderRadius:8, background: busy ? "rgba(99,102,241,0.06)" : "linear-gradient(135deg,rgba(99,102,241,0.25),rgba(139,92,246,0.15))", border:"1px solid rgba(99,102,241,0.4)", color: busy ? "rgba(129,140,248,0.5)" : "#818cf8", fontSize:13, fontWeight:700, cursor: busy ? "default" : "pointer", fontFamily:"inherit" }}>
+            {busy ? "Opening Stripe..." : started ? "Finish connecting Stripe" : "Connect your Stripe account"}
+          </button>
+          {started && <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginTop:6 }}>You started connecting but haven't finished — tap to complete it.</div>}
+          {err && <div style={{ fontSize:10, color:"#e87e7e", marginTop:8 }}>⚠ {err}</div>}
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function WiremModals({
   wireCalcOpen,setWireCalcOpen,wireAmps,setWireAmps,wireLen,setWireLen,wireVolt,setWireVolt,wireMat,setWireMat,wireResult,
   loadCalcOpen,setLoadCalcOpen,sqft,setSqft,smallAppl,setSmallAppl,laundry,setLaundry,dryer,setDryer,range,setRange,acTons,setAcTons,heatKw,setHeatKw,loadResult,
@@ -278,24 +356,9 @@ export default function WiremModals({
                 rows={3} style={{ ...inputStyle, resize:"vertical", lineHeight:1.6 }} onFocus={focusGold} onBlur={blurGray} />
             </div>
 
-            {/* Stripe */}
-            <div style={{ marginBottom:16, padding:"14px", background:"rgba(99,102,241,0.06)", border:"1px solid rgba(99,102,241,0.18)", borderRadius:10 }}>
-              <div style={{ fontSize:10, color:"rgba(129,140,248,0.8)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>⚡ Stripe Integration</div>
-              <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", marginBottom:8, lineHeight:1.6 }}>
-                Add your Stripe Secret Key to enable online payment collection. Get it from <span style={{ color:"#818cf8" }}>dashboard.stripe.com → Developers → API Keys</span>. Use test key (sk_test_...) first, then switch to live (sk_live_...) when ready.
-              </div>
-              <input
-                placeholder="sk_live_... or sk_test_..."
-                value={companyDraft.stripeKey||""}
-                onChange={e => setCompanyDraft(p => ({ ...p, stripeKey: e.target.value }))}
-                type="password"
-                style={{ ...inputStyle, fontFamily:"'DM Mono',monospace", fontSize:11 }}
-                onFocus={focusGold} onBlur={blurGray}
-              />
-              <div style={{ fontSize:9, color:"rgba(255,255,255,0.2)", marginTop:5 }}>
-                Your key is stored locally on this device and never sent to Wireway servers — only to Stripe when a payment is requested.
-              </div>
-            </div>
+            {/* Stripe Connect — electrician connects their own account */}
+            <ConnectStripeSection profile={profile} />
+
 
             <div style={{ display:"flex", gap:8 }}>
               <button onClick={saveCompany} disabled={companySaving} style={{ flex:1, padding:"12px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.08))", border:"1px solid rgba(var(--accent-rgb),0.4)", borderRadius:10, color: companySaving ? "rgba(var(--accent-rgb),0.4)" : "var(--accent)", fontSize:13, fontWeight:700, cursor: companySaving ? "default" : "pointer", fontFamily:"inherit" }}>
