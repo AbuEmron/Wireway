@@ -163,7 +163,7 @@ Respond ONLY with JSON, no markdown fences:
   const card = { background:"var(--card)", border:"1px solid var(--line)", borderRadius:12 };
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:350, background:"var(--bg0, #0a0a0c)", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
+    <div style={{ position:"fixed", inset:0, zIndex:350, background:"#0a0a0c", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
       {/* Header */}
       <div style={{ borderBottom:"1px solid var(--line)", background:"rgba(10,10,12,0.92)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:10, padding:"0 20px" }}>
         <div style={{ maxWidth:680, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
