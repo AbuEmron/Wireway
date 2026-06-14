@@ -196,7 +196,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
         <footer style={{ borderTop:"1px solid rgba(255,255,255,0.05)", padding:"24px", textAlign:"center" }}>
           <div style={{ display:"flex", alignItems:"center", gap:8, justifyContent:"center", marginBottom:8 }}>
             <WirewayMark size={20} glow={false} />
-            <span style={{ fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:800 }}><span style={{ color:"var(--accent)" }}>WIRE</span>WAY</span>
+            <span style={{ fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:800 }}><span style={{ color:"var(--accent)" }}>WIRE</span>WAY<span style={{ color:"#1f9ee0", marginLeft:5 }}>PRO</span></span>
           </div>
           <div style={{ fontSize:11, color:"rgba(255,255,255,0.2)", letterSpacing:"0.04em" }}>
             NEC 2023 Professional Electrical Estimating · wirewaypro.com<br/>
