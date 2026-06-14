@@ -1,20 +1,11 @@
-import { WirewayMark } from "./Logo";
-// src/AuthScreen.jsx
-import { useState } from "react";
+'use client';
+// src/AuthScreen.jsx — gyroscopic auth (sign in / sign up / reset).
+// Same Supabase logic and same props as before; new UI on top.
+import { useState, useRef, useCallback } from "react";
+import GyroField from "./components/GyroField/GyroField";
+import Brand from "./components/Brand";
 import { signIn, signUp, resetPassword } from "./lib/supabase";
-
-const IS = {
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid var(--line)",
-  borderRadius: 8,
-  padding: "10px 13px",
-  fontSize: 14,
-  color: "#fff",
-  fontFamily: "inherit",
-  width: "100%",
-  outline: "none",
-  transition: "border-color 0.15s",
-};
+import "./AuthScreen.css";
 
 export default function AuthScreen({ onAuth, initialMode = "signin", onBack }) {
   const [mode,     setMode]     = useState(initialMode);
@@ -25,8 +16,14 @@ export default function AuthScreen({ onAuth, initialMode = "signin", onBack }) {
   const [error,    setError]    = useState("");
   const [success,  setSuccess]  = useState("");
 
-  const focusGold = e => e.target.style.borderColor = "rgba(var(--accent-rgb),0.4)";
-  const blurGray  = e => e.target.style.borderColor = "rgba(255,255,255,0.07)";
+  // glow the card each time a current pulse lands
+  const [energized, setEnergized] = useState(false);
+  const timer = useRef(null);
+  const onEnergize = useCallback(() => {
+    setEnergized(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setEnergized(false), 520);
+  }, []);
 
   const handle = async () => {
     setError(""); setSuccess(""); setLoading(true);
@@ -54,90 +51,89 @@ export default function AuthScreen({ onAuth, initialMode = "signin", onBack }) {
     }
   };
 
+  const onKey = (e) => { if (e.key === "Enter") handle(); };
+  const switchMode = (m) => { setMode(m); setError(""); setSuccess(""); };
+
+  const title =
+    mode === "signin" ? "Welcome back" :
+    mode === "signup" ? "Create your account" : "Reset password";
+  const subtitle =
+    mode === "signin" ? "Sign in to your estimates, clients, and quotes." :
+    mode === "signup" ? "30-day free trial. No credit card required." :
+    "Enter your email and we'll send a reset link.";
+
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:var(--bg0)}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-      `}</style>
+      <GyroField variant="circuit" onEnergize={onEnergize} />
+      <div className="ww-veil-auth" />
+      <div className="ww-page ww-auth">
+        <div className={"card" + (energized ? " energize" : "")}>
+          <Brand size={18} src="/logo192.png" />
+          <div className="tag">
+            {mode === "signin" ? "CLOSE THE CIRCUIT" : mode === "signup" ? "WIRE IN" : "RESET"}
+          </div>
 
-      <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"var(--bg-scene)", fontFamily:"'DM Sans',sans-serif", padding:"24px 20px" }}>
+          <h2 className="title">{title}</h2>
+          <p className="subtitle">{subtitle}</p>
 
-        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:40, animation:"fadeUp 0.4s ease both" }}>
-          <WirewayMark size={52} />
-          <div>
-            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:22, fontWeight:800, letterSpacing:"-0.03em", color:"#fff", lineHeight:1.1 }}>
-              <span style={{ color:"var(--accent)" }}>WIRE</span><span style={{ color:"#fff" }}>WAY</span>
+          {mode === "signup" && (
+            <div className="fld">
+              <label htmlFor="ww-name">Full name</label>
+              <input id="ww-name" value={name} onChange={(e) => setName(e.target.value)}
+                placeholder="Jordan Rivera" onKeyDown={onKey} />
             </div>
-            <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", letterSpacing:"0.1em", textTransform:"uppercase" }}>Electrical Estimator</div>
-          </div>
-        </div>
+          )}
 
-        <div style={{ width:"100%", maxWidth:380, background:"var(--card)", border:"1px solid var(--line)", borderRadius:18, padding:"28px 24px", animation:"fadeUp 0.4s ease 0.05s both" }}>
-
-          <div style={{ fontFamily:"'Syne',sans-serif", fontSize:18, fontWeight:800, color:"#fff", marginBottom:6, letterSpacing:"-0.02em" }}>
-            {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create your account" : "Reset password"}
-          </div>
-          <div style={{ fontSize:12, color:"rgba(255,255,255,0.35)", marginBottom:24, lineHeight:1.6 }}>
-            {mode === "signin"
-              ? "Sign in to access your estimates, clients, and quotes."
-              : mode === "signup"
-              ? "30-day free trial. No credit card required."
-              : "Enter your email and we'll send a reset link."}
+          <div className="fld">
+            <label htmlFor="ww-email">Email</label>
+            <input id="ww-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@shop.com" autoComplete="email" onKeyDown={onKey} />
           </div>
 
-          <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:16 }}>
-            {mode === "signup" && (
-              <input placeholder="Full name" value={name} onChange={e => setName(e.target.value)}
-                style={IS} onFocus={focusGold} onBlur={blurGray} />
-            )}
-            <input placeholder="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)}
-              style={IS} onFocus={focusGold} onBlur={blurGray}
-              onKeyDown={e => e.key === "Enter" && handle()} />
-            {mode !== "reset" && (
-              <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)}
-                style={IS} onFocus={focusGold} onBlur={blurGray}
-                onKeyDown={e => e.key === "Enter" && handle()} />
-            )}
-          </div>
+          {mode !== "reset" && (
+            <div className="fld">
+              <label htmlFor="ww-pw">Password</label>
+              <input id="ww-pw" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••" autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                onKeyDown={onKey} />
+            </div>
+          )}
 
-          {error   && <div style={{ fontSize:12, color:"#e87e7e", background:"rgba(232,126,126,0.08)", border:"1px solid rgba(232,126,126,0.2)", borderRadius:7, padding:"8px 10px", marginBottom:12, lineHeight:1.5 }}>{error}</div>}
-          {success && <div style={{ fontSize:12, color:"#7dcea0", background:"rgba(100,220,130,0.08)", border:"1px solid rgba(100,220,130,0.2)", borderRadius:7, padding:"8px 10px", marginBottom:12, lineHeight:1.5 }}>{success}</div>}
+          {error   && <div className="msg err">{error}</div>}
+          {success && <div className="msg ok">{success}</div>}
 
-          <button onClick={handle} disabled={loading} style={{ width:"100%", padding:"13px", background: loading ? "rgba(var(--accent-rgb),0.08)" : "linear-gradient(135deg,rgba(var(--accent-rgb),0.22),rgba(var(--accent-rgb),0.1))", border:"1px solid rgba(var(--accent-rgb),0.35)", borderRadius:10, color: loading ? "rgba(var(--accent-rgb),0.4)" : "var(--accent)", fontSize:14, fontWeight:700, cursor: loading ? "default" : "pointer", fontFamily:"inherit", transition:"all 0.2s", marginBottom:16 }}>
-            {loading ? "Please wait..." : mode === "signin" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
+          <button type="button" className="btn" onClick={handle} disabled={loading}>
+            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
           </button>
 
-          {/* Back to landing */}
-          {onBack && (
-            <button onClick={onBack} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.2)", fontSize:11, cursor:"pointer", fontFamily:"inherit", marginTop:8 }}>
-              ← Back to wirewaypro.com
-            </button>
-          )}
+          <div className="switches">
             {mode === "signin" && (
               <>
-                <button onClick={() => { setMode("signup"); setError(""); setSuccess(""); }} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>
-                  Don't have an account? <span style={{ color:"var(--accent)", fontWeight:600 }}>Sign up free</span>
+                <button type="button" className="link" onClick={() => switchMode("signup")}>
+                  No account? <span className="accent">Sign up free</span>
                 </button>
-                <button onClick={() => { setMode("reset"); setError(""); setSuccess(""); }} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.25)", fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>
+                <button type="button" className="link dim" onClick={() => switchMode("reset")}>
                   Forgot password?
                 </button>
               </>
             )}
             {mode === "signup" && (
-              <button onClick={() => { setMode("signin"); setError(""); setSuccess(""); }} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>
-                Already have an account? <span style={{ color:"var(--accent)", fontWeight:600 }}>Sign in</span>
+              <button type="button" className="link" onClick={() => switchMode("signin")}>
+                Have an account? <span className="accent">Sign in</span>
               </button>
             )}
             {mode === "reset" && (
-              <button onClick={() => { setMode("signin"); setError(""); setSuccess(""); }} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>
+              <button type="button" className="link" onClick={() => switchMode("signin")}>
                 ← Back to sign in
               </button>
             )}
           </div>
+
+          {onBack && (
+            <button type="button" className="back" onClick={onBack}>← Back to wirewaypro.com</button>
+          )}
         </div>
+      </div>
     </>
   );
 }
