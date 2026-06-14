@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useMemo, useEffect } from "react";
-import { signOut, getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus, getClients, upsertClient, isPro, isTrialing, trialDaysLeft, saveThemePref, isElite } from "./lib/supabase";
+import { supabase, signOut, getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus, getClients, upsertClient, isPro, isTrialing, trialDaysLeft, saveThemePref, isElite } from "./lib/supabase";
 import { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES, CHECKLISTS } from "./data/catalog";
 import { JobCalendar, PhotoAttachments, QuickBooksExport, AutoInvoiceButton, OnMyWayButton, ReviewRequestButton } from "./features";
 import AIQuoteBuilder from "./AIQuoteBuilder";
@@ -199,6 +199,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     }
     saveClientToDB();
     setSaveMsg(error ? "Save failed" : "Saved!"); setTimeout(() => setSaveMsg(""), 2000);
+    return data?.id;
   };
 
   const loadQuote = async (q) => {
@@ -398,30 +399,26 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
   const requestPayment = async (mode = "open") => {
     if (!hasItems || paymentLoading) return;
-    if (!company.stripeKey) {
-      setPaymentError("Add your Stripe Publishable Key in ⚙ Company Settings first.");
+    if (!profile?.stripe_charges_enabled) {
+      setPaymentError("Connect your Stripe account in ⚙ Company Settings first.");
       return;
     }
     setPaymentLoading(true);
     setPaymentError("");
     try {
-      const qn = quoteNumber || genQuoteNum();
-      if (!quoteNumber) { setQuoteNumber(qn); saveQuote(); }
+      // Make sure the quote is saved so the server can charge against its stored amount
+      let id = quoteId;
+      if (!id) { id = await saveQuote(); }
+      if (!id) { setPaymentError("Save the quote first, then request payment."); setPaymentLoading(false); return; }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { setPaymentError("Please sign in again."); setPaymentLoading(false); return; }
 
       const res = await fetch("/api/create-checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          quoteNumber: qn,
-          clientName,
-          clientEmail,
-          jobName,
-          total,
-          depositOnly,
-          depositPercent,
-          companyName: company.name,
-          lineItems: activeItems.slice(0, 5).map(i => ({ label: i.label, amount: i.lineTotal })),
-        }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ quoteId: id, depositOnly, depositPercent }),
       });
       const data = await res.json();
       if (data.url) {
@@ -1144,7 +1141,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                       ✓ Payment received! Quote marked as paid.
                     </div>
                   )}
-                  {!company.stripeKey ? (
+                  {!profile?.stripe_charges_enabled ? (
                     <button onClick={() => setEditingCompany(true)} style={{ width:"100%", padding:"13px", background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:10, color:"#818cf8", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                       ⚙ Connect Stripe in Company Settings
                     </button>
@@ -1153,7 +1150,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                       {paymentLoading ? "Opening Stripe Checkout..." : `⚡ Send Payment Request — $${depositOnly ? Math.round(total * depositPercent / 100).toLocaleString() : total.toLocaleString()}`}
                     </button>
                   )}
-                  {company.stripeKey && (
+                  {profile?.stripe_charges_enabled && (
                     <div style={{ display:"flex", gap:6, marginTop:8 }}>
                       <button onClick={() => requirePro(() => requestPayment("sms"))} disabled={paymentLoading} style={{ flex:1, padding:"10px", borderRadius:9, background:"rgba(126,200,232,0.07)", border:"1px solid rgba(126,200,232,0.25)", color:"#7ec8e8", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                         💬 Text Pay Link
@@ -1363,7 +1360,10 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               )}
                 {userIsPro && (
                   <button onClick={async () => {
-                    const res = await fetch("/api/billing-portal", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ userId: user.id }) });
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const token = session?.access_token;
+                    if (!token) return;
+                    const res = await fetch("/api/billing-portal", { method:"POST", headers:{ "Content-Type":"application/json", Authorization:`Bearer ${token}` }, body:JSON.stringify({}) });
                     const d = await res.json(); if (d.url) window.open(d.url, "_blank");
                   }} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"var(--card)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                     Manage Billing
