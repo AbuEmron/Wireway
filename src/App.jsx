@@ -2,6 +2,7 @@
 // src/App.jsx — root component with landing page, auth, dashboard, and main app
 import { useState, useEffect, useCallback } from "react";
 import "./styles/tokens.css";
+import "./lib/errorMonitor"; // auto-starts crash logging → Supabase error_logs
 import { supabase, getProfile } from "./lib/supabase";
 import LandingPage from "./LandingPage";
 import GyroBackdrop from "./components/GyroBackdrop";
