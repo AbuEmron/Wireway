@@ -14,6 +14,7 @@ import { WelcomeHero, SetupChecklist, getOnboardState, setOnboardState } from ".
 import Dashboard from "./Dashboard";
 import { Pill, StatCard, CategorySection, NECReference } from "./WiremComponents";
 import WiremModals from "./WiremModals";
+import LoadAdvisor from "./LoadAdvisor";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
 // Snapshot the working state continuously; restore it on reload so the
@@ -94,6 +95,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showAccount,    setShowAccount]    = useState(false);
   const [showCalendar,   setShowCalendar]   = useState(false);
   const [showAIBuilder,  setShowAIBuilder]  = useState(false);
+  const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
   const [onboard,        setOnboard]        = useState(getOnboardState());
   const [aiSeed,         setAiSeed]         = useState("");
@@ -839,6 +841,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               { label:"📅 Calendar", action:() => setShowCalendar(true)   },
               { label:"Wire Calc",  action:() => setWireCalcOpen(true)  },
                 { label:"Load Calc",  action:() => setLoadCalcOpen(true)  },
+                { label:"⚡ Load Advisor", action:() => setShowLoadAdvisor(true) },
                 { label:"Checklist",  action:() => setChecklistOpen(true) },
                 { label:"Clients",    action:() => setShowClientDB(true)  },
                 { label:"+ Custom",   action:addCustomItem                },
@@ -1312,6 +1315,14 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               initialPrompt={aiSeed}
               onApplyEstimate={applyAIEstimate}
               onClose={() => setShowAIBuilder(false)}
+            />
+          )}
+
+          {/* ════════════ ELECTRIFICATION LOAD ADVISOR ════════════ */}
+          {showLoadAdvisor && (
+            <LoadAdvisor
+              onApplyEstimate={applyAIEstimate}
+              onClose={() => setShowLoadAdvisor(false)}
             />
           )}
 
