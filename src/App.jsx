@@ -68,7 +68,7 @@ export default function App() {
       </GyroBackdrop>
     );
   }
-  // Not authenticated — show YOUR original landing (with the field behind it) or the auth screen
+  // Not authenticated — YOUR original landing (field mounted inside it) or the auth screen
   if (!session) {
     if (authMode) {
       return (
@@ -80,12 +80,10 @@ export default function App() {
       );
     }
     return (
-      <GyroBackdrop variant="hero" reskin={false}>
-        <LandingPage
-          onSignIn={() => setAuthMode("signin")}
-          onSignUp={() => setAuthMode("signup")}
-        />
-      </GyroBackdrop>
+      <LandingPage
+        onSignIn={() => setAuthMode("signin")}
+        onSignUp={() => setAuthMode("signup")}
+      />
     );
   }
   // Pricing page

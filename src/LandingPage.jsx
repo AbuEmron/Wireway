@@ -1,9 +1,10 @@
+import GyroField from "./components/GyroField/GyroField";
 import { WirewayMark, WirewayLogo } from "./Logo";
 import { isElite } from "./lib/supabase";
 import DemoReel from "./DemoReel";
 // src/LandingPage.jsx
-// Public landing page shown at wirewaypro.com before the user signs in
-// Converts visitors into signups — headline, features, proof, CTA
+// Your original landing page — unchanged — now with the gyro field behind it.
+// The field is mounted right here so it always shows when this page renders.
 
 export default function LandingPage({ onSignIn, onSignUp }) {
 
@@ -29,7 +30,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
   ];
 
   const style = {
-    page: { minHeight:"100vh", background:"#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", overflowX:"hidden" },
+    page: { minHeight:"100vh", background:"transparent", position:"relative", zIndex:1, fontFamily:"'DM Sans',sans-serif", color:"#fff", overflowX:"hidden" },
     nav: { position:"fixed", top:0, left:0, right:0, zIndex:100, borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.92)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", padding:"0 24px" },
     navInner: { maxWidth:960, margin:"0 auto", height:56, display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 },
     navLink: { padding:"8px 10px", background:"transparent", border:"none", color:"rgba(255,255,255,0.6)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" },
@@ -43,10 +44,9 @@ export default function LandingPage({ onSignIn, onSignUp }) {
 
   return (
     <>
+      <GyroField variant="hero" />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#0a0a0c;overflow-x:hidden}
         @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
         @media(max-width:430px){ .ww-tagline{display:none!important} }
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
