@@ -1,5 +1,5 @@
 // src/Logo.jsx
-// The official Wireway mark — twin plugs forming a W with a bolt between them,
+// The official Wireway Pro mark — twin plugs forming a W with a bolt between them,
 // on the brand blue-to-green gradient chip. Vector recreation of the brand logo
 // so it renders razor-sharp at every size.
 
@@ -9,7 +9,7 @@ export function WirewayMark({ size = 30, glow = false }) {
       width={size} height={size} viewBox="0 0 96 96"
       fill="none" xmlns="http://www.w3.org/2000/svg"
       style={glow ? { filter: "drop-shadow(0 0 7px rgba(58,169,255,0.4))" } : undefined}
-      aria-label="Wireway"
+      aria-label="Wireway Pro"
     >
       <defs>
         <linearGradient id="wwg" x1="0" y1="0" x2="1" y2="1">
@@ -47,14 +47,14 @@ export function WirewayMark({ size = 30, glow = false }) {
 }
 
 export function WirewayLogo({ size = 34, fontSize = 17, tagline = true }) {
-  // The official lockup: brand chip + "Wireway" + ELECTRICAL ESTIMATOR tagline.
+  // The official lockup: brand chip + "Wireway Pro" + ELECTRICAL ESTIMATOR tagline.
   // Vector mark + system-rendered type = crisp at every size on every platform.
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
       <WirewayMark size={size} />
       <span style={{ display: "inline-flex", flexDirection: "column", lineHeight: 1.05 }}>
         <span style={{ fontFamily: "'Quicksand','DM Sans',sans-serif", fontSize, fontWeight: 700, letterSpacing: "0.01em", whiteSpace: "nowrap", color: "#fff" }}>
-          Wireway
+          Wireway<span style={{ fontWeight: 800, color: "#1f9ee0", marginLeft: Math.max(4, fontSize * 0.22) }}>Pro</span>
         </span>
         {tagline && (
           <span className="ww-tagline" style={{ fontSize: Math.max(7.5, fontSize * 0.40), letterSpacing: "0.24em", color: "rgba(255,255,255,0.5)", fontWeight: 600, whiteSpace: "nowrap", marginTop: 2 }}>
