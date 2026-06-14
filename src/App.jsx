@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import "./styles/tokens.css";
 import { supabase, getProfile } from "./lib/supabase";
 import Landing from "./pages/Landing";
+import GyroBackdrop from "./components/GyroBackdrop";
 import AuthScreen from "./AuthScreen";
 import SubscriptionPage from "./SubscriptionPage";
 import QuotePublicPage from "./QuotePublicPage";
@@ -51,17 +52,23 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, [loadProfile]);
   // Public quote page — no auth needed
-  if (publicQuoteId) return <QuotePublicPage quoteId={publicQuoteId} />;
+  if (publicQuoteId) return (
+    <GyroBackdrop variant="synapse">
+      <QuotePublicPage quoteId={publicQuoteId} />
+    </GyroBackdrop>
+  );
   // Loading splash
   if (loading || session === undefined) {
     return (
-      <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#0a0a0c", flexDirection:"column", gap:16 }}>
-        <img src="/logo192.png" alt="Wireway" style={{ height:56, width:56, borderRadius:12, objectFit:"cover" }} />
-        <div style={{ fontSize:12, color:"rgba(255,255,255,0.3)", fontFamily:"sans-serif", letterSpacing:"0.05em" }}>Loading Wireway...</div>
-      </div>
+      <GyroBackdrop variant="circuit">
+        <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"transparent", flexDirection:"column", gap:16 }}>
+          <img src="/logo192.png" alt="Wireway" style={{ height:56, width:56, borderRadius:12, objectFit:"cover" }} />
+          <div style={{ fontSize:12, color:"rgba(255,255,255,0.3)", fontFamily:"sans-serif", letterSpacing:"0.05em" }}>Loading Wireway...</div>
+        </div>
+      </GyroBackdrop>
     );
   }
-  // Not authenticated — show landing page or auth screen
+  // Not authenticated — show landing page or auth screen (each brings its own field)
   if (!session) {
     if (authMode) {
       return (
@@ -82,23 +89,27 @@ export default function App() {
   // Pricing page
   if (showPricing) {
     return (
-      <SubscriptionPage
-        user={session.user}
-        profile={profile}
-        onClose={() => setShowPricing(false)}
-        onUpgrade={() => { setShowPricing(false); loadProfile(session.user.id); }}
-      />
+      <GyroBackdrop variant="horizon">
+        <SubscriptionPage
+          user={session.user}
+          profile={profile}
+          onClose={() => setShowPricing(false)}
+          onUpgrade={() => { setShowPricing(false); loadProfile(session.user.id); }}
+        />
+      </GyroBackdrop>
     );
   }
   // Main app
   return (
-    <Wireway
-      user={session.user}
-      profile={profile}
-      onProfileUpdate={setProfile}
-      onShowPricing={() => setShowPricing(true)}
-      paymentBanner={paymentBanner}
-      onClearBanner={() => setPaymentBanner("")}
-    />
+    <GyroBackdrop variant="steel">
+      <Wireway
+        user={session.user}
+        profile={profile}
+        onProfileUpdate={setProfile}
+        onShowPricing={() => setShowPricing(true)}
+        paymentBanner={paymentBanner}
+        onClearBanner={() => setPaymentBanner("")}
+      />
+    </GyroBackdrop>
   );
 }
