@@ -1,0 +1,56 @@
+.ww-veil-quote {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(130% 100% at 50% 40%, transparent 45%, rgba(5,7,11,.5));
+}
+
+.ww-quote { display: flex; flex-direction: column; align-items: center; padding: clamp(18px, 3vw, 40px); }
+
+.ww-quote .bar { width: 100%; max-width: 780px; display: flex; align-items: center; justify-content: space-between; }
+.ww-quote .mode { font-family: var(--font-mono); font-size: 11px; letter-spacing: .16em; color: var(--signal); display: flex; align-items: center; gap: 8px; }
+.ww-quote .mode .d { width: 7px; height: 7px; border-radius: 50%; background: var(--signal); box-shadow: 0 0 8px var(--signal); }
+
+.ww-quote .core { flex: 1; width: 100%; max-width: 780px; display: flex; flex-direction: column; justify-content: center; gap: 26px; min-height: 78vh; }
+.ww-quote .lead { font-family: var(--font-display); font-weight: 500; font-size: clamp(26px, 5vw, 40px); line-height: 1.06; letter-spacing: -.01em; }
+.ww-quote .lead .em { color: var(--signal); }
+.ww-quote .sub { color: var(--steel); font-size: 15px; line-height: 1.5; max-width: 48ch; margin-top: 14px; }
+
+.ww-quote .composer {
+  background: linear-gradient(180deg, rgba(17,22,31,.9), rgba(17,22,31,.78));
+  border: 1px solid var(--hair); border-radius: 16px; padding: 6px;
+  backdrop-filter: blur(12px); box-shadow: 0 18px 50px rgba(0,0,0,.35);
+}
+.ww-quote .composer .row { display: flex; align-items: flex-end; gap: 10px; padding: 12px 12px 10px; }
+.ww-quote .composer textarea {
+  flex: 1; background: transparent; border: none; resize: none; color: var(--paper);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.5; min-height: 54px; outline: none;
+}
+.ww-quote .composer textarea::placeholder { color: var(--steel); }
+.ww-quote .send {
+  flex: none; width: 42px; height: 42px; border: none; border-radius: 11px; background: var(--copper);
+  color: var(--ink); font-size: 18px; cursor: pointer; display: grid; place-items: center;
+  transition: transform .12s, background .2s, box-shadow .2s;
+}
+.ww-quote .send:hover { background: #ECA05C; box-shadow: 0 8px 24px rgba(224,144,74,.3); }
+.ww-quote .send:active { transform: translateY(1px); }
+.ww-quote .send:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+.ww-quote .chips { display: flex; gap: 8px; padding: 0 12px 12px; flex-wrap: wrap; }
+.ww-quote .chip { font-size: 12.5px; color: var(--steel); border: 1px solid var(--hair); border-radius: 999px; padding: 7px 13px; cursor: pointer; transition: color .2s, border-color .2s; }
+.ww-quote .chip:hover { color: var(--paper); border-color: var(--steel); }
+
+.ww-quote .gen { background: linear-gradient(180deg, rgba(17,22,31,.84), rgba(17,22,31,.7)); border: 1px solid var(--hair); border-radius: 16px; overflow: hidden; backdrop-filter: blur(10px); }
+.ww-quote .ghead { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--hair); }
+.ww-quote .ghead .t { font-family: var(--font-display); font-weight: 500; font-size: 14px; }
+.ww-quote .ghead .typing { font-family: var(--font-mono); font-size: 10px; letter-spacing: .14em; color: var(--signal); display: flex; gap: 4px; align-items: center; }
+.ww-quote .ghead .typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--signal); animation: ww-bob 1s infinite; }
+.ww-quote .ghead .typing i:nth-child(2) { animation-delay: .15s; }
+.ww-quote .ghead .typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes ww-bob { 0%, 100% { opacity: .25; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+.ww-quote .gline { display: flex; justify-content: space-between; padding: 12px 18px; font-size: 13.5px; border-top: 1px solid var(--hair); }
+.ww-quote .gline:first-of-type { border-top: none; }
+.ww-quote .gline .l .c { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--steel); margin-top: 3px; }
+.ww-quote .gline .v { font-family: var(--font-mono); color: var(--paper); }
+.ww-quote .gtot { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; border-top: 1px solid var(--hair); background: rgba(224,144,74,.05); }
+.ww-quote .gtot .l { font-family: var(--font-display); font-size: 15px; }
+.ww-quote .gtot .v { font-family: var(--font-mono); font-size: 22px; font-weight: 600; color: var(--copper); }
+
+@media (prefers-reduced-motion: reduce) { .ww-quote .ghead .typing i { animation: none; } }
