@@ -362,6 +362,10 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
   const upd = (id, data) => setEntries(p => ({ ...p, [id]: data }));
 
+  // Catalog labor dollars are authored at this base hourly rate; we scale them
+  // by the user's chosen rate so the totals stay reactive when the rate changes.
+  const BASE_HOURLY = 85;
+
   const { activeItems, totMat, totLab, totHrs, totClientBuysMat } = useMemo(() => {
     const items = ALL_SERVICES.filter(s => entries[s.id]?.qty > 0).map(s => {
       const e = entries[s.id];
@@ -369,7 +373,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
       const qty = e.qty;
       const cBuys = e.clientBuys ?? clientBuysAll;
       const mat  = s.materialCost * v.m * qty;
-      const lab  = s.laborCost    * v.m * qty;
+      const lab  = s.laborCost    * v.m * qty * (hourlyRate / BASE_HOURLY);
       const hrs  = s.laborHours   * v.m * qty;
       return { ...s, qty, variantLabel: v.label, mat, lab, hrs, cBuys, lineTotal: cBuys ? lab : mat + lab };
     });
@@ -386,7 +390,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
       totHrs:           all.reduce((a,i) => a + i.hrs, 0),
       totClientBuysMat: all.reduce((a,i) => a + (i.cBuys ? i.mat : 0), 0),
     };
-  }, [entries, clientBuysAll, customItems]);
+  }, [entries, clientBuysAll, customItems, hourlyRate]);
 
   const subtotal   = totMat + totLab;
   const markupAmt  = subtotal * markup;
