@@ -1,21 +1,33 @@
 // api/create-subscription.js
-// Creates a Stripe Billing checkout session for Wireway Pro subscription
-//
-// Env vars needed in Vercel:
-//   STRIPE_SECRET_KEY           — Wireway's Stripe secret key
-//   STRIPE_PRO_PRICE_ID         — Price ID for Wireway Pro ($12/mo) from Stripe dashboard
-//   STRIPE_TEAMS_PRICE_ID       — Price ID for Wireway Teams ($29/mo)
-//   STRIPE_ELITE_PRICE_ID       — Price ID for Wireway Elite ($99/mo industrial)
-//   SUPABASE_URL                — your Supabase project URL
-//   SUPABASE_SERVICE_ROLE_KEY   — service role key (bypasses RLS for server-side updates)
-
+// Creates a Stripe Billing checkout session for a Wireway subscription.
+// SECURITY: now requires a valid Supabase login token. The user id and email come
+// from that verified token — NOT from the request body — so a request can't be
+// aimed at someone else's account. The plan still comes from the body, but it only
+// selects which fixed server-side Price ID to charge (the browser can't set a price).
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { createClient } = require("@supabase/supabase-js");
-
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+async function verifyUser(req) {
+  const token = (req.headers.authorization || "").replace("Bearer ", "").trim();
+  if (!token) return null;
+  try {
+    const r = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        apikey: process.env.REACT_APP_SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!r.ok) return null;
+    const user = await r.json();
+    return user?.id ? user : null;
+  } catch {
+    return null;
+  }
+}
 
 module.exports = async function handler(req, res) {
   const ALLOWED = ["https://www.wirewaypro.com", "https://wirewaypro.com", "https://wireway.cc", "https://www.wireway.cc"];
@@ -23,23 +35,25 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  try {
-    const { userId, email, plan = "pro" } = req.body;
-    if (!userId || !email) return res.status(400).json({ error: "userId and email required" });
+  // ── Auth: trust the token, not the body ──
+  const user = await verifyUser(req);
+  if (!user) return res.status(401).json({ error: "Sign in required" });
 
-    // Get or create Stripe customer
+  try {
+    const { plan = "pro" } = req.body || {};
+    const userId = user.id;
+    const email  = user.email;
+
+    // Get or create the Stripe customer for this user
     const { data: profile } = await supabase
       .from("profiles")
       .select("stripe_customer_id")
       .eq("id", userId)
       .single();
-
     let customerId = profile?.stripe_customer_id;
-
     if (!customerId) {
       const customer = await stripe.customers.create({
         email,
@@ -56,7 +70,6 @@ module.exports = async function handler(req, res) {
       : process.env.STRIPE_PRO_PRICE_ID;
     if (!priceId) return res.status(400).json({ error: "Price not configured for plan: " + plan });
 
-    // Create Stripe Billing checkout session
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
@@ -70,10 +83,9 @@ module.exports = async function handler(req, res) {
       cancel_url:  `${origin}/?subscription=cancelled`,
       metadata: { supabase_user_id: userId, plan },
     });
-
     return res.status(200).json({ url: session.url });
   } catch (err) {
     console.error("Subscription checkout error:", err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: "Could not start checkout." });
   }
 };

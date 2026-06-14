@@ -3,7 +3,7 @@
 // Matches Wireway's dark gold UI exactly
 
 import { useState } from "react";
-import { isElite } from "./lib/supabase";
+import { isElite, supabase } from "./lib/supabase";
 
 const PLANS = [
   {
@@ -151,12 +151,16 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
     if (loading) return;
     setLoading(planId);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { alert("Please sign in again."); setLoading(""); return; }
       const res = await fetch("/api/create-subscription", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          userId: user.id,
-          email:  user.email,
           plan:   planId,
           annual,
         }),
@@ -177,10 +181,16 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
   const handleManageBilling = async () => {
     setLoading("portal");
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { alert("Please sign in again."); setLoading(""); return; }
       const res = await fetch("/api/billing-portal", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (data.url) window.open(data.url, "_blank");
