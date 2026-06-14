@@ -51,9 +51,9 @@ export default function App() {
     );
     return () => subscription.unsubscribe();
   }, [loadProfile]);
-  // Public quote page — no auth needed
+  // Public quote page — no auth needed (original colors + field)
   if (publicQuoteId) return (
-    <GyroBackdrop variant="synapse">
+    <GyroBackdrop variant="synapse" reskin={false}>
       <QuotePublicPage quoteId={publicQuoteId} />
     </GyroBackdrop>
   );
@@ -86,10 +86,10 @@ export default function App() {
       />
     );
   }
-  // Pricing page
+  // Pricing page (original colors + field)
   if (showPricing) {
     return (
-      <GyroBackdrop variant="horizon">
+      <GyroBackdrop variant="horizon" reskin={false}>
         <SubscriptionPage
           user={session.user}
           profile={profile}
@@ -99,9 +99,9 @@ export default function App() {
       </GyroBackdrop>
     );
   }
-  // Main app
+  // Main app (original colors + field)
   return (
-    <GyroBackdrop variant="steel">
+    <GyroBackdrop variant="steel" reskin={false}>
       <Wireway
         user={session.user}
         profile={profile}
