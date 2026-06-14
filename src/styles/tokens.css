@@ -1,0 +1,59 @@
+/* Wireway Pro — design tokens (single source of truth)
+   Import this ONCE, high up in your app (e.g. in main.jsx / App entry):
+     import './styles/tokens.css'
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* color */
+  --ink:         #0A0E14;  /* panel-night background      */
+  --ink-2:       #11161F;  /* raised surfaces / cards     */
+  --copper:      #E0904A;  /* conductor · primary · "hot" */
+  --copper-deep: #B96E2E;  /* pressed / depth             */
+  --signal:      #4FD1C5;  /* live current · data that's on */
+  --steel:       #7B8696;  /* conduit gray · secondary    */
+  --paper:       #F2F0EA;  /* primary text (warm white)   */
+
+  /* type */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* misc */
+  --hair: rgba(123, 134, 150, 0.16);
+  --r:    14px;
+}
+
+/* base — applied globally because this becomes the app shell.
+   If you only want it on Wireway-Pro routes, scope these to a wrapper instead. */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Brand: keeps YOUR existing logo ----
+   Brand.jsx renders your logo file from /public. The PRO pill is optional. */
+.ww-brand { display: flex; align-items: baseline; gap: 8px; line-height: 1; }
+.ww-brand__logo { height: 1.15em; width: auto; display: block; }
+.ww-brand__word {
+  font-family: var(--font-display);
+  letter-spacing: 0.14em;
+  font-weight: 600;
+}
+.ww-brand__pro {
+  font-family: var(--font-mono);
+  font-size: 0.52em;
+  letter-spacing: 0.22em;
+  color: var(--ink);
+  background: var(--copper);
+  padding: 3px 6px 2px;
+  border-radius: 5px;
+  transform: translateY(-2px);
+  font-weight: 600;
+}
