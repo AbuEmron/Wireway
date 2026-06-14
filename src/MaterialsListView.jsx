@@ -27,10 +27,38 @@ function savePullCache(sig, list, checked) {
 
 // Parse the AI's JSON, recovering gracefully if the response was cut off mid-list.
 function parsePullList(raw) {
-  const s = raw.slice(raw.indexOf("{"));
-  // 1. Clean parse
-  try { return JSON.parse(s.slice(0, s.lastIndexOf("}") + 1)); } catch { /* try salvage */ }
-  // 2. Truncated mid-items: cut back to the last complete item and close the structure
+  if (!raw || typeof raw !== "string") return null;
+  let s = raw.trim();
+  const start = s.indexOf("{");
+  if (start === -1) return null;      // no JSON object at all
+  s = s.slice(start);
+
+  // 1. Clean parse — trim to the last closing brace (handles trailing whitespace)
+  const lastClose = s.lastIndexOf("}");
+  if (lastClose > -1) {
+    try { return JSON.parse(s.slice(0, lastClose + 1)); } catch { /* keep trying */ }
+  }
+
+  // 2. Brace-matched parse — pull out the first balanced {...} block, ignoring any
+  //    prose or citations the model may have added before/after the JSON.
+  let depth = 0, inStr = false, esc = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === "\\") esc = true;
+      else if (ch === '"') inStr = false;
+    } else if (ch === '"') inStr = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        try { return JSON.parse(s.slice(0, i + 1)); } catch { break; }
+      }
+    }
+  }
+
+  // 3. Truncated mid-items: cut back to the last complete item and close the structure
   let cut = s.lastIndexOf("},");
   while (cut > -1) {
     try {
@@ -135,7 +163,7 @@ Respond ONLY with JSON, no markdown fences:
   const card = { background:"var(--card)", border:"1px solid var(--line)", borderRadius:12 };
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:350, background:"var(--bg-scene)", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
+    <div style={{ position:"fixed", inset:0, zIndex:350, background:"var(--bg0, #0a0a0c)", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
       {/* Header */}
       <div style={{ borderBottom:"1px solid var(--line)", background:"rgba(10,10,12,0.92)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:10, padding:"0 20px" }}>
         <div style={{ maxWidth:680, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
