@@ -289,11 +289,11 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
                 <div style={{ width:32, height:32, borderRadius:8, background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.25),rgba(var(--accent-rgb),0.08))", border:"1px solid rgba(var(--accent-rgb),0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>⚡</div>
                 <span style={{ fontFamily:"'Syne',sans-serif", fontSize:20, fontWeight:800, color:"#fff", letterSpacing:"-0.03em" }}>AI Quote Builder</span>
               </div>
-              <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginLeft:42 }}>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", marginLeft:42 }}>
                 Describe the job — AI maps it to NEC services automatically
               </div>
             </div>
-            <button onClick={onClose} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.35)", fontSize:24, cursor:"pointer", padding:"0 4px", marginTop:4 }}>✕</button>
+            <button onClick={onClose} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.5)", fontSize:24, cursor:"pointer", padding:"0 4px", marginTop:4 }}>✕</button>
           </div>
 
           {/* Input area */}
@@ -327,10 +327,10 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
             {/* Example prompts */}
             {!prompt && (
               <div style={{ marginTop:10 }}>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:7 }}>Try these</div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:7 }}>Try these</div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
                   {EXAMPLE_PROMPTS.slice(0, 4).map((ex, i) => (
-                    <button key={i} onClick={() => setPrompt(ex)} style={{ padding:"4px 10px", borderRadius:6, border:"1px solid var(--line-strong)", background:"var(--card)", color:"rgba(255,255,255,0.4)", fontSize:10, cursor:"pointer", fontFamily:"inherit", textAlign:"left", lineHeight:1.4, transition:"all 0.15s" }}
+                    <button key={i} onClick={() => setPrompt(ex)} style={{ padding:"4px 10px", borderRadius:6, border:"1px solid var(--line-strong)", background:"var(--card)", color:"rgba(255,255,255,0.5)", fontSize:10, cursor:"pointer", fontFamily:"inherit", textAlign:"left", lineHeight:1.4, transition:"all 0.15s" }}
                       onMouseEnter={e => { e.currentTarget.style.background="rgba(255,255,255,0.07)"; e.currentTarget.style.color="#fff"; }}
                       onMouseLeave={e => { e.currentTarget.style.background="rgba(255,255,255,0.03)"; e.currentTarget.style.color="rgba(255,255,255,0.4)"; }}>
                       {ex.length > 55 ? ex.slice(0, 55) + "..." : ex}
@@ -342,7 +342,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
 
             {/* Analyze button */}
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:12 }}>
-              <span style={{ fontSize:10, color:"rgba(255,255,255,0.2)" }}>⌘ + Enter to analyze</span>
+              <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)" }}>⌘ + Enter to analyze</span>
               <button
                 onClick={analyze}
                 disabled={!prompt.trim() || loading}
@@ -395,11 +395,11 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
                 <div style={{ padding:"12px 16px", borderBottom:"1px solid var(--line)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <div>
                     <span style={{ fontSize:13, fontWeight:700, color:"#fff" }}>{result.items.length} services identified</span>
-                    <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginLeft:8 }}>· adjust qty or uncheck</span>
+                    <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginLeft:8 }}>· adjust qty or uncheck</span>
                   </div>
                   <div style={{ display:"flex", gap:8 }}>
                     <button onClick={() => { const s = {}; result.items.forEach(i => s[i.id]=true); setSelected(s); }} style={{ fontSize:10, color:"rgba(var(--accent-rgb),0.7)", background:"transparent", border:"none", cursor:"pointer", fontFamily:"inherit" }}>Select all</button>
-                    <button onClick={() => setSelected({})} style={{ fontSize:10, color:"rgba(255,255,255,0.35)", background:"transparent", border:"none", cursor:"pointer", fontFamily:"inherit" }}>Clear</button>
+                    <button onClick={() => setSelected({})} style={{ fontSize:10, color:"rgba(255,255,255,0.5)", background:"transparent", border:"none", cursor:"pointer", fontFamily:"inherit" }}>Clear</button>
                   </div>
                 </div>
 
@@ -416,8 +416,8 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:4 }}>
                         <span style={{ fontSize:13, fontWeight:600, color: selected[item.id] ? "#fff" : "rgba(255,255,255,0.4)", transition:"color 0.15s" }}>{item.label}</span>
-                        <span style={{ fontSize:9, color:"rgba(var(--accent-rgb),0.5)", fontFamily:"'DM Mono',monospace" }}>{item.nec}</span>
-                        <span style={{ fontSize:10, color:"rgba(255,255,255,0.3)", background:"rgba(255,255,255,0.05)", padding:"1px 6px", borderRadius:4 }}>{item.variantLabel}</span>
+                        <span style={{ fontSize:10, color:"rgba(var(--accent-rgb),0.5)", fontFamily:"'DM Mono',monospace" }}>{item.nec}</span>
+                        <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)", background:"rgba(255,255,255,0.05)", padding:"1px 6px", borderRadius:4 }}>{item.variantLabel}</span>
                       </div>
                       {/* Quantity stepper (does not toggle the row) */}
                       <div onClick={e => e.stopPropagation()} style={{ display:"inline-flex", alignItems:"center", gap:8, marginBottom:5 }}>
@@ -425,13 +425,13 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
                         <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, fontWeight:700, color:"rgba(255,255,255,0.85)", minWidth:28, textAlign:"center" }}>× {item.qty}</span>
                         <button className="qty-btn" onClick={() => changeQty(item.id, +1)} aria-label="increase quantity">+</button>
                       </div>
-                      <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", lineHeight:1.4 }}>{item.reason}</div>
+                      <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.4 }}>{item.reason}</div>
                     </div>
 
                     {/* Line total */}
                     <div style={{ textAlign:"right", flexShrink:0 }}>
                       <div style={{ fontFamily:"'DM Mono',monospace", fontSize:14, fontWeight:600, color: selected[item.id] ? "var(--accent)" : "rgba(255,255,255,0.25)", transition:"color 0.15s" }}>${(effBuys(item) ? item.lab : item.lineTotal).toLocaleString()}</div>
-                      <div style={{ fontSize:9, color:"rgba(255,255,255,0.25)", fontFamily:"'DM Mono',monospace" }}>{item.hrs.toFixed(1)}h</div>
+                      <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace" }}>{item.hrs.toFixed(1)}h</div>
                     </div>
                   </div>
                 ))}
@@ -447,7 +447,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
                     { label:"Subtotal",   val:`$${subtotal.toLocaleString()}` },
                   ].map(s => (
                     <div key={s.label} style={{ textAlign:"center" }}>
-                      <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>{s.label}</div>
+                      <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>{s.label}</div>
                       <div style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"var(--accent)" }}>{s.val}</div>
                     </div>
                   ))}
@@ -457,7 +457,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
                     👤 Client supplies ${clientMat.toLocaleString()} in materials — not included in your price
                   </div>
                 )}
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", textAlign:"center", marginTop:8 }}>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textAlign:"center", marginTop:8 }}>
                   Subtotal before markup · add your margin in the estimate
                 </div>
               </div>
@@ -469,12 +469,12 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
                   Apply {selectedItems.length} service{selectedItems.length !== 1 ? "s" : ""} to Estimate →
                 </button>
                 <button onClick={() => { setResult(null); setPrompt(""); setSelected({}); }}
-                  style={{ padding:"14px 18px", background:"transparent", border:"1px solid var(--line-strong)", borderRadius:11, color:"rgba(255,255,255,0.4)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                  style={{ padding:"14px 18px", background:"transparent", border:"1px solid var(--line-strong)", borderRadius:11, color:"rgba(255,255,255,0.5)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                   Start over
                 </button>
               </div>
 
-              <div style={{ textAlign:"center", fontSize:10, color:"rgba(255,255,255,0.18)", marginTop:10 }}>
+              <div style={{ textAlign:"center", fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:10 }}>
                 Powered by Claude AI · Review all items before sending to client · Always verify NEC compliance
               </div>
             </div>

@@ -172,7 +172,7 @@ Respond ONLY with JSON, no markdown fences:
             {list && (
               <button onClick={copyList} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(var(--accent-rgb),0.35)", background:"rgba(var(--accent-rgb),0.08)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Copy List</button>
             )}
-            <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>✕ Close</button>
+            <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>✕ Close</button>
           </div>
         </div>
       </div>
@@ -182,7 +182,7 @@ Respond ONLY with JSON, no markdown fences:
           <div style={{ textAlign:"center", padding:"70px 20px" }}>
             <div style={{ display:"inline-block", width:22, height:22, border:"2px solid rgba(var(--accent-rgb),0.2)", borderTopColor:"var(--accent)", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-            <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)", marginTop:14 }}>Building your pull list and checking live prices at Home Depot & Lowe's for {activeItems.length} service{activeItems.length !== 1 ? "s" : ""}... (~45-60s)</div>
+            <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", marginTop:14 }}>Building your pull list and checking live prices at Home Depot & Lowe's for {activeItems.length} service{activeItems.length !== 1 ? "s" : ""}... (~45-60s)</div>
           </div>
         )}
 
@@ -199,22 +199,22 @@ Respond ONLY with JSON, no markdown fences:
             <div style={{ ...card, padding:"14px 16px", marginBottom:14, border: diff >= 0 ? "1px solid rgba(100,220,130,0.25)" : "1px solid rgba(232,126,126,0.3)" }}>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, textAlign:"center" }}>
                 <div>
-                  <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Quote budget</div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Quote budget</div>
                   <div style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600 }}>${Math.round(totMat).toLocaleString()}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Est. shelf cost</div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Est. shelf cost</div>
                   <div style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"var(--accent)" }}>${Math.round(estTotal).toLocaleString()}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>{diff >= 0 ? "Cushion" : "Over budget"}</div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>{diff >= 0 ? "Cushion" : "Over budget"}</div>
                   <div style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color: diff >= 0 ? "#7dcea0" : "#e87e7e" }}>{diff >= 0 ? "+" : "−"}${Math.abs(Math.round(diff)).toLocaleString()}</div>
                 </div>
               </div>
             </div>
 
             {/* Progress while shopping */}
-            <div style={{ fontSize:10.5, color:"rgba(255,255,255,0.3)", marginBottom:12, textAlign:"center" }}>
+            <div style={{ fontSize:10.5, color:"rgba(255,255,255,0.5)", marginBottom:12, textAlign:"center" }}>
               Tap items as you load the cart — {checkedCount}/{allItems.length} picked
             </div>
 
@@ -235,12 +235,12 @@ Respond ONLY with JSON, no markdown fences:
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontSize:13, fontWeight:600, textDecoration: done ? "line-through" : "none" }}>{item.name}</div>
-                        <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:"'DM Mono',monospace" }}>
+                        <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace" }}>
                           {item.qty} {item.unit}{item.spec ? ` · ${item.spec}` : ""} · ~${(item.price || 0).toFixed(2)}/{item.unit}
                         </div>
                         <div style={{ display:"flex", gap:8, marginTop:4 }}>
-                          <a href={hdLink(item.name)} target="_blank" rel="noreferrer" style={{ fontSize:9.5, color:"#e8946a", textDecoration:"none", fontWeight:700 }}>Home Depot ↗</a>
-                          <a href={lwLink(item.name)} target="_blank" rel="noreferrer" style={{ fontSize:9.5, color:"#7eb8e8", textDecoration:"none", fontWeight:700 }}>Lowe's ↗</a>
+                          <a href={hdLink(item.name)} target="_blank" rel="noreferrer" style={{ fontSize:10, color:"#e8946a", textDecoration:"none", fontWeight:700 }}>Home Depot ↗</a>
+                          <a href={lwLink(item.name)} target="_blank" rel="noreferrer" style={{ fontSize:10, color:"#7eb8e8", textDecoration:"none", fontWeight:700 }}>Lowe's ↗</a>
                         </div>
                       </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
@@ -248,7 +248,7 @@ Respond ONLY with JSON, no markdown fences:
                           ${((item.price || 0) * (item.qty || 1)).toFixed(2)}
                         </div>
                         {(item.hd || item.lw) ? (
-                          <div style={{ fontSize:8.5, fontFamily:"'DM Mono',monospace", marginTop:3, lineHeight:1.5 }}>
+                          <div style={{ fontSize:10, fontFamily:"'DM Mono',monospace", marginTop:3, lineHeight:1.5 }}>
                             {item.hd ? (
                               <div style={{ color: (!item.lw || item.hd <= item.lw) ? "#e8946a" : "rgba(232,148,106,0.45)", fontWeight: (!item.lw || item.hd <= item.lw) ? 800 : 500 }}>
                                 HD ${item.hd.toFixed(2)}{(!item.lw || item.hd <= item.lw) ? " ✓" : ""}
@@ -261,7 +261,7 @@ Respond ONLY with JSON, no markdown fences:
                             ) : null}
                           </div>
                         ) : item.live ? (
-                          <div style={{ fontSize:8, fontWeight:800, letterSpacing:"0.08em", color:"#7dcea0", marginTop:2 }}>● LIVE</div>
+                          <div style={{ fontSize:10, fontWeight:800, letterSpacing:"0.08em", color:"#7dcea0", marginTop:2 }}>● LIVE</div>
                         ) : null}
                       </div>
                     </div>
@@ -291,12 +291,12 @@ Respond ONLY with JSON, no markdown fences:
             })()}
 
             {list.notes && (
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", lineHeight:1.7, marginTop:12, padding:"10px 13px", background:"rgba(var(--accent-rgb),0.04)", border:"1px solid rgba(var(--accent-rgb),0.12)", borderRadius:9 }}>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.7, marginTop:12, padding:"10px 13px", background:"rgba(var(--accent-rgb),0.04)", border:"1px solid rgba(var(--accent-rgb),0.12)", borderRadius:9 }}>
                 💡 {list.notes}
               </div>
             )}
 
-            <div style={{ fontSize:9, color:"rgba(255,255,255,0.2)", textAlign:"center", marginTop:14, lineHeight:1.6 }}>
+            <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textAlign:"center", marginTop:14, lineHeight:1.6 }}>
               Wire, panels, breakers & big-ticket items priced live at Home Depot and Lowe's (✓ = cheaper store); small parts estimated — verify in cart.<br/>Supply houses (CED, City Electric, Graybar) often beat big-box on wire and breakers.
             </div>
           </>

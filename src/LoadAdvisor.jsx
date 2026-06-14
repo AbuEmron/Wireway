@@ -139,7 +139,7 @@ export default function LoadAdvisor({ onApplyEstimate, onClose }) {
     color: active ? color : "rgba(255,255,255,0.45)",
   });
   const inp = { background:"rgba(255,255,255,0.04)", border:"1px solid var(--line-strong)", borderRadius:8, padding:"9px 11px", fontSize:14, color:"#fff", fontFamily:"inherit", width:"100%" };
-  const lbl = { fontSize:10, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:7 };
+  const lbl = { fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:7 };
 
   return (
     <div style={{ position:"fixed", inset:0, zIndex:360, background:"#0a0a0c", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
@@ -147,7 +147,7 @@ export default function LoadAdvisor({ onApplyEstimate, onClose }) {
       <div style={{ borderBottom:"1px solid var(--line)", background:"rgba(10,10,12,0.92)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:10, padding:"0 20px" }}>
         <div style={{ maxWidth:680, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800 }}>⚡ Load Advisor</span>
-          <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>✕ Close</button>
+          <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>✕ Close</button>
         </div>
       </div>
 
@@ -162,7 +162,7 @@ export default function LoadAdvisor({ onApplyEstimate, onClose }) {
           <button onClick={() => setMethod("metered")} style={{ ...chip(method==="metered"), flex:1 }}>Measured usage · 220.87</button>
           <button onClick={() => setMethod("calc")}    style={{ ...chip(method==="calc"),    flex:1 }}>Calculated · 220.83</button>
         </div>
-        <p style={{ fontSize:10.5, color:"rgba(255,255,255,0.32)", lineHeight:1.5, marginBottom:18 }}>
+        <p style={{ fontSize:10.5, color:"rgba(255,255,255,0.5)", lineHeight:1.5, marginBottom:18 }}>
           {method === "metered"
             ? "Best method — uses the home's actual peak demand from a year of utility data. Usually shows the service is fine."
             : "Conservative fallback when there's no usage data — estimates load from the home's size and appliances."}
@@ -186,7 +186,7 @@ export default function LoadAdvisor({ onApplyEstimate, onClose }) {
               <input type="number" inputMode="decimal" placeholder="e.g. 14.5" value={peakKW} onChange={e => setPeakKW(e.target.value)} style={{ ...inp, maxWidth:140 }} />
               <span style={{ fontSize:13, color:"rgba(255,255,255,0.5)" }}>kW peak</span>
             </div>
-            <p style={{ fontSize:10.5, color:"rgba(255,255,255,0.3)", marginTop:8, lineHeight:1.5 }}>
+            <p style={{ fontSize:10.5, color:"rgba(255,255,255,0.5)", marginTop:8, lineHeight:1.5 }}>
               From the utility's bill/portal (highest monthly demand) or 30 days of metering. The calc applies the NEC 125% factor for you.
             </p>
           </div>
@@ -195,19 +195,19 @@ export default function LoadAdvisor({ onApplyEstimate, onClose }) {
             <div style={lbl}>Home details</div>
             <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:12 }}>
               <div style={{ flex:1, minWidth:120 }}>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginBottom:4 }}>Square footage</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginBottom:4 }}>Square footage</div>
                 <input type="number" inputMode="numeric" placeholder="e.g. 1800" value={sqft} onChange={e => setSqft(e.target.value)} style={inp} />
               </div>
               <div style={{ width:88 }}>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginBottom:4 }}>SA circuits</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginBottom:4 }}>SA circuits</div>
                 <input type="number" inputMode="numeric" value={saCircuits} onChange={e => setSaCircuits(e.target.value)} style={inp} />
               </div>
               <div style={{ width:80 }}>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginBottom:4 }}>Laundry</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginBottom:4 }}>Laundry</div>
                 <input type="number" inputMode="numeric" value={laundry} onChange={e => setLaundry(e.target.value)} style={inp} />
               </div>
             </div>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginBottom:7 }}>Existing 240V appliances</div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginBottom:7 }}>Existing 240V appliances</div>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {EXISTING_APPLIANCES.map(ap => (
                 <button key={ap.key} onClick={() => setAppliances(p => ({ ...p, [ap.key]: !p[ap.key] }))} style={chip(!!appliances[ap.key])}>
@@ -230,7 +230,7 @@ export default function LoadAdvisor({ onApplyEstimate, onClose }) {
           </div>
           {load.amps && (
             <div>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginBottom:6 }}>Breaker / circuit size</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginBottom:6 }}>Breaker / circuit size</div>
               <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                 {load.amps.map(x => <button key={x} onClick={() => setAmp(x)} style={chip(amp===x)}>{x}A</button>)}
               </div>
@@ -243,7 +243,7 @@ export default function LoadAdvisor({ onApplyEstimate, onClose }) {
             </div>
           )}
           {load.continuous && !load.custom && (
-            <p style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:8 }}>Continuous load — calculated at 125% per NEC.</p>
+            <p style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:8 }}>Continuous load — calculated at 125% per NEC.</p>
           )}
         </div>
 
@@ -259,7 +259,7 @@ export default function LoadAdvisor({ onApplyEstimate, onClose }) {
                 <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, color: r.fits ? "#7dcea0" : "#e8a85a" }}>
                   {r.fits ? "✓ Service can take it" : "⚠ Over capacity"}
                 </span>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:"rgba(255,255,255,0.4)" }}>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:"rgba(255,255,255,0.5)" }}>
                   {method === "metered" ? "NEC 220.87" : "NEC 220.83"}
                 </span>
               </div>
@@ -270,7 +270,7 @@ export default function LoadAdvisor({ onApplyEstimate, onClose }) {
                   { l: r.fits ? "Headroom" : "Over by", v:`${a(Math.abs(r.headroomA))}A`, c: r.fits ? "#7dcea0" : "#e8a85a" },
                 ].map(x => (
                   <div key={x.l}>
-                    <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>{x.l}</div>
+                    <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>{x.l}</div>
                     <div style={{ fontFamily:"'DM Mono',monospace", fontSize:18, fontWeight:600, color:x.c }}>{x.v}</div>
                   </div>
                 ))}
@@ -292,13 +292,13 @@ export default function LoadAdvisor({ onApplyEstimate, onClose }) {
                     border: fix==="manage" ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid var(--line-strong)",
                     background: fix==="manage" ? "rgba(var(--accent-rgb),0.08)" : "rgba(255,255,255,0.02)" }}>
                     <div style={{ fontSize:13, fontWeight:700, color: fix==="manage" ? "var(--accent)" : "#fff", marginBottom:3 }}>{fix==="manage" ? "● " : "○ "}Keep the service — add load management</div>
-                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", lineHeight:1.5 }}>A smart panel or EMS (NEC 625.42 / 220.70) lets the new load run only when there's spare capacity. Cheapest path — no service upgrade.</div>
+                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.5 }}>A smart panel or EMS (NEC 625.42 / 220.70) lets the new load run only when there's spare capacity. Cheapest path — no service upgrade.</div>
                   </button>
                   <button onClick={() => setFix("upgrade")} style={{ textAlign:"left", padding:"13px 15px", borderRadius:11, cursor:"pointer", fontFamily:"inherit",
                     border: fix==="upgrade" ? "1px solid rgba(var(--accent-rgb),0.5)" : "1px solid var(--line-strong)",
                     background: fix==="upgrade" ? "rgba(var(--accent-rgb),0.08)" : "rgba(255,255,255,0.02)" }}>
                     <div style={{ fontSize:13, fontWeight:700, color: fix==="upgrade" ? "var(--accent)" : "#fff", marginBottom:3 }}>{fix==="upgrade" ? "● " : "○ "}Upgrade the service — {upgrade.label}</div>
-                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", lineHeight:1.5 }}>Full headroom for this and future loads. Higher cost, but the permanent fix.</div>
+                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.5 }}>Full headroom for this and future loads. Higher cost, but the permanent fix.</div>
                   </button>
                 </div>
               </div>
@@ -314,12 +314,12 @@ export default function LoadAdvisor({ onApplyEstimate, onClose }) {
                        : `Add ${load.cat ? load.label + " + " : ""}${fix==="upgrade" ? upgrade.label : "load management"} to quote →`}
             </button>
             {load.custom && !load.cat && (
-              <p style={{ fontSize:10.5, color:"rgba(255,255,255,0.3)", textAlign:"center", marginTop:8 }}>
+              <p style={{ fontSize:10.5, color:"rgba(255,255,255,0.5)", textAlign:"center", marginTop:8 }}>
                 Custom load isn't in the catalog — add its circuit line manually after.
               </p>
             )}
 
-            <p style={{ fontSize:10, color:"rgba(255,255,255,0.28)", textAlign:"center", marginTop:16, lineHeight:1.6 }}>
+            <p style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textAlign:"center", marginTop:16, lineHeight:1.6 }}>
               Advisory estimate from the entered figures. Confirm with a full load calculation and your AHJ before bidding or installing.
             </p>
           </>
