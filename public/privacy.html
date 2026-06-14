@@ -1,19 +1,82 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Privacy Policy — Wireway</title></head>
-<body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:720px;margin:0 auto;padding:48px 24px;line-height:1.8;color:#1a1a1c;background:#fff">
-<a href="/" style="color:#1273d2;text-decoration:none">&larr; wirewaypro.com</a>
-<h1>Privacy Policy</h1>
-<p><em>Last updated: June 2026</em></p>
-<p>Wireway ("we," "our") provides electrical estimating software at wirewaypro.com. This policy explains what we collect and how it's used.</p>
-<h2 style="margin-top:32px;font-size:18px">What we collect</h2>
-<p>Account information (email, password — stored securely via Supabase authentication), business profile details you enter (company name, contact info, license number), and the content you create (estimates, client records, job photos). Payment processing is handled entirely by Stripe; we never see or store card numbers.</p>
-<h2 style="margin-top:32px;font-size:18px">How we use it</h2>
-<p>Solely to operate the service: storing your estimates, generating proposals, processing payments you initiate, and powering AI features (job descriptions you submit to the AI Quote Builder are processed by Anthropic's API to generate estimates and are not used to train models). We do not sell your data. We do not share your client records with anyone.</p>
-<h2 style="margin-top:32px;font-size:18px">Data storage &amp; security</h2>
-<p>Data is stored with Supabase (PostgreSQL) with row-level security ensuring each account can only access its own records. Connections are encrypted via HTTPS.</p>
-<h2 style="margin-top:32px;font-size:18px">Your rights</h2>
-<p>You can edit or delete your clients and quotes in-app at any time. To delete your account and all associated data, contact us and we'll complete it within 30 days.</p>
-<h2 style="margin-top:32px;font-size:18px">Contact</h2>
-<p>Questions: <a href="mailto:support@wirewaypro.com" style="color:#1273d2">support@wirewaypro.com</a></p>
-</body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Wireway</title>
+<style>
+  :root { --accent:#f0a818; --bg:#0a0a0c; --ink:#e9e9ec; --muted:#9a9aa2; --line:rgba(255,255,255,0.08); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.7; -webkit-font-smoothing:antialiased; }
+  .bar { position:sticky; top:0; background:rgba(10,10,12,0.9); backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line); padding:14px 20px; }
+  .bar .wrap { max-width:720px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; }
+  .brand { font-weight:800; letter-spacing:-0.02em; font-size:17px; color:#fff; }
+  .brand span { color:var(--accent); }
+  .back { color:var(--muted); text-decoration:none; font-size:13px; }
+  .back:hover { color:var(--ink); }
+  main { max-width:720px; margin:0 auto; padding:28px 20px 80px; }
+  h1 { font-size:26px; letter-spacing:-0.02em; margin:8px 0 4px; color:#fff; }
+  h2 { font-size:16px; margin:30px 0 8px; color:var(--accent); letter-spacing:-0.01em; }
+  p { margin:10px 0; color:var(--ink); }
+  ul { margin:10px 0; padding-left:22px; }
+  li { margin:6px 0; color:var(--ink); }
+  strong { color:#fff; }
+  a { color:var(--accent); }
+  .eff { color:var(--muted); font-size:13px; }
+  footer { max-width:720px; margin:0 auto; padding:24px 20px 60px; border-top:1px solid var(--line);
+    color:var(--muted); font-size:12px; }
+</style>
+</head>
+<body>
+  <div class="bar"><div class="wrap">
+    <div class="brand">Wire<span>way</span></div>
+    <a class="back" href="/">&larr; Back to app</a>
+  </div></div>
+  <main>
+<h1>Wireway — Privacy Policy</h1>
+<p class="eff">Effective date: June 14, 2026</p>
+<p>This Privacy Policy explains how Jalil Muhammad (operating as Wireway) ("Wireway," "we," "us") collects, uses, and shares information when you use Wireway (the "Service"). By using the Service, you agree to this Policy.</p>
+<h2>1. Information We Collect</h2>
+<p><strong>Information you provide:</strong></p>
+<ul>
+<li>Account information — your name, email address, password, and business details.</li>
+<li>Content you create — estimates, quotes, job details, material lists, invoices, and notes.</li>
+<li>Customer information you enter — the names, contact details, and job details of your own clients.</li>
+<li>Files you upload — such as job photos.</li>
+</ul>
+<p><strong>Payment information:</strong> When you subscribe, payment is processed by our payment processor (Stripe). We do not store your full card number; we receive limited details such as your subscription status and the last four digits of your card.</p>
+<p><strong>Information collected automatically:</strong> Basic technical and usage data such as device and browser type, IP address, pages used, and error/diagnostic logs, used to operate, secure, and improve the Service.</p>
+<h2>2. How We Use Information</h2>
+<p>We use information to: provide and maintain the Service; authenticate you and secure your account; process subscriptions and payments; generate the estimates, quotes, and other outputs you request; provide AI-assisted features; respond to support requests; detect, prevent, and fix problems and abuse; and comply with legal obligations.</p>
+<h2>3. How We Share Information</h2>
+<p>We do <strong>not</strong> sell your personal information. We share information only as follows:</p>
+<ul>
+<li><strong>Service providers</strong> who help us operate the Service, under contract and limited to what they need — including our database/hosting provider (Supabase), payment processor (Stripe), hosting/deployment provider (Vercel), and AI provider (Anthropic).</li>
+<li><strong>Legal and safety</strong> — when required by law, legal process, or to protect rights, safety, and the integrity of the Service.</li>
+<li><strong>Business transfer</strong> — in connection with a merger, acquisition, or sale of assets, subject to this Policy.</li>
+</ul>
+<h2>4. AI Processing</h2>
+<p>When you use AI-assisted features, the relevant inputs (such as job details you provide) are sent to our third-party AI provider to generate a response. We instruct our provider to process this data to deliver the feature and not to use it to train their models for other customers, to the extent their terms allow. Do not enter information you are not permitted to share.</p>
+<h2>5. Data Retention</h2>
+<p>We keep your information for as long as your account is active and as needed to provide the Service, comply with legal obligations, resolve disputes, and enforce our agreements. You may request deletion as described below.</p>
+<h2>6. Security</h2>
+<p>We use technical and organizational measures to protect your information, including encryption in transit and row-level access controls that restrict each account to its own data. No method of transmission or storage is completely secure, so we cannot guarantee absolute security.</p>
+<h2>7. Your Rights and Choices</h2>
+<p>Depending on where you live, you may have rights to access, correct, delete, or export your personal information, and to object to or restrict certain processing. To exercise these rights, contact us at <a href="mailto:support@wirewaypro.com">support@wirewaypro.com</a>. You can also update much of your information directly in your account, and you can cancel your subscription at any time.</p>
+<h2>8. Your Customers' Information</h2>
+<p>The customer information you enter belongs to your business relationship with your clients. You are responsible for handling it lawfully, including informing your customers and obtaining any consents required by law. We process it on your behalf to provide the Service to you.</p>
+<h2>9. Cookies and Similar Technologies</h2>
+<p>We use cookies and similar technologies that are necessary to operate the Service (for example, to keep you signed in) and to understand usage so we can improve it. You can control cookies through your browser settings, though some features may not work without them.</p>
+<h2>10. Children</h2>
+<p>The Service is intended for business users and is not directed to children. We do not knowingly collect personal information from anyone under 18. If you believe a minor has provided us information, contact us and we will delete it.</p>
+<h2>11. Changes to This Policy</h2>
+<p>We may update this Policy from time to time. If we make material changes, we will provide reasonable notice (for example, by posting in the Service or emailing you). The "Effective date" above shows when this version took effect.</p>
+<h2>12. Contact</h2>
+<p>Questions or requests: <a href="mailto:support@wirewaypro.com">support@wirewaypro.com</a>, Jalil Muhammad (operating as Wireway).</p>
+  </main>
+  <footer>Wireway · operated by Jalil Muhammad · <a href="mailto:support@wirewaypro.com">support@wirewaypro.com</a></footer>
+</body>
+</html>
