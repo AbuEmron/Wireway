@@ -1,11 +1,12 @@
 // api/claude.js — server-side proxy for AI features
 // - Requires a valid Supabase session token (only signed-in Wireway users can call it)
 // - Per-user rate limiting (protects against runaway AI cost/abuse), tracked in Supabase
+// - Pro and trialing accounts are EXEMPT from the rate limit (unlimited AI)
 // - Anthropic key stays server-side; output-token cap enforced
 //
 // Tunable via Vercel env vars (all optional):
 //   AI_MODEL            (default "claude-sonnet-4-6")
-//   AI_RATE_LIMIT       (default 60)  — max AI calls per user per window
+//   AI_RATE_LIMIT       (default 60)  — max AI calls per FREE user per window
 //   AI_RATE_WINDOW_MIN  (default 60)  — the rolling window, in minutes
 // Rate limiting requires the ai_usage table (see add-ai-usage-table.sql). If that
 // table is missing, the limiter quietly does nothing (it never blocks a real user).
@@ -17,6 +18,36 @@ const MAX_TOKENS_CAP  = 8192;
 
 const supaUrl = () => process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
 const svcKey  = () => process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Look up the caller's plan from the profiles table (service-role → bypasses RLS).
+// Returns { plan, subscription_status } or null if it can't be determined.
+// NOTE: this assumes the profiles table keys on `id` = auth user id (the standard
+// Supabase convention). If your profiles table uses a `user_id` column instead,
+// change `id=eq.` to `user_id=eq.` in the query below.
+async function getPlan(userId) {
+  const base = supaUrl();
+  const key  = svcKey();
+  if (!base || !key || !userId) return null; // not configured → treat as non-pro
+  try {
+    const res = await fetch(
+      `${base}/rest/v1/profiles?id=eq.${userId}&select=plan,subscription_status&limit=1`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return Array.isArray(rows) ? (rows[0] || null) : null;
+  } catch {
+    return null; // can't tell → fall through to the limiter (which itself fails open)
+  }
+}
+
+// Is this a paying/trialing account that should get unlimited AI?
+function isProPlan(plan) {
+  return (
+    plan?.plan === "pro" &&
+    ["active", "trialing"].includes(plan?.subscription_status)
+  );
+}
 
 // Rolling-window per-user limiter using the ai_usage table via service-role REST calls.
 // Returns { ok:true } or { ok:false, retryMin }. FAILS OPEN on any infra error so a
@@ -89,10 +120,14 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Could not verify session" });
   }
 
-  // ── Per-user rate limit (protects against AI cost abuse) ──
-  const rl = await checkRateLimit(userId);
-  if (!rl.ok) {
-    return res.status(429).json({ error: `You've reached the AI request limit. Try again in about ${rl.retryMin} minutes.` });
+  // ── Plan check: Pro and trialing accounts get unlimited AI (no rate limit) ──
+  // Free / lapsed accounts still get the per-user cap below (runaway-cost protection).
+  const plan = await getPlan(userId);
+  if (!isProPlan(plan)) {
+    const rl = await checkRateLimit(userId);
+    if (!rl.ok) {
+      return res.status(429).json({ error: `You've reached the AI request limit. Try again in about ${rl.retryMin} minutes.` });
+    }
   }
 
   try {
