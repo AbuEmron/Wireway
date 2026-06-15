@@ -77,13 +77,13 @@ export default function LandingPage({ onSignIn, onSignUp }) {
         <section style={{ ...style.section, paddingTop:120, paddingBottom:80, textAlign:"center" }}>
           <div className="fade-up" style={{ animationDelay:"0.1s" }}>
             <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"6px 14px", background:"rgba(var(--accent-rgb),0.08)", border:"1px solid rgba(var(--accent-rgb),0.2)", borderRadius:30, fontSize:12, color:"rgba(var(--accent-rgb),0.8)", fontWeight:600, marginBottom:28, letterSpacing:"0.04em" }}>
-              ⚡ NEC 2023 · AI-Powered · Built by electricians
+              ⚡ NEC 2023 · Built by a working electrician
             </div>
           </div>
 
           <h1 style={{ ...style.h1 }} className="fade-up">
             <span style={{ background:"linear-gradient(135deg,#fff 40%,rgba(var(--accent-rgb),0.9) 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
-              The electrical estimating tool<br />your competitors don't have
+              Quote the job in 60 seconds —<br />NEC-correct, ready to send.
             </span>
           </h1>
 
@@ -147,6 +147,28 @@ export default function LandingPage({ onSignIn, onSignUp }) {
           </div>
         </section>
 
+        {/* ── WHY YOU CAN TRUST IT ── */}
+        <section style={{ ...style.section, paddingBottom:80 }}>
+          <div style={{ textAlign:"center", marginBottom:36 }}>
+            <h2 style={style.h2}>You're the electrician. The AI just does the typing.</h2>
+            <p style={{ fontSize:15, color:"rgba(255,255,255,0.45)", maxWidth:540, margin:"0 auto" }}>
+              Skeptical about AI touching your estimates? Good — you should be. So it never gets the last word.
+            </p>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))", gap:12 }}>
+            {[
+              { t:"You approve every number", d:"Nothing sends until you say so. Every line, quantity, and price is editable before it leaves your phone." },
+              { t:"Every line cites the code", d:"Each coded item shows its NEC 2023 section. No black box — you can see exactly where every number comes from." },
+              { t:"Your prices, your markup", d:"It builds the estimate on your hourly rate and your markup — not made-up numbers. The math stays yours." },
+            ].map(c => (
+              <div key={c.t} style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:14, padding:"20px 22px" }}>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontSize:15, fontWeight:800, color:"#fff", marginBottom:8, letterSpacing:"-0.02em" }}>{c.t}</div>
+                <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", lineHeight:1.65 }}>{c.d}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ── QUICK JOBS ── */}
         <section style={{ ...style.section, paddingBottom:80 }}>
           <div style={{ textAlign:"center", marginBottom:32 }}>
@@ -161,6 +183,16 @@ export default function LandingPage({ onSignIn, onSignUp }) {
                 {job}
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* ── FOUNDER ── */}
+        <section style={{ ...style.section, paddingBottom:80 }}>
+          <div style={{ maxWidth:660, margin:"0 auto", textAlign:"center", padding:"34px 30px", background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16 }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"clamp(16px,2.6vw,20px)", fontWeight:700, color:"#fff", lineHeight:1.5, letterSpacing:"-0.01em" }}>
+              &ldquo;I&rsquo;m a working electrician. I built Wireway Pro because quoting a job shouldn&rsquo;t eat your whole evening — and because the big contractor apps treat the estimate like an afterthought. This is the tool I wanted on the truck.&rdquo;
+            </div>
+            <div style={{ fontSize:13, color:"var(--accent)", fontWeight:700, marginTop:16 }}>— Founder, Wireway Pro</div>
           </div>
         </section>
 
