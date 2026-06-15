@@ -70,6 +70,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [flatRateMode,   setFlatRateMode]   = useState(false);
   const [clients,        setClients]        = useState([]);
   const [showClientDB,   setShowClientDB]   = useState(false);
+  const [showTools,      setShowTools]      = useState(false);
   const [clientSearch,   setClientSearch]   = useState("");
   const [wireCalcOpen,   setWireCalcOpen]   = useState(false);
   const [wireAmps,       setWireAmps]       = useState("");
@@ -838,24 +839,39 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     </div>
                     )}
 
-            {/* Row 2: tools — subtle divider separates from toggles */}
-            <div style={{ display:"flex", gap:5, flexWrap:"wrap", paddingTop:8, borderTop:"1px solid var(--line)" }}>
-              {[
-                { label:"⚡ AI Quote", action:() => setShowAIBuilder(true),  highlight: true },
-              { label:"📅 Calendar", action:() => setShowCalendar(true)   },
-              { label:"Wire Calc",  action:() => setWireCalcOpen(true)  },
-                { label:"Load Calc",  action:() => setLoadCalcOpen(true)  },
-                { label:"⚡ Load Advisor", action:() => setShowLoadAdvisor(true) },
-                { label:"Checklist",  action:() => setChecklistOpen(true) },
-                { label:"Clients",    action:() => setShowClientDB(true)  },
-                { label:"+ Custom",   action:addCustomItem                },
-                hasItems ? { label:"Pull List", action:buildMaterialList } : null,
-              ].filter(Boolean).map(btn => (
-                <button key={btn.label} onClick={btn.action} style={{ padding:"4px 10px", borderRadius:6, fontSize:10, fontWeight: btn.highlight ? 700 : 600, border: btn.highlight ? "1px solid rgba(var(--accent-rgb),0.3)" : "1px solid var(--line)", background: btn.highlight ? "rgba(var(--accent-rgb),0.08)" : "transparent", color: btn.highlight ? "var(--accent)" : "rgba(255,255,255,0.45)", cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = btn.highlight ? "rgba(var(--accent-rgb),0.15)" : "rgba(255,255,255,0.06)"; e.currentTarget.style.color = btn.highlight ? "var(--accent)" : "#fff"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = btn.highlight ? "rgba(var(--accent-rgb),0.08)" : "transparent"; e.currentTarget.style.color = btn.highlight ? "var(--accent)" : "rgba(255,255,255,0.45)"; }}>
-                  {btn.label} </button>
-              ))}
+            {/* Row 2: primary action + collapsible tools */}
+            <div style={{ paddingTop:8, borderTop:"1px solid var(--line)" }}>
+              <button onClick={() => setShowAIBuilder(true)} style={{ width:"100%", padding:"11px", borderRadius:9, border:"1px solid rgba(var(--accent-rgb),0.35)", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-rgb),0.07))", color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                ⚡ AI Quote Builder
+              </button>
+
+              <div style={{ display:"flex", alignItems:"center", gap:9, marginTop:10 }}>
+                <button onClick={() => setShowTools(v=>!v)} style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 11px", borderRadius:6, fontSize:10, fontWeight:700, letterSpacing:"0.04em", border:"1px solid var(--line)", background:"transparent", color:"rgba(255,255,255,0.5)", cursor:"pointer", fontFamily:"inherit" }}>
+                  TOOLS <span style={{ fontSize:8, opacity:0.7 }}>{showTools ? "▲" : "▼"}</span>
+                </button>
+                <div style={{ flex:1, height:1, background:"var(--line)" }} />
+              </div>
+
+              {showTools && (
+                <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:10, animation:"fadeUp 0.25s ease both" }}>
+                  {[
+                    { label:"📅 Calendar",     action:() => setShowCalendar(true)    },
+                    { label:"Wire Calc",       action:() => setWireCalcOpen(true)    },
+                    { label:"Load Calc",       action:() => setLoadCalcOpen(true)    },
+                    { label:"⚡ Load Advisor", action:() => setShowLoadAdvisor(true) },
+                    { label:"Checklist",       action:() => setChecklistOpen(true)   },
+                    { label:"Clients",         action:() => setShowClientDB(true)    },
+                    { label:"+ Custom",        action:addCustomItem                  },
+                    hasItems ? { label:"Pull List", action:buildMaterialList } : null,
+                  ].filter(Boolean).map(btn => (
+                    <button key={btn.label} onClick={btn.action} style={{ padding:"5px 11px", borderRadius:6, fontSize:10, fontWeight:600, border:"1px solid var(--line)", background:"transparent", color:"rgba(255,255,255,0.5)", cursor:"pointer", fontFamily:"inherit" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#fff"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}>
+                      {btn.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               </div>
               </div>
 
