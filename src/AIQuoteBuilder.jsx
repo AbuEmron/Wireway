@@ -255,13 +255,13 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
     if (!result || applying) return;
     setApplying(true);
     const toApply = result.items.filter(i => selected[i.id]);
-    const withSupplier = toApply.map(i => ({ ...i, clientBuys: matSupplier === "client" ? true : !!i.clientBuys }));
+    const withSupplier = toApply.map(i => ({ ...i, clientBuys: matSupplier === "client" }));
     onApplyEstimate(withSupplier);
     setApplying(false);
   };
 
   const selectedItems  = result?.items.filter(i => selected[i.id]) || [];
-  const effBuys  = (i) => matSupplier === "client" ? true : !!i.clientBuys;
+  const effBuys  = (i) => matSupplier === "client";
   const totalMat = selectedItems.reduce((a, i) => a + (effBuys(i) ? 0 : i.mat), 0);
   const clientMat = selectedItems.reduce((a, i) => a + (effBuys(i) ? i.mat : 0), 0);
   const totalLab = selectedItems.reduce((a, i) => a + i.lab, 0);
