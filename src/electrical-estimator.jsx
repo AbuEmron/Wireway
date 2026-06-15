@@ -102,11 +102,26 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [onboard,        setOnboard]        = useState(getOnboardState());
   const [aiSeed,         setAiSeed]         = useState("");
   const [showProposal,   setShowProposal]   = useState(false);
+  const [showWelcome,    setShowWelcome]    = useState(false);
   const [showPullList,   setShowPullList]   = useState(SAVED ? !!SAVED.showPullList : false);
   const [showCustomers,  setShowCustomers]  = useState(false);
   const [showDashboard,  setShowDashboard]  = useState(SAVED ? !!SAVED.showDashboard : true);
   const [theme,          setTheme]          = useState(() => profile?.theme || getSavedTheme());
   useEffect(() => { applyTheme(theme); }, [theme]);
+
+  // First-run onboarding: show the welcome once per device, then drop into the AI builder.
+  useEffect(() => {
+    try { if (!window.localStorage.getItem("ww_onboarded_v1")) setShowWelcome(true); } catch { /* storage blocked */ }
+  }, []);
+  const finishOnboarding = () => {
+    setShowWelcome(false);
+    try { window.localStorage.setItem("ww_onboarded_v1", "1"); } catch { /* ignore */ }
+  };
+  const startSampleQuote = () => {
+    finishOnboarding();
+    setAiSeed("Upgrade the panel to 200A and add a 48-amp EV charger circuit");
+    setShowAIBuilder(true);
+  };
   useEffect(() => {
     saveSession({ uid: user?.id, showDashboard, tab, entries, customItems, clientName, clientEmail, clientPhone, jobName, notes, quoteNumber, quoteId, depositOnly, depositPercent, showPullList });
   }, [showDashboard, tab, entries, customItems, clientName, clientEmail, clientPhone, jobName, notes, quoteNumber, quoteId, depositOnly, depositPercent, showPullList]);
@@ -1350,6 +1365,28 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 )}
                 </div>
                 )}
+
+          {/* ════════════ FIRST-RUN WELCOME ════════════ */}
+          {showWelcome && (
+            <div className="modal-overlay" onClick={e => e.target===e.currentTarget && finishOnboarding()}>
+              <div className="modal-box" style={{ padding:"28px 24px", maxWidth:440, textAlign:"center" }}>
+                <img src="/logo192.png" alt="Wireway Pro" style={{ width:56, height:56, borderRadius:13, marginBottom:14 }} />
+                <div style={{ fontFamily:"'Syne',sans-serif", fontSize:20, fontWeight:800, color:"#fff", marginBottom:8, letterSpacing:"-0.02em" }}>Welcome to Wireway Pro</div>
+                <div style={{ fontSize:13.5, color:"rgba(255,255,255,0.6)", lineHeight:1.6, marginBottom:18 }}>
+                  The whole idea: describe a job in plain English and it builds an NEC-coded estimate in seconds. Watch it do one.
+                </div>
+                <div style={{ background:"rgba(255,255,255,0.04)", border:"1px solid var(--line-strong)", borderRadius:10, padding:"12px 14px", fontSize:12.5, color:"rgba(255,255,255,0.7)", fontFamily:"'DM Mono',monospace", marginBottom:18, textAlign:"left", lineHeight:1.5 }}>
+                  "Upgrade the panel to 200A and add a 48-amp EV charger circuit"
+                </div>
+                <button onClick={startSampleQuote} style={{ width:"100%", padding:"13px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.08))", border:"1px solid rgba(var(--accent-rgb),0.4)", borderRadius:10, color:"var(--accent)", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginBottom:8 }}>
+                  ⚡ Build this quote for me
+                </button>
+                <button onClick={finishOnboarding} style={{ width:"100%", padding:"9px", background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                  I'll start my own
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ════════════ AI QUOTE BUILDER ════════════ */}
           {showAIBuilder && (
