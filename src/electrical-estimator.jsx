@@ -71,6 +71,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [clients,        setClients]        = useState([]);
   const [showClientDB,   setShowClientDB]   = useState(false);
   const [showTools,      setShowTools]      = useState(false);
+  const [expandedLine,   setExpandedLine]   = useState(null);
   const [clientSearch,   setClientSearch]   = useState("");
   const [wireCalcOpen,   setWireCalcOpen]   = useState(false);
   const [wireAmps,       setWireAmps]       = useState("");
@@ -982,22 +983,43 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                       return (
                         <div key={cat.id} style={{ marginBottom:12 }}>
                           <div style={{ fontSize:10, color:cat.color, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:5, opacity:0.85 }}>{cat.label}</div>
-                          {items.map(item => (
-                            <div key={item.id} style={{ display:"flex", alignItems:"flex-start", gap:8, padding:"6px 0", borderBottom:"1px solid var(--line)" }}>
-                              <div style={{ flex:1 }}>
-                                <div style={{ fontSize:12, color:"rgba(255,255,255,0.78)", fontWeight:600 }}>{item.label}</div>
-                                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace", marginTop:1 }}>
-                                  {item.variantLabel} · {item.nec} · qty {item.qty}
-                                  {item.cBuys ? <span style={{ color:"#7ec8e8", marginLeft:5 }}>· client supplies parts</span> : ""}
+                          {items.map(item => {
+                            const open = expandedLine === item.id;
+                            return (
+                            <div key={item.id} style={{ borderBottom:"1px solid var(--line)" }}>
+                              <button onClick={() => setExpandedLine(open ? null : item.id)} style={{ width:"100%", display:"flex", alignItems:"flex-start", gap:8, padding:"7px 0", background:"transparent", border:"none", cursor:"pointer", textAlign:"left", fontFamily:"inherit" }}>
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ fontSize:12, color:"rgba(255,255,255,0.78)", fontWeight:600 }}>{item.label}</div>
+                                  <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginTop:3 }}>
+                                    {item.nec && item.nec !== "—" && (
+                                      <span style={{ fontSize:9, fontWeight:700, color:"var(--accent)", background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.22)", borderRadius:4, padding:"1px 6px", fontFamily:"'DM Mono',monospace" }}>NEC {item.nec}</span>
+                                    )}
+                                    <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace" }}>
+                                      {item.variantLabel} · qty {item.qty}
+                                      {item.cBuys ? <span style={{ color:"#7ec8e8", marginLeft:5 }}>· client supplies parts</span> : ""}
+                                    </span>
+                                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginLeft:"auto" }}>{open ? "hide math ▲" : "show math ▼"}</span>
+                                  </div>
+                                  </div>
+                                <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:1, flexShrink:0 }}>
+                                  <span style={{ fontSize:10, color:"rgba(162,220,160,0.75)", fontFamily:"'DM Mono',monospace" }}>lab ${item.lab.toLocaleString()}</span>
+                                  {showMaterials && !item.cBuys && <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace" }}>mat ${item.mat.toLocaleString()}</span>}
+                                  <span style={{ fontSize:12, fontWeight:700, color:cat.color, fontFamily:"'DM Mono',monospace" }}>${item.lineTotal.toLocaleString()}</span>
                                 </div>
+                              </button>
+                              {open && (
+                                <div style={{ padding:"0 0 10px", fontSize:10, color:"rgba(255,255,255,0.55)", fontFamily:"'DM Mono',monospace", lineHeight:1.85 }}>
+                                  <div>Labor: ${item.lab.toLocaleString()} — {item.hrs.toFixed(1)} hrs at your ${hourlyRate}/hr rate</div>
+                                  {item.cBuys
+                                    ? <div>Materials: client-supplied — not billed</div>
+                                    : <div>Materials: ${item.mat.toLocaleString()}</div>}
+                                  <div style={{ color:"rgba(255,255,255,0.75)" }}>Line total: ${item.lineTotal.toLocaleString()}</div>
+                                  {item.nec && item.nec !== "—" && <div style={{ color:"rgba(var(--accent-rgb),0.75)" }}>Code basis · NEC {item.nec}</div>}
                                 </div>
-                              <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:1, flexShrink:0 }}>
-                                <span style={{ fontSize:10, color:"rgba(162,220,160,0.75)", fontFamily:"'DM Mono',monospace" }}>lab ${item.lab.toLocaleString()}</span>
-                                {showMaterials && !item.cBuys && <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace" }}>mat ${item.mat.toLocaleString()}</span>}
-                                <span style={{ fontSize:12, fontWeight:700, color:cat.color, fontFamily:"'DM Mono',monospace" }}>${item.lineTotal.toLocaleString()}</span>
+                              )}
                               </div>
-                              </div>
-                          ))}
+                            );
+                          })}
                           </div>
                       );
                     })}
