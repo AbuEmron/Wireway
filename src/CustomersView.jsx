@@ -71,7 +71,7 @@ export default function CustomersView({ user, clients, savedQuotes, onLoadQuote,
   const card = { background:"var(--card)", border:"1px solid var(--line)", borderRadius:12 };
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:300, background:"var(--bg-scene)", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
+    <div style={{ position:"fixed", inset:0, zIndex:300, background:"#0a0a0c", overflowY:"auto", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         .cust-row:hover{background:rgba(255,255,255,0.045)!important}`}</style>
 
