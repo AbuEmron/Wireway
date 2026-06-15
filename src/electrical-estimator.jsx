@@ -373,7 +373,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
       const qty = e.qty;
       const cBuys = e.clientBuys ?? clientBuysAll;
       const mat  = s.materialCost * v.m * qty;
-      const lab  = s.laborCost    * v.m * qty * (hourlyRate / BASE_HOURLY);
+      const lab  = Math.round(s.laborCost * v.m * qty * (hourlyRate / BASE_HOURLY));
       const hrs  = s.laborHours   * v.m * qty;
       return { ...s, qty, variantLabel: v.label, mat, lab, hrs, cBuys, lineTotal: cBuys ? lab : mat + lab };
     });
@@ -687,8 +687,18 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
         @media(max-width:480px){.hide-xs{display:none!important}}
         @keyframes modalIn{from{opacity:0;transform:scale(0.96) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
         .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px}
-        .modal-box{background:var(--surface);border:1px solid var(--line-strong);border-radius:18px;width:100%;max-width:600px;animation:modalIn 0.25s ease both;margin:auto}
+        .modal-box{background:linear-gradient(var(--surface,#15151b),var(--surface,#15151b)),#0d0d11;border:1px solid var(--line-strong);border-radius:18px;width:100%;max-width:600px;animation:modalIn 0.25s ease both;margin:auto}
         @media print{.no-print{display:none!important}.print-quote{background:#fff!important;color:#000!important;padding:32px!important}}
+
+        /* ── interaction polish: consistent, tactile, accessible ── */
+        html{scroll-behavior:smooth}
+        body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+        button,[role="button"],a,label{-webkit-tap-highlight-color:transparent}
+        button,[role="button"]{transition:transform .12s cubic-bezier(.2,.7,.2,1),background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease,opacity .18s ease}
+        button:not(:disabled):active,[role="button"]:active{transform:scale(.975)}
+        button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+        ::selection{background:rgba(var(--accent-rgb),0.28);color:#fff}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
       `}</style>
 
       <div style={{ minHeight:"100vh", background:"var(--bg-scene)", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:80 }}>
