@@ -425,10 +425,11 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const total      = subtotal + markupAmt + taxAmt;
   const hasItems   = activeItems.length > 0;
 
-  const grossProfit   = markupAmt + taxAmt;
-  const marginPct     = total > 0 ? (grossProfit / total * 100).toFixed(1) : "0";
+  const sellPrice     = subtotal + markupAmt; // price of the work, before pass-through sales tax
+  const grossProfit   = markupAmt; // markup is the profit; sales tax is collected for the state, not margin
+  const marginPct     = sellPrice > 0 ? (grossProfit / sellPrice * 100).toFixed(1) : "0";
   const laborPct      = total > 0 ? (totLab / total * 100).toFixed(1) : "0";
-  const effectiveRate = totHrs > 0 ? (total / totHrs).toFixed(0) : "0";
+  const effectiveRate = totHrs > 0 ? (sellPrice / totHrs).toFixed(0) : "0";
 
   const requestPayment = async (mode = "open") => {
     if (!hasItems || paymentLoading) return;
@@ -1402,6 +1403,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           {showAIBuilder && (
             <AIQuoteBuilder
               initialPrompt={aiSeed}
+              hourlyRate={hourlyRate}
               onApplyEstimate={applyAIEstimate}
               onClose={() => setShowAIBuilder(false)}
             />

@@ -154,7 +154,7 @@ RETURN FORMAT — a single JSON object, nothing else:
 }`;
 }
 
-export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt }) {
+export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt, hourlyRate = 85 }) {
   const [prompt,    setPrompt]    = useState(initialPrompt || "");
   const [matSupplier, setMatSupplier] = useState("me"); // "me" | "client"
   const [loading,   setLoading]   = useState(false);
@@ -193,6 +193,9 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
       const parsed = parseQuote(raw);
       if (!parsed || !Array.isArray(parsed.services)) throw new Error("Couldn't read the AI's response — tap Analyze to try again.");
 
+      // Catalog labor dollars are authored at an $85/hr base. Scale to the
+      // electrician's actual rate so the preview matches the applied estimate.
+      const rateScale = (Number(hourlyRate) || 85) / 85;
       // Map to full service objects (store per-unit costs so quantities stay editable)
       const items = parsed.services.map(item => {
         const service = ALL_SERVICES.find(s => s.id === item.id);
@@ -201,7 +204,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
         const variant = service.variants[vIdx] || service.variants[0];
         const qty = Math.max(1, Math.round(Number(item.qty) || 1));
         const unitMat = service.materialCost * variant.m;
-        const unitLab = service.laborCost    * variant.m;
+        const unitLab = Math.round(service.laborCost * variant.m * rateScale);
         const unitHrs = service.laborHours   * variant.m;
         return {
           id:           service.id,
