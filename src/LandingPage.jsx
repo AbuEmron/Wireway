@@ -18,10 +18,10 @@ export default function LandingPage({ onSignIn, onSignUp }) {
   ];
 
   const PROOF = [
-    { num:"128+",    label:"Residential services" },
-    { num:"NEC 2023", label:"Code references built-in" },
-    { num:"30 days",  label:"Free trial" },
-    { num:"$12/mo",   label:"After trial" },
+    { num:"128+",    label:"Residential services priced" },
+    { num:"NEC 2023", label:"Cited on every line" },
+    { num:"60 sec",  label:"From job to sent quote" },
+    { num:"$12/mo",   label:"Less than one service call" },
   ];
 
   const QUICK_JOBS = [
@@ -88,7 +88,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
           </h1>
 
           <p className="fade-up" style={{ fontSize:"clamp(15px,2.5vw,18px)", color:"rgba(255,255,255,0.5)", lineHeight:1.7, maxWidth:580, margin:"0 auto 36px", animationDelay:"0.15s" }}>
-            Describe any job, get a professional NEC 2023 estimate in seconds. Send it to the client. Get paid. All from your phone.
+            The job usually goes to whoever quotes first. Describe any job, get a professional NEC 2023 estimate in seconds, and send it before you've left the driveway — then get paid by card. All from your phone.
           </p>
 
           <div className="fade-up" style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap", marginBottom:48, animationDelay:"0.2s" }}>
@@ -203,7 +203,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
               Ready to win more jobs?
             </h2>
             <p style={{ fontSize:15, color:"rgba(255,255,255,0.45)", marginBottom:28 }}>
-              Start your 30-day free trial. No credit card required.
+              Win one extra job and Wireway pays for itself for years. Start your 30-day free trial — no credit card required.
             </p>
             <button onClick={onSignUp} className="cta-btn" style={{ padding:"16px 40px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.22),rgba(var(--accent-rgb),0.08))", border:"1px solid rgba(var(--accent-rgb),0.4)", borderRadius:12, color:"var(--accent)", fontSize:16, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
               Start Free Trial — 30 Days
@@ -236,10 +236,4 @@ export default function LandingPage({ onSignIn, onSignUp }) {
             <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 8px", fontSize:10 }}>·</span>
             <a href="/terms.html" style={{ color:"rgba(255,255,255,0.3)", textDecoration:"none", fontSize:10 }}>Terms</a>
             <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 8px", fontSize:10 }}>·</span>
-            <a href="mailto:support@wirewaypro.com" style={{ color:"rgba(255,255,255,0.3)", textDecoration:"none", fontSize:10 }}>support@wirewaypro.com</a>
-          </div>
-        </footer>
-      </div>
-    </>
-  );
-}
+            <a href="mailto:support@wirewaypro.c

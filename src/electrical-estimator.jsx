@@ -4,6 +4,7 @@ import { supabase, signOut, getQuotes, upsertQuote, deleteQuote as dbDeleteQuote
 import { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES, CHECKLISTS } from "./data/catalog";
 import { JobCalendar, PhotoAttachments, QuickBooksExport, AutoInvoiceButton, OnMyWayButton, ReviewRequestButton } from "./features";
 import AIQuoteBuilder from "./AIQuoteBuilder";
+import UpgradeMoment from "./UpgradeMoment";
 import EliteMode from "./EliteMode";
 import ProposalView from "./ProposalView";
 import CustomersView from "./CustomersView";
@@ -97,6 +98,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showAccount,    setShowAccount]    = useState(false);
   const [showCalendar,   setShowCalendar]   = useState(false);
   const [showAIBuilder,  setShowAIBuilder]  = useState(false);
+  const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
   const [onboard,        setOnboard]        = useState(getOnboardState());
@@ -361,6 +363,14 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     setTab("summary");
     setSaveMsg(`${items.length} services added by AI`);
     setTimeout(() => setSaveMsg(""), 3000);
+    // Peak "aha": first time a free user applies an AI estimate, show the upgrade
+    // moment once (never blocks — it's dismissable and only fires for non-Pro).
+    try {
+      if (!userIsPro && !window.localStorage.getItem("ww_aha_v1")) {
+        window.localStorage.setItem("ww_aha_v1", "1");
+        setTimeout(() => setAhaUpgrade({ count: items.length }), 700);
+      }
+    } catch { /* storage blocked */ }
   };
 
   const newQuote = () => {
@@ -1397,6 +1407,16 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             />
           )}
 
+          {/* ════════════ AHA UPGRADE MOMENT (first applied AI estimate) ════════════ */}
+          {ahaUpgrade && (
+            <UpgradeMoment
+              itemCount={ahaUpgrade.count}
+              jobTotal={ahaUpgrade.total}
+              onUpgrade={() => { setAhaUpgrade(null); if (onShowPricing) onShowPricing(); }}
+              onClose={() => setAhaUpgrade(null)}
+            />
+          )}
+
           {/* ════════════ ELECTRIFICATION LOAD ADVISOR ════════════ */}
           {showLoadAdvisor && (
             <LoadAdvisor
@@ -1584,20 +1604,4 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
       )}
 
       <WiremModals {...{
-        wireCalcOpen,setWireCalcOpen,wireAmps,setWireAmps,wireLen,setWireLen,
-        wireVolt,setWireVolt,wireMat,setWireMat,wireResult,
-        loadCalcOpen,setLoadCalcOpen,sqft,setSqft,smallAppl,setSmallAppl,
-        laundry,setLaundry,dryer,setDryer,range,setRange,acTons,setAcTons,
-        heatKw,setHeatKw,loadResult,checklistOpen,setChecklistOpen,
-        checklistType,setChecklistType,checkedItems,toggleCheck,CHECKLISTS,
-        showClientDB,setShowClientDB,clientSearch,setClientSearch,clients,loadClient,
-        signModal,setSignModal,sigName,setSigName,sigDate,setSigDate,sigSaved,
-        acceptQuote,quoteNumber,total,activeItems,company,inputStyle,focusGold,
-        blurGray,currentQuoteStatus,editingCompany,setEditingCompany,companyDraft,
-        setCompanyDraft,logoDataUrl,setLogoDataUrl,saveCompany,handleLogoUpload,
-        companySaving,showAccount,setShowAccount,user,profile,savedQuotes,
-        onShowPricing,paymentBanner,paymentSuccess,setPaymentSuccess,onClearBanner,
-      }} />
-    </>
-  );
-}
+      
