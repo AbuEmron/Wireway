@@ -1476,7 +1476,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     const token = session?.access_token;
                     if (!token) return;
                     const res = await fetch("/api/billing-portal", { method:"POST", headers:{ "Content-Type":"application/json", Authorization:`Bearer ${token}` }, body:JSON.stringify({}) });
-                    const d = await res.json(); if (d.url) window.open(d.url, "_blank");
+                    const d = await res.json();
+                    if (d.url) { window.location.href = d.url; }
+                    else { alert(d.error || "Could not open billing portal. Try again."); }
                   }} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"var(--card)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                     Manage Billing
                   </button>

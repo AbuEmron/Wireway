@@ -193,8 +193,9 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
         body: JSON.stringify({}),
       });
       const data = await res.json();
-      if (data.url) window.open(data.url, "_blank");
-    } catch {}
+      if (data.url) { window.location.href = data.url; }
+      else { alert(data.error || "Could not open billing portal. Try again."); }
+    } catch { alert("Could not open billing portal. Check your connection and try again."); }
     finally { setLoading(""); }
   };
 
