@@ -34,7 +34,6 @@ export default function UpgradeMoment({ onUpgrade, onClose, itemCount, jobTotal 
       }}>
         <button onClick={onClose} aria-label="Close" style={{ position: "absolute", top: 12, right: 14, background: "transparent", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 20, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
 
-        {/* Celebrate the aha */}
         <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 12px", background: "rgba(100,220,130,0.12)", border: "1px solid rgba(100,220,130,0.35)", borderRadius: 30, fontSize: 11, fontWeight: 700, color: "#7dcea0", marginBottom: 14 }}>
           ✓ Estimate built{typeof itemCount === "number" && itemCount > 0 ? ` — ${itemCount} services` : ""}
         </div>

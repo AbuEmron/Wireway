@@ -1604,4 +1604,20 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
       )}
 
       <WiremModals {...{
-      
+        wireCalcOpen,setWireCalcOpen,wireAmps,setWireAmps,wireLen,setWireLen,
+        wireVolt,setWireVolt,wireMat,setWireMat,wireResult,
+        loadCalcOpen,setLoadCalcOpen,sqft,setSqft,smallAppl,setSmallAppl,
+        laundry,setLaundry,dryer,setDryer,range,setRange,acTons,setAcTons,
+        heatKw,setHeatKw,loadResult,checklistOpen,setChecklistOpen,
+        checklistType,setChecklistType,checkedItems,toggleCheck,CHECKLISTS,
+        showClientDB,setShowClientDB,clientSearch,setClientSearch,clients,loadClient,
+        signModal,setSignModal,sigName,setSigName,sigDate,setSigDate,sigSaved,
+        acceptQuote,quoteNumber,total,activeItems,company,inputStyle,focusGold,
+        blurGray,currentQuoteStatus,editingCompany,setEditingCompany,companyDraft,
+        setCompanyDraft,logoDataUrl,setLogoDataUrl,saveCompany,handleLogoUpload,
+        companySaving,showAccount,setShowAccount,user,profile,savedQuotes,
+        onShowPricing,paymentBanner,paymentSuccess,setPaymentSuccess,onClearBanner,
+      }} />
+    </>
+  );
+}

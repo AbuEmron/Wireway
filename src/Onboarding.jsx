@@ -84,4 +84,22 @@ export function SetupChecklist({ items, onDismiss }) {
         <div style={{ height:"100%", width:`${(done / items.length) * 100}%`, background:"var(--accent)", borderRadius:2, transition:"width 0.4s" }} />
       </div>
 
-    
+      {items.map((it, i) => (
+        <div key={i} onClick={it.done ? undefined : it.onClick}
+          style={{ display:"flex", alignItems:"center", gap:11, padding:"9px 4px", cursor: it.done ? "default" : "pointer", opacity: it.done ? 0.55 : 1 }}>
+          <span style={{ width:20, height:20, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11,
+            border: it.done ? "1px solid rgba(100,220,130,0.5)" : "1px solid var(--line-strong)",
+            background: it.done ? "rgba(100,220,130,0.12)" : "transparent",
+            color: it.done ? "#7dcea0" : "rgba(255,255,255,0.3)" }}>
+            {it.done ? "✓" : ""}
+          </span>
+          <span style={{ flex:1, minWidth:0 }}>
+            <span style={{ display:"block", fontSize:12.5, fontWeight:600, textDecoration: it.done ? "line-through" : "none" }}>{it.label}</span>
+            {!it.done && <span style={{ display:"block", fontSize:10, color:"rgba(255,255,255,0.35)" }}>{it.hint}</span>}
+          </span>
+          {!it.done && <span style={{ color:"var(--accent)", fontSize:13 }}>›</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
