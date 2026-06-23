@@ -309,12 +309,7 @@ export default function WiremModals({
           </div>
         </div>
       )}
-      </div>
-      </div>
 
-    </>
-  );
-}
     </>
   );
 }

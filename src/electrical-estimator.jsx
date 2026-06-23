@@ -14,6 +14,8 @@ import {
 import AIQuoteBuilder from "./AIQuoteBuilder";
 import { Counter, Pill, StatCard, ServiceRow, CategorySection, NECReference } from "./WiremComponents";
 import WiremModals from "./WiremModals";
+import MileageView from "./MileageView";
+import ExpensesView from "./ExpensesView";
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function Wireway({ user, profile, onProfileUpdate, onShowPricing, paymentBanner, onClearBanner }) {
   // ── Core state ──
@@ -71,6 +73,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showAccount,    setShowAccount]    = useState(false);
   const [showCalendar,   setShowCalendar]   = useState(false);
   const [showAIBuilder,  setShowAIBuilder]  = useState(false);
+  const [showMileage,    setShowMileage]    = useState(false);
+  const [showExpenses,   setShowExpenses]   = useState(false);
   const [proGateMsg,     setProGateMsg]     = useState("");
 
   // ── Wire size calculator (NEC 310.15) ──
@@ -767,6 +771,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 { label:"Load Calc",  action:() => setLoadCalcOpen(true)  },
                 { label:"Checklist",  action:() => setChecklistOpen(true) },
                 { label:"Clients",    action:() => setShowClientDB(true)  },
+                { label:"Mileage",    action:() => setShowMileage(true)   },
+                { label:"Expenses",   action:() => setShowExpenses(true)  },
                 { label:"+ Custom",   action:addCustomItem                },
                 hasItems ? { label:"Pull List", action:buildMaterialList } : null,
               ].filter(Boolean).map(btn => (
@@ -1288,6 +1294,12 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             </div>
           )}
 
+          {/* ════════════ MILEAGE TRACKER ════════════ */}
+          {showMileage && <MileageView user={user} onClose={() => setShowMileage(false)} />}
+
+          {/* ════════════ EXPENSES TRACKER ════════════ */}
+          {showExpenses && <ExpensesView user={user} onClose={() => setShowExpenses(false)} />}
+
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
 
@@ -1428,8 +1440,6 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           </div>
         </div>
       )}
-
-      </div>
 
       <WiremModals {...{
         wireCalcOpen,setWireCalcOpen,wireAmps,setWireAmps,wireLen,setWireLen,
