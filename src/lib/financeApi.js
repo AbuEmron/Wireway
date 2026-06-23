@@ -128,9 +128,32 @@ export const parseExpenseCsv = (text) => {
   }).filter((e) => e.amount > 0);
 };
 
+// ── PLAID TRANSACTIONS ────────────────────────────────────────────────────────
+
+export const getPlaidTransactions = async (userId, year) => {
+  const { data, error } = await supabase
+    .from("plaid_transactions")
+    .select("*")
+    .eq("user_id", userId)
+    .gte("txn_date", `${year}-01-01`)
+    .lte("txn_date", `${year}-12-31`)
+    .gt("amount", 0)
+    .order("txn_date", { ascending: false });
+  return { data: data || [], error };
+};
+
+export const updatePlaidTxnCategory = async (id, category) => {
+  const { error } = await supabase
+    .from("plaid_transactions")
+    .update({ user_category: category })
+    .eq("id", id);
+  return { error };
+};
+
 // ── TAX EXPORT BUILDER ───────────────────────────────────────────────────────
 
-export const buildScheduleCText = ({ year, trips, expenses }) => {
+// plaidTxns is optional — auto-imported bank transactions to include in totals.
+export const buildScheduleCText = ({ year, trips, expenses, plaidTxns = [] }) => {
   const rate       = irsRate(year);
   const totalMiles = trips.reduce((s, t) => s + Number(t.miles), 0);
   const mileageDed = totalMiles * rate;
@@ -140,7 +163,18 @@ export const buildScheduleCText = ({ year, trips, expenses }) => {
   for (const e of expenses) {
     byCategory[e.category] = (byCategory[e.category] || 0) + Number(e.amount);
   }
-  const totalExpenses = Object.values(byCategory).reduce((s, v) => s + v, 0);
+
+  // Merge auto-imported bank transactions (use user_category override if set)
+  const plaidByCategory = {};
+  for (const cat of EXPENSE_CATEGORIES) plaidByCategory[cat.id] = 0;
+  for (const t of plaidTxns) {
+    const cat = t.user_category || t.mapped_category || "other";
+    plaidByCategory[cat] = (plaidByCategory[cat] || 0) + Number(t.amount);
+    byCategory[cat]      = (byCategory[cat]      || 0) + Number(t.amount);
+  }
+  const plaidTotal    = plaidTxns.reduce((s, t) => s + Number(t.amount), 0);
+  const manualTotal   = expenses.reduce((s, e) => s + Number(e.amount), 0);
+  const totalExpenses = manualTotal + plaidTotal;
   const mealsDed      = (byCategory.meals || 0) * 0.5;
   const totalDed      = mileageDed + totalExpenses - (byCategory.meals || 0) + mealsDed;
 
@@ -150,7 +184,7 @@ export const buildScheduleCText = ({ year, trips, expenses }) => {
 
   const lines = [
     `WIREWAY — SCHEDULE C EXPENSE SUMMARY`,
-    `Tax Year: ${year}`,
+    `Tax Year: ${year}${plaidTxns.length > 0 ? ` (includes ${plaidTxns.length} auto-imported bank transactions)` : ""}`,
     `Generated: ${new Date().toLocaleDateString()}`,
     `═══════════════════════════════════════════════════`,
     ``,

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   getExpenses, addExpense, deleteExpense, parseExpenseCsv,
-  getTrips, buildScheduleCText,
+  getTrips, getPlaidTransactions, buildScheduleCText,
   EXPENSE_CATEGORIES, categoryById, IRS_RATES,
 } from "./lib/financeApi";
 
@@ -107,15 +107,24 @@ function CsvImportModal({ onImport, onClose }) {
 
 // ── TAX EXPORT MODAL ──────────────────────────────────────────────────────────
 function TaxExportModal({ year, expenses, onClose, userId }) {
-  const [trips,   setTrips]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [copied,  setCopied]  = useState(false);
+  const [trips,      setTrips]      = useState([]);
+  const [plaidTxns,  setPlaidTxns]  = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [copied,     setCopied]     = useState(false);
 
   useEffect(() => {
-    getTrips(userId, year).then(({ data }) => { setTrips(data); setLoading(false); });
+    setLoading(true);
+    Promise.all([
+      getTrips(userId, year),
+      getPlaidTransactions(userId, year),
+    ]).then(([tripsRes, plaidRes]) => {
+      setTrips(tripsRes.data);
+      setPlaidTxns(plaidRes.data);
+      setLoading(false);
+    });
   }, [userId, year]);
 
-  const text = loading ? "Loading mileage data..." : buildScheduleCText({ year, trips, expenses });
+  const text = loading ? "Loading data..." : buildScheduleCText({ year, trips, expenses, plaidTxns });
 
   const copy = () => {
     navigator.clipboard.writeText(text);
@@ -164,7 +173,7 @@ function TaxExportModal({ year, expenses, onClose, userId }) {
 }
 
 // ── MAIN EXPENSES VIEW ────────────────────────────────────────────────────────
-export default function ExpensesView({ user, onClose }) {
+export default function ExpensesView({ user, onClose, onOpenPlaid }) {
   const [year,       setYear]       = useState(CURRENT_YEAR);
   const [expenses,   setExpenses]   = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -279,6 +288,12 @@ export default function ExpensesView({ user, onClose }) {
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
+                {onOpenPlaid && (
+                  <button onClick={onOpenPlaid}
+                    style={{ padding: "7px 12px", borderRadius: 7, border: "1px solid rgba(126,184,232,0.3)", background: "rgba(126,184,232,0.07)", color: "#7eb8e8", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                    Auto Import
+                  </button>
+                )}
                 <button onClick={() => setShowImport(true)} disabled={importing}
                   style={{ padding: "7px 12px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: importing ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, cursor: importing ? "default" : "pointer", fontFamily: "inherit" }}>
                   {importing ? "Importing..." : "Import CSV"}
