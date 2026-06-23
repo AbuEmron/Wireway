@@ -3,6 +3,7 @@
 // Matches Wireway's dark gold UI exactly
 
 import { useState } from "react";
+import { isElite, supabase } from "./lib/supabase";
 
 const PLANS = [
   {
@@ -40,7 +41,7 @@ const PLANS = [
     period: "/mo",
     annualPrice: 99,
     description: "Everything you need to win jobs",
-    color: "#e8c97a",
+    color: "var(--accent)",
     badge: "Most Popular",
     features: [
       { text: "Unlimited saved quotes",           included: true },
@@ -86,6 +87,28 @@ const PLANS = [
   },
 ];
 
+const ELITE_PLAN = {
+  id: "elite",
+  name: "Elite",
+  price: 99,
+  period: "/mo",
+  description: "Industrial estimating — the whole bid desk",
+  color: "#f0a818",
+  features: [
+    { text: "Everything in Pro",                       included: true },
+    { text: "AI industrial takeoff (plain English)",   included: true },
+    { text: "Panel schedule photo reading",            included: true },
+    { text: "56-item industrial catalog + assemblies", included: true },
+    { text: "11 job-condition labor multipliers",      included: true },
+    { text: "Composite crew rates",                    included: true },
+    { text: "Bid recap: burden, OH&P, bond",           included: true },
+    { text: "Change orders — included, no upsell",     included: true },
+    { text: "Excel/CSV bid export",                    included: true },
+    { text: "Industrial NEC 2023 reference",           included: true },
+  ],
+  cta: "Upgrade to Elite",
+};
+
 const FAQS = [
   {
     q: "Do I need a credit card to start the free trial?",
@@ -128,12 +151,16 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
     if (loading) return;
     setLoading(planId);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { alert("Please sign in again."); setLoading(""); return; }
       const res = await fetch("/api/create-subscription", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          userId: user.id,
-          email:  user.email,
           plan:   planId,
           annual,
         }),
@@ -154,14 +181,21 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
   const handleManageBilling = async () => {
     setLoading("portal");
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { alert("Please sign in again."); setLoading(""); return; }
       const res = await fetch("/api/billing-portal", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
       });
       const data = await res.json();
-      if (data.url) window.open(data.url, "_blank");
-    } catch {}
+      if (data.url) { window.location.href = data.url; }
+      else { alert(data.error || "Could not open billing portal. Try again."); }
+    } catch { alert("Could not open billing portal. Check your connection and try again."); }
     finally { setLoading(""); }
   };
 
@@ -172,23 +206,23 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
         @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
       `}</style>
 
-      <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 40% at 50% 0%,rgba(232,201,122,0.07) 0%,transparent 55%),#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:80 }}>
+      <div style={{ minHeight:"100vh", background:"var(--bg-scene)", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:80 }}>
 
         {/* Header */}
-        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
+        <div style={{ borderBottom:"1px solid var(--line)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
           <div style={{ maxWidth:900, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <img src="/logo192.png" alt="Wireway" style={{ height:28, width:28, borderRadius:6, objectFit:"contain" }} />
-              <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, letterSpacing:"-0.03em" }}><span style={{ color:"#e8c97a" }}>WIRE</span>WAY</span>
+              <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, letterSpacing:"-0.03em" }}><span style={{ color:"var(--accent)" }}>WIRE</span>WAY</span>
             </div>
             <div style={{ display:"flex", gap:8, alignItems:"center" }}>
               {currentPlan !== "free" && (
-                <button onClick={handleManageBilling} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(255,255,255,0.1)", background:"rgba(255,255,255,0.04)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                <button onClick={handleManageBilling} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"var(--card)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                   {loading === "portal" ? "Opening..." : "Manage Billing"}
                 </button>
               )}
               {onClose && (
-                <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(255,255,255,0.1)", background:"rgba(255,255,255,0.04)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"var(--card)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                   ← Back to App
                 </button>
               )}
@@ -200,14 +234,14 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
 
           {/* Trial banner */}
           {isTrialing && trialEnds && (
-            <div style={{ margin:"20px 0 0", padding:"12px 16px", background:"rgba(232,201,122,0.07)", border:"1px solid rgba(232,201,122,0.2)", borderRadius:10, fontSize:12, color:"rgba(232,201,122,0.8)", textAlign:"center" }}>
+            <div style={{ margin:"20px 0 0", padding:"12px 16px", background:"rgba(var(--accent-rgb),0.07)", border:"1px solid rgba(var(--accent-rgb),0.2)", borderRadius:10, fontSize:12, color:"rgba(var(--accent-rgb),0.8)", textAlign:"center" }}>
               ⏳ Your free trial ends on <strong>{trialEnds}</strong>. Upgrade now to keep access to all Pro features.
             </div>
           )}
 
           {/* Hero */}
           <div style={{ textAlign:"center", padding:"48px 0 36px", animation:"fadeUp 0.4s ease both" }}>
-            <h1 style={{ fontFamily:"'Syne',sans-serif", fontSize:"clamp(26px,6vw,42px)", fontWeight:800, letterSpacing:"-0.04em", lineHeight:1.1, background:"linear-gradient(135deg,#ffffff 40%,rgba(232,201,122,0.85) 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", marginBottom:14 }}>
+            <h1 style={{ fontFamily:"'Syne',sans-serif", fontSize:"clamp(26px,6vw,42px)", fontWeight:800, letterSpacing:"-0.04em", lineHeight:1.1, background:"linear-gradient(135deg,#ffffff 40%,rgba(var(--accent-rgb),0.85) 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", marginBottom:14 }}>
               The only estimating tool<br />built for electricians
             </h1>
             <p style={{ fontSize:15, color:"rgba(255,255,255,0.45)", lineHeight:1.7, maxWidth:500, margin:"0 auto 28px" }}>
@@ -215,20 +249,20 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
             </p>
 
             {/* Annual toggle */}
-            <div style={{ display:"inline-flex", alignItems:"center", gap:10, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:30, padding:"6px 14px" }}>
+            <div style={{ display:"inline-flex", alignItems:"center", gap:10, background:"var(--card)", border:"1px solid var(--line-strong)", borderRadius:30, padding:"6px 14px" }}>
               <span style={{ fontSize:12, color: !annual ? "#fff" : "rgba(255,255,255,0.4)", fontWeight:600 }}>Monthly</span>
-              <button onClick={() => setAnnual(v => !v)} style={{ width:40, height:22, borderRadius:11, border:"none", background: annual ? "#e8c97a" : "rgba(255,255,255,0.15)", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+              <button onClick={() => setAnnual(v => !v)} style={{ width:40, height:22, borderRadius:11, border:"none", background: annual ? "var(--accent)" : "rgba(255,255,255,0.15)", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
                 <div style={{ width:16, height:16, borderRadius:"50%", background:"#fff", position:"absolute", top:3, left: annual ? 21 : 3, transition:"left 0.2s" }}/>
               </button>
-              <span style={{ fontSize:12, color: annual ? "#e8c97a" : "rgba(255,255,255,0.4)", fontWeight:600 }}>
-                Annual <span style={{ fontSize:10, background:"rgba(232,201,122,0.15)", border:"1px solid rgba(232,201,122,0.3)", color:"#e8c97a", padding:"1px 5px", borderRadius:4, marginLeft:4 }}>Save 30%</span>
+              <span style={{ fontSize:12, color: annual ? "var(--accent)" : "rgba(255,255,255,0.4)", fontWeight:600 }}>
+                Annual <span style={{ fontSize:10, background:"rgba(var(--accent-rgb),0.15)", border:"1px solid rgba(var(--accent-rgb),0.3)", color:"var(--accent)", padding:"1px 5px", borderRadius:4, marginLeft:4 }}>Save 30%</span>
               </span>
             </div>
           </div>
 
           {/* Pricing cards */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))", gap:16, marginBottom:60, animation:"fadeUp 0.4s ease 0.05s both" }}>
-            {PLANS.map(plan => {
+            {[...PLANS, ...(isElite(profile) ? [ELITE_PLAN] : [])].map(plan => {
               const isCurrent  = currentPlan === plan.id;
               const isPopular  = plan.badge;
               const price      = annual && plan.annualPrice
@@ -238,11 +272,11 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
               return (
                 <div key={plan.id} style={{
                   background: isPopular
-                    ? `linear-gradient(135deg,rgba(232,201,122,0.08) 0%,rgba(255,255,255,0.02) 100%)`
+                    ? `linear-gradient(135deg,rgba(var(--accent-rgb),0.08) 0%,rgba(255,255,255,0.02) 100%)`
                     : "rgba(255,255,255,0.025)",
                   border: isPopular
-                    ? "1px solid rgba(232,201,122,0.3)"
-                    : "1px solid rgba(255,255,255,0.07)",
+                    ? "1px solid rgba(var(--accent-rgb),0.3)"
+                    : "1px solid var(--line)",
                   borderRadius:16,
                   padding:"24px",
                   position:"relative",
@@ -251,7 +285,7 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
                 }}>
                   {/* Badge */}
                   {isPopular && (
-                    <div style={{ position:"absolute", top:-12, left:"50%", transform:"translateX(-50%)", background:"linear-gradient(135deg,#e8c97a,#c9a84c)", borderRadius:20, padding:"3px 12px", fontSize:10, fontWeight:800, color:"#0a0a0c", letterSpacing:"0.06em", whiteSpace:"nowrap" }}>
+                    <div style={{ position:"absolute", top:-12, left:"50%", transform:"translateX(-50%)", background:"linear-gradient(135deg,var(--accent),#c9a84c)", borderRadius:20, padding:"3px 12px", fontSize:10, fontWeight:800, color:"var(--bg0)", letterSpacing:"0.06em", whiteSpace:"nowrap" }}>
                       {plan.badge}
                     </div>
                   )}
@@ -281,8 +315,8 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
                     disabled={plan.ctaDisabled || isCurrent || loading === plan.id}
                     style={{
                       width:"100%", padding:"12px", borderRadius:10,
-                      border: isCurrent ? "1px solid rgba(255,255,255,0.1)" : `1px solid ${plan.color}50`,
-                      background: isCurrent ? "rgba(255,255,255,0.04)" : isPopular ? "linear-gradient(135deg,rgba(232,201,122,0.2),rgba(232,201,122,0.08))" : `${plan.color}12`,
+                      border: isCurrent ? "1px solid var(--line-strong)" : `1px solid ${plan.color}50`,
+                      background: isCurrent ? "rgba(255,255,255,0.04)" : isPopular ? "linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.08))" : `${plan.color}12`,
                       color: isCurrent ? "rgba(255,255,255,0.3)" : plan.color,
                       fontSize:13, fontWeight:700,
                       cursor: (plan.ctaDisabled || isCurrent) ? "default" : "pointer",
@@ -296,7 +330,7 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
                   {/* Features */}
                   <div style={{ flex:1 }}>
                     {plan.features.map((f, i) => (
-                      <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                      <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 0", borderBottom:"1px solid var(--line)" }}>
                         <span style={{ fontSize:12, color: f.included ? "#7dcea0" : "rgba(255,255,255,0.2)", flexShrink:0 }}>
                           {f.included ? "✓" : "✕"}
                         </span>
@@ -322,7 +356,7 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
                 { num:"$0", label:"Setup fee" },
               ].map(s => (
                 <div key={s.label} style={{ textAlign:"center" }}>
-                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:700, color:"#e8c97a" }}>{s.num}</div>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:700, color:"var(--accent)" }}>{s.num}</div>
                   <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:2 }}>{s.label}</div>
                 </div>
               ))}
@@ -335,7 +369,7 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
               Frequently asked questions
             </div>
             {FAQS.map((faq, i) => (
-              <div key={i} style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", overflow:"hidden" }}>
+              <div key={i} style={{ borderBottom:"1px solid var(--line)", overflow:"hidden" }}>
                 <button onClick={() => setOpenFaq(openFaq === i ? null : i)} style={{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 0", background:"transparent", border:"none", cursor:"pointer", textAlign:"left", gap:12 }}>
                   <span style={{ fontSize:13, fontWeight:600, color:"rgba(255,255,255,0.8)" }}>{faq.q}</span>
                   <span style={{ color:"rgba(255,255,255,0.4)", fontSize:18, transform: openFaq===i ? "rotate(45deg)" : "rotate(0)", transition:"transform 0.2s", flexShrink:0 }}>+</span>
@@ -348,14 +382,14 @@ export default function SubscriptionPage({ user, profile, onClose, onUpgrade }) 
           </div>
 
           {/* Bottom CTA */}
-          <div style={{ textAlign:"center", padding:"40px 20px", background:"rgba(232,201,122,0.04)", border:"1px solid rgba(232,201,122,0.12)", borderRadius:16, marginBottom:40 }}>
+          <div style={{ textAlign:"center", padding:"40px 20px", background:"rgba(var(--accent-rgb),0.04)", border:"1px solid rgba(var(--accent-rgb),0.12)", borderRadius:16, marginBottom:40 }}>
             <div style={{ fontFamily:"'Syne',sans-serif", fontSize:22, fontWeight:800, color:"#fff", marginBottom:10, letterSpacing:"-0.02em" }}>
               Ready to win more jobs?
             </div>
             <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)", marginBottom:20 }}>
               Start your 30-day free trial. No credit card required.
             </div>
-            <button onClick={() => handleUpgrade("pro")} style={{ padding:"14px 32px", background:"linear-gradient(135deg,rgba(232,201,122,0.22),rgba(232,201,122,0.1))", border:"1px solid rgba(232,201,122,0.4)", borderRadius:11, color:"#e8c97a", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+            <button onClick={() => handleUpgrade("pro")} style={{ padding:"14px 32px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.22),rgba(var(--accent-rgb),0.1))", border:"1px solid rgba(var(--accent-rgb),0.4)", borderRadius:11, color:"var(--accent)", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
               {loading === "pro" ? "Opening Stripe..." : "Start Free Trial — Pro $12/mo"}
             </button>
           </div>

@@ -1,0 +1,50 @@
+/* Wireway Pro — global interaction polish (single source of truth).
+
+   Imported once in App.jsx so every surface — landing, sign-in, the app,
+   modals, and any future page — shares the exact same tactile, accessible
+   feel. This file contains ONLY interaction rules (motion, focus, press,
+   smoothing). It sets no colors, layout, or backgrounds, so it cannot
+   disturb any screen's visual design. */
+
+/* Fluid scrolling + crisp type everywhere */
+html { scroll-behavior: smooth; }
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* No jarring tap-flash on mobile (this is a phone-first app) */
+button, [role="button"], a, label { -webkit-tap-highlight-color: transparent; }
+
+/* Every button moves the same way: a quiet, consistent press */
+button, [role="button"] {
+  transition: transform .12s cubic-bezier(.2, .7, .2, 1),
+              background-color .18s ease,
+              border-color .18s ease,
+              color .18s ease,
+              box-shadow .18s ease,
+              opacity .18s ease;
+}
+button:not(:disabled):active, [role="button"]:active { transform: scale(.975); }
+
+/* Visible keyboard focus (mouse users never see it) */
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent, #E0904A);
+  outline-offset: 2px;
+}
+
+/* Branded text selection */
+::selection { background: rgba(224, 144, 74, 0.28); color: #fff; }
+
+/* Respect reduced-motion: still, calm version for anyone who asks for it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

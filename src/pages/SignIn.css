@@ -1,0 +1,45 @@
+.ww-veil-auth {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(60% 60% at 50% 50%, transparent 30%, rgba(5,7,11,.7));
+}
+
+.ww-auth { display: grid; place-items: center; padding: 24px; }
+
+.ww-auth .card {
+  width: min(380px, 92vw);
+  background: linear-gradient(180deg, rgba(17,22,31,.92), rgba(17,22,31,.8));
+  border: 1px solid var(--hair); border-radius: 18px; padding: 34px 30px 30px;
+  backdrop-filter: blur(14px); box-shadow: 0 24px 70px rgba(0,0,0,.5);
+  position: relative; transition: box-shadow .5s, border-color .5s;
+}
+.ww-auth .card.energize {
+  border-color: rgba(224,144,74,.5);
+  box-shadow: 0 24px 70px rgba(0,0,0,.5), 0 0 0 1px rgba(224,144,74,.25), 0 0 50px rgba(224,144,74,.18);
+}
+
+.ww-auth .ww-brand { justify-content: center; margin-bottom: 6px; }
+.ww-auth .tag { text-align: center; font-family: var(--font-mono); font-size: 10px; letter-spacing: .2em; color: var(--steel); margin-bottom: 28px; }
+
+.ww-auth label { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .14em; color: var(--steel); text-transform: uppercase; margin: 0 0 7px 2px; }
+.ww-auth .fld { margin-bottom: 16px; }
+.ww-auth input {
+  width: 100%; background: rgba(10,14,20,.6); border: 1px solid var(--hair); border-radius: 10px;
+  padding: 13px 14px; color: var(--paper); font-family: var(--font-body); font-size: 15px; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.ww-auth input::placeholder { color: var(--steel); }
+.ww-auth input:focus { border-color: var(--signal); box-shadow: 0 0 0 3px rgba(79,209,197,.12); }
+
+.ww-auth .btn {
+  width: 100%; font-family: var(--font-body); font-weight: 600; font-size: 15px; border: none; border-radius: 11px;
+  padding: 14px; cursor: pointer; background: var(--copper); color: var(--ink);
+  transition: transform .12s, background .2s, box-shadow .2s; margin-top: 6px;
+}
+.ww-auth .btn:hover { background: #ECA05C; box-shadow: 0 8px 28px rgba(224,144,74,.3); }
+.ww-auth .btn:active { transform: translateY(1px); }
+.ww-auth .btn:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+
+.ww-auth .meta { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; font-size: 12.5px; }
+.ww-auth .meta a { color: var(--steel); text-decoration: none; transition: color .2s; }
+.ww-auth .meta a:hover { color: var(--paper); }
+.ww-auth .meta a.alt { color: var(--signal); }

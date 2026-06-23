@@ -1,0 +1,33 @@
+/* Wireway Pro — design tokens (single source of truth)
+   SAFE TO IMPORT alongside your existing app: this file only defines
+   CSS variables, fonts, and the brand styles. It deliberately does NOT
+   apply any global body/reset rules, so it can't disturb your current UI. */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --ink:         #0A0E14;
+  --ink-2:       #11161F;
+  --copper:      #E0904A;
+  --copper-deep: #B96E2E;
+  --signal:      #4FD1C5;
+  --steel:       #7B8696;
+  --paper:       #F2F0EA;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  --hair: rgba(123, 134, 150, 0.16);
+  --r:    14px;
+}
+
+/* Brand — uses YOUR existing logo (passed in via the `src` prop) */
+.ww-brand { display: flex; align-items: baseline; gap: 8px; line-height: 1; }
+.ww-brand__logo { height: 1.15em; width: auto; display: block; border-radius: 5px; }
+.ww-brand__word { font-family: var(--font-display); letter-spacing: 0.14em; font-weight: 600; }
+.ww-brand__pro {
+  font-family: var(--font-mono); font-size: 0.52em; letter-spacing: 0.22em;
+  color: var(--ink); background: var(--copper); padding: 3px 6px 2px;
+  border-radius: 5px; transform: translateY(-2px); font-weight: 600;
+}

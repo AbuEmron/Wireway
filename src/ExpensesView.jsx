@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   getExpenses, addExpense, deleteExpense, parseExpenseCsv,
   getTrips, buildScheduleCText,
-  EXPENSE_CATEGORIES, categoryById, irsRate, IRS_RATES,
+  EXPENSE_CATEGORIES, categoryById, IRS_RATES,
 } from "./lib/financeApi";
 
 const IS = {

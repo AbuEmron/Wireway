@@ -1,45 +1,69 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useMemo, useEffect } from "react";
-import {
-  signOut,
-  getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus,
-  getClients, upsertClient,
-  isPro, isTrialing, trialDaysLeft,
-} from "./lib/supabase";
-import { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES } from "./data/catalog";
-import { NEC_REF } from "./data/nec-reference";
-import {
-  JobCalendar, PhotoAttachments, QuickBooksExport,
-  AutoInvoiceButton, OnMyWayButton, ReviewRequestButton,
-} from "./features";
+import { supabase, signOut, getQuotes, upsertQuote, deleteQuote as dbDeleteQuote, updateQuoteStatus, getClients, upsertClient, isPro, isTrialing, trialDaysLeft, saveThemePref, isElite } from "./lib/supabase";
+import { CATEGORIES, MARKUP_OPTIONS, HOURLY_RATES, ALL_SERVICES, CHECKLISTS } from "./data/catalog";
+import { JobCalendar, PhotoAttachments, QuickBooksExport, AutoInvoiceButton, OnMyWayButton, ReviewRequestButton } from "./features";
 import AIQuoteBuilder from "./AIQuoteBuilder";
-import { Counter, Pill, StatCard, ServiceRow, CategorySection, NECReference } from "./WiremComponents";
+import UpgradeMoment from "./UpgradeMoment";
+import EliteMode from "./EliteMode";
+import ProposalView from "./ProposalView";
+import CustomersView from "./CustomersView";
+import { THEMES, applyTheme, getSavedTheme, saveTheme } from "./themes";
+import MaterialsListView from "./MaterialsListView";
+import { WirewayMark, WirewayLogo } from "./Logo";
+import { WelcomeHero, SetupChecklist, getOnboardState, setOnboardState } from "./Onboarding";
+import Dashboard from "./Dashboard";
+import { Pill, StatCard, CategorySection, NECReference } from "./WiremComponents";
 import WiremModals from "./WiremModals";
 import MileageView from "./MileageView";
 import ExpensesView from "./ExpensesView";
-// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+import LoadAdvisor from "./LoadAdvisor";
+// ── SESSION RESTORE ──────────────────────────────────────────────
+// Mobile browsers evict the page when you switch apps or follow a link.
+// Snapshot the working state continuously; restore it on reload so the
+// app reopens exactly where you left off instead of resetting to the dashboard.
+const SESSION_KEY = "wireway_session_v1";
+function loadSession() {
+  try {
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || (Date.now() - (s.at || 0)) > 1000 * 60 * 60 * 12) return null; // 12h freshness
+    return s;
+  } catch { return null; }
+}
+function saveSession(s) {
+  try { window.localStorage.setItem(SESSION_KEY, JSON.stringify({ ...s, at: Date.now() })); } catch { /* storage blocked */ }
+}
+export function clearSession() {
+  try { window.localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+}
 export default function Wireway({ user, profile, onProfileUpdate, onShowPricing, paymentBanner, onClearBanner }) {
-  // ── Core state ──
-  const [entries,        setEntries]        = useState({});
+  const SAVED = (() => {
+    const s = loadSession();
+    return s && (!s.uid || s.uid === user?.id) ? s : null;
+  })();
+  const [entries,        setEntries]        = useState(SAVED?.entries || {});
   const [hourlyRate,     setHourlyRate]     = useState(profile?.hourly_rate || 85);
   const [markup,         setMarkup]         = useState(Number(profile?.default_markup) || 0.30);
-  const [clientName,     setClientName]     = useState("");
-  const [clientEmail,    setClientEmail]    = useState("");
-  const [clientPhone,    setClientPhone]    = useState("");
-  const [jobName,        setJobName]        = useState("");
-  const [notes,          setNotes]          = useState("");
-  const [tab,            setTab]            = useState("services");
+  const [clientName,     setClientName]     = useState(SAVED?.clientName || "");
+  const [clientEmail,    setClientEmail]    = useState(SAVED?.clientEmail || "");
+  const [clientPhone,    setClientPhone]    = useState(SAVED?.clientPhone || "");
+  const [jobName,        setJobName]        = useState(SAVED?.jobName || "");
+  const [notes,          setNotes]          = useState(SAVED?.notes || "");
+  const [tab,            setTab]            = useState(SAVED?.tab || "services");
   const [showMaterials,  setShowMaterials]  = useState(true);
   const [clientBuysAll,  setClientBuysAll]  = useState(false);
   const [copied,         setCopied]         = useState(false);
-  const [quoteNumber,    setQuoteNumber]    = useState("");
-  const [quoteId,        setQuoteId]        = useState(null);
+  const [quoteNumber,    setQuoteNumber]    = useState(SAVED?.quoteNumber || "");
+  const [quoteId,        setQuoteId]        = useState(SAVED?.quoteId || null);
   const [signModal,      setSignModal]      = useState(false);
   const [sigName,        setSigName]        = useState("");
   const [sigDate,        setSigDate]        = useState("");
   const [sigSaved,       setSigSaved]       = useState(false);
   const [savedQuotes,    setSavedQuotes]    = useState([]);
   const [saveMsg,        setSaveMsg]        = useState("");
-  const [customItems,    setCustomItems]    = useState([]);
+  const [customItems,    setCustomItems]    = useState(SAVED?.customItems || []);
   const [taxEnabled,     setTaxEnabled]     = useState(false);
   const [taxRate,        setTaxRate]        = useState(0.08);
   const [invoiceMode,    setInvoiceMode]    = useState(false);
@@ -48,6 +72,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [flatRateMode,   setFlatRateMode]   = useState(false);
   const [clients,        setClients]        = useState([]);
   const [showClientDB,   setShowClientDB]   = useState(false);
+  const [showTools,      setShowTools]      = useState(false);
+  const [expandedLine,   setExpandedLine]   = useState(null);
   const [clientSearch,   setClientSearch]   = useState("");
   const [wireCalcOpen,   setWireCalcOpen]   = useState(false);
   const [wireAmps,       setWireAmps]       = useState("");
@@ -65,8 +91,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [checklistOpen,  setChecklistOpen]  = useState(false);
   const [checklistType,  setChecklistType]  = useState("service_upgrade");
   const [checkedItems,   setCheckedItems]   = useState({});
-  const [depositOnly,    setDepositOnly]    = useState(true);
-  const [depositPercent, setDepositPercent] = useState(50);
+  const [depositOnly,    setDepositOnly]    = useState(SAVED ? !!SAVED.depositOnly : true);
+  const [depositPercent, setDepositPercent] = useState(SAVED?.depositPercent || 50);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError,   setPaymentError]   = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState(!!paymentBanner);
@@ -75,9 +101,37 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showAIBuilder,  setShowAIBuilder]  = useState(false);
   const [showMileage,    setShowMileage]    = useState(false);
   const [showExpenses,   setShowExpenses]   = useState(false);
+  const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
+  const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
+  const [showElite,      setShowElite]      = useState(false);
+  const [onboard,        setOnboard]        = useState(getOnboardState());
+  const [aiSeed,         setAiSeed]         = useState("");
+  const [showProposal,   setShowProposal]   = useState(false);
+  const [showWelcome,    setShowWelcome]    = useState(false);
+  const [showPullList,   setShowPullList]   = useState(SAVED ? !!SAVED.showPullList : false);
+  const [showCustomers,  setShowCustomers]  = useState(false);
+  const [showDashboard,  setShowDashboard]  = useState(SAVED ? !!SAVED.showDashboard : true);
+  const [theme,          setTheme]          = useState(() => profile?.theme || getSavedTheme());
+  useEffect(() => { applyTheme(theme); }, [theme]);
+
+  // First-run onboarding: show the welcome once per device, then drop into the AI builder.
+  useEffect(() => {
+    try { if (!window.localStorage.getItem("ww_onboarded_v1")) setShowWelcome(true); } catch { /* storage blocked */ }
+  }, []);
+  const finishOnboarding = () => {
+    setShowWelcome(false);
+    try { window.localStorage.setItem("ww_onboarded_v1", "1"); } catch { /* ignore */ }
+  };
+  const startSampleQuote = () => {
+    finishOnboarding();
+    setAiSeed("Upgrade the panel to 200A and add a 48-amp EV charger circuit");
+    setShowAIBuilder(true);
+  };
+  useEffect(() => {
+    saveSession({ uid: user?.id, showDashboard, tab, entries, customItems, clientName, clientEmail, clientPhone, jobName, notes, quoteNumber, quoteId, depositOnly, depositPercent, showPullList });
+  }, [showDashboard, tab, entries, customItems, clientName, clientEmail, clientPhone, jobName, notes, quoteNumber, quoteId, depositOnly, depositPercent, showPullList]);
   const [proGateMsg,     setProGateMsg]     = useState("");
 
-  // ── Wire size calculator (NEC 310.15) ──
   const wireResult = useMemo(() => {
     const a = parseFloat(wireAmps);
     if (!a || a <= 0) return null;
@@ -95,7 +149,6 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     return { awg: row.awg, ampacity: row.a, continuous: needed.toFixed(1), vDrop: vDrop.toFixed(2), vDropPct: vDropPct.toFixed(1), vDropOk: vDropPct < 3, nec: "NEC 310.15(B)(16)" };
   }, [wireAmps, wireLen, wireVolt, wireMat]);
 
-  // ── Load calculator (NEC 220.82) ──
   const loadResult = useMemo(() => {
     const sf = parseFloat(sqft) || 0;
     if (!sf) return null;
@@ -114,7 +167,6 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     return { lighting, sabc, gen: Math.round(gen), dryerVA, rangeVA, hvac, totalVA: Math.round(totalVA), amps240: Math.round(amps240), panelSize };
   }, [sqft, smallAppl, laundry, dryer, range, acTons, heatKw]);
 
-  // ── Plan helpers ──
   const userIsPro = isPro(profile);
   const daysLeft  = trialDaysLeft(profile);
   const onTrial   = isTrialing(profile);
@@ -126,7 +178,6 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     if (onShowPricing) setTimeout(() => onShowPricing(), 400);
   };
 
-  // ── Load Supabase data on mount ──
   useEffect(() => {
     if (!user?.id) return;
     getQuotes(user.id).then(({ data }) => { if (data?.length) setSavedQuotes(data); });
@@ -146,77 +197,13 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
   const loadClient = (c) => { setClientName(c.name); setClientEmail(c.email||""); setClientPhone(c.phone||""); setShowClientDB(false); };
 
-  const CHECKLISTS = {
-    service_upgrade: {
-      label: "Service Upgrade",
-      items: [
-        { id:"su1",  nec:"NEC 230.67",      text:"Whole-home surge protector installed (required 2023)" },
-        { id:"su2",  nec:"NEC 230.79",      text:"Service disconnect rated correctly (min 100A residential)" },
-        { id:"su3",  nec:"NEC 230.24",      text:"Service entrance clearances met (10 ft min at grade)" },
-        { id:"su4",  nec:"NEC 250.50",      text:"Grounding electrode system complete and bonded" },
-        { id:"su5",  nec:"NEC 250.104",     text:"Water and gas piping bonded" },
-        { id:"su6",  nec:"NEC 250.28",      text:"Main bonding jumper installed at panel" },
-        { id:"su7",  nec:"NEC 408.4",       text:"All circuits labeled on directory" },
-        { id:"su8",  nec:"NEC 110.26",      text:"36 in. working clearance maintained in front of panel" },
-        { id:"su9",  nec:"NEC 230.85",      text:"Exterior emergency disconnect installed (required 2023)" },
-        { id:"su10", nec:"NEC 408.7",       text:"All unused knockouts sealed" },
-      ],
-    },
-    new_circuit: {
-      label: "New Circuit / Rough-In",
-      items: [
-        { id:"nc1",  nec:"NEC 210.12",      text:"AFCI protection on all required circuits" },
-        { id:"nc2",  nec:"NEC 210.8",       text:"GFCI protection in all required locations" },
-        { id:"nc3",  nec:"NEC 300.4",       text:"Nail plates installed within 1.25 in. of framing edge" },
-        { id:"nc4",  nec:"NEC 300.14",      text:"6 in. free conductor at all boxes" },
-        { id:"nc5",  nec:"NEC 314.16",      text:"Box fill calculations verified (no overfill)" },
-        { id:"nc6",  nec:"NEC 334.30",      text:"NM cable secured within 12 in. of all boxes" },
-        { id:"nc7",  nec:"NEC 240.4",       text:"Conductor sized correctly for overcurrent device" },
-        { id:"nc8",  nec:"NEC 110.12",      text:"Workmanlike installation — cables properly routed" },
-        { id:"nc9",  nec:"NEC 406.12",      text:"All receptacles are tamper-resistant (TR rated)" },
-        { id:"nc10", nec:"NEC 210.52",      text:"Outlet spacing verified (no point more than 6 ft from outlet)" },
-      ],
-    },
-    pool: {
-      label: "Pool / Spa",
-      items: [
-        { id:"p1",   nec:"NEC 680.26",      text:"Equipotential bonding complete — all metal within 5 ft bonded" },
-        { id:"p2",   nec:"NEC 680.22",      text:"Receptacles at least 6 ft from pool edge (GFCI protected)" },
-        { id:"p3",   nec:"NEC 680.22",      text:"No luminaires within 12 ft horizontally of pool water" },
-        { id:"p4",   nec:"NEC 680.21(C)",   text:"GFCI protection on all pump motor circuits" },
-        { id:"p5",   nec:"NEC 680.23",      text:"Underwater lighting properly niched and rated" },
-        { id:"p6",   nec:"NEC 680.12",      text:"Equipment disconnect within sight of pool equipment" },
-        { id:"p7",   nec:"NEC 680.6",       text:"All equipment within 5 ft of pool grounded (insulated GEC)" },
-        { id:"p8",   nec:"NEC 680.42",      text:"Spa/hot tub has GFCI protection on all circuits" },
-      ],
-    },
-    final_inspection: {
-      label: "Final Inspection",
-      items: [
-        { id:"fi1",  nec:"NEC 314.25",      text:"All boxes have covers or faceplates" },
-        { id:"fi2",  nec:"NEC 408.4",       text:"Panel directory complete and legible" },
-        { id:"fi3",  nec:"NEC 410.16",      text:"Closet lighting fixtures are LED (no incandescent)" },
-        { id:"fi4",  nec:"NEC 200.11",      text:"All outlets tested — no reversed polarity" },
-        { id:"fi5",  nec:"NEC 210.8",       text:"GFCI outlets tested and functional" },
-        { id:"fi6",  nec:"NEC 210.12",      text:"AFCI breakers tested (test button)" },
-        { id:"fi7",  nec:"NEC 760.41",      text:"Smoke detectors interconnected and functional" },
-        { id:"fi8",  nec:"NEC 110.3(B)",    text:"All equipment installed per listing/labeling" },
-        { id:"fi9",  nec:"NEC 230.67",      text:"Surge protector installed and indicator light green" },
-        { id:"fi10", nec:"NEC 110.26",      text:"Panel working clearance verified and unobstructed" },
-        { id:"fi11", nec:"NEC 406.9",       text:"All outdoor outlets have in-use weatherproof covers" },
-        { id:"fi12", nec:"NEC 250.53",      text:"Ground rods driven full depth (8 ft min)" },
-      ],
-    },
-  };
 
-  // ── Generate quote number ──
   const genQuoteNum = () => {
     const yr  = new Date().getFullYear();
     const seq = (savedQuotes.length + 1).toString().padStart(3, "0");
     return `WW-${yr}-${seq}`;
   };
 
-  // ── Save estimate to Supabase ──
   const saveQuote = async () => {
     if (!hasItems || !user?.id) return;
     const qn = quoteNumber || genQuoteNum();
@@ -236,11 +223,10 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     }
     saveClientToDB();
     setSaveMsg(error ? "Save failed" : "Saved!"); setTimeout(() => setSaveMsg(""), 2000);
+    return data?.id;
   };
 
-  // ── Load a saved quote — fetch full data first ──
   const loadQuote = async (q) => {
-    // If entries are missing (summary-only row), fetch the full quote
     let fullQ = q;
     if (!q.entries && q.id && user?.id) {
       const { getQuote } = await import("./lib/supabase");
@@ -271,13 +257,11 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     setTimeout(() => setSaveMsg(""), 2000);
   };
 
-  // ── Delete a saved quote ──
   const deleteQuote = async (id) => {
     if (user?.id) await dbDeleteQuote(id, user.id);
     setSavedQuotes(prev => prev.filter(q => q.id !== id));
   };
 
-  // ── Mark quote as accepted (signature) ──
   const acceptQuote = async () => {
     if (!sigName) return;
     const date = sigDate || new Date().toLocaleDateString();
@@ -291,9 +275,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
   const currentQuoteStatus = savedQuotes.find(q => q.quoteNumber === quoteNumber);
 
-  // ── Company profile — load from Supabase profile ──
   const [company, setCompany] = useState(() => {
-    // Seed from Supabase profile if available, fallback to localStorage
     if (profile) {
       return {
         name:       profile.company_name    || "",
@@ -314,7 +296,6 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [logoDataUrl,    setLogoDataUrl]    = useState(company.logoDataUrl || profile?.logo_url || "");
   const [companySaving,  setCompanySaving]  = useState(false);
 
-  // Sync company from profile when profile loads
   useEffect(() => {
     if (!profile) return;
     const fromProfile = {
@@ -336,9 +317,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     setCompanySaving(true);
     const saved = { ...companyDraft, logoDataUrl };
     setCompany(saved);
-    // Also save to localStorage as fallback
     try { localStorage.setItem("wireway_company", JSON.stringify(saved)); } catch {}
-    // Save to Supabase profiles table
     if (user?.id) {
       const { updateProfile } = await import("./lib/supabase");
       await updateProfile(user.id, {
@@ -363,26 +342,23 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // If logged in, upload to Supabase Storage
     if (user?.id) {
       const { uploadLogo } = await import("./lib/supabase");
       const { url } = await uploadLogo(user.id, file);
       if (url) { setLogoDataUrl(url); return; }
     }
-    // Fallback: base64 in memory
     const reader = new FileReader();
     reader.onload = (ev) => setLogoDataUrl(ev.target.result);
     reader.readAsDataURL(file);
   };
 
-  // ── Apply AI-generated estimate items to entries ──
   const applyAIEstimate = (items) => {
     const newEntries = { ...entries };
     items.forEach(item => {
       newEntries[item.id] = {
         qty:        item.qty,
         variantIdx: item.variantIdx,
-        clientBuys: false,
+        clientBuys: !!item.clientBuys,
       };
     });
     setEntries(newEntries);
@@ -390,9 +366,16 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     setTab("summary");
     setSaveMsg(`${items.length} services added by AI`);
     setTimeout(() => setSaveMsg(""), 3000);
+    // Peak "aha": first time a free user applies an AI estimate, show the upgrade
+    // moment once (never blocks — it's dismissable and only fires for non-Pro).
+    try {
+      if (!userIsPro && !window.localStorage.getItem("ww_aha_v1")) {
+        window.localStorage.setItem("ww_aha_v1", "1");
+        setTimeout(() => setAhaUpgrade({ count: items.length }), 700);
+      }
+    } catch { /* storage blocked */ }
   };
 
-  // ── New quote — reset all state ──
   const newQuote = () => {
     if (hasItems && !window.confirm("Start a new quote? Your current estimate will be cleared.")) return;
     setEntries({});
@@ -409,7 +392,10 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
   const upd = (id, data) => setEntries(p => ({ ...p, [id]: data }));
 
-  // ── Totals (includes custom items) ──
+  // Catalog labor dollars are authored at this base hourly rate; we scale them
+  // by the user's chosen rate so the totals stay reactive when the rate changes.
+  const BASE_HOURLY = 85;
+
   const { activeItems, totMat, totLab, totHrs, totClientBuysMat } = useMemo(() => {
     const items = ALL_SERVICES.filter(s => entries[s.id]?.qty > 0).map(s => {
       const e = entries[s.id];
@@ -417,11 +403,10 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
       const qty = e.qty;
       const cBuys = e.clientBuys ?? clientBuysAll;
       const mat  = s.materialCost * v.m * qty;
-      const lab  = s.laborCost    * v.m * qty;
+      const lab  = Math.round(s.laborCost * v.m * qty * (hourlyRate / BASE_HOURLY));
       const hrs  = s.laborHours   * v.m * qty;
       return { ...s, qty, variantLabel: v.label, mat, lab, hrs, cBuys, lineTotal: cBuys ? lab : mat + lab };
     });
-    // Add custom items
     const custActive = customItems.filter(i => i.label && i.qty > 0).map(i => ({
       ...i, variantLabel: "Custom", nec: "—", catColor: "#aaa", catLabel: "Custom",
       mat: i.materialCost * i.qty, lab: i.laborCost * i.qty, hrs: i.laborHours * i.qty,
@@ -435,7 +420,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
       totHrs:           all.reduce((a,i) => a + i.hrs, 0),
       totClientBuysMat: all.reduce((a,i) => a + (i.cBuys ? i.mat : 0), 0),
     };
-  }, [entries, clientBuysAll, customItems]);
+  }, [entries, clientBuysAll, customItems, hourlyRate]);
 
   const subtotal   = totMat + totLab;
   const markupAmt  = subtotal * markup;
@@ -443,43 +428,47 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const total      = subtotal + markupAmt + taxAmt;
   const hasItems   = activeItems.length > 0;
 
-  // Profit analysis
-  const grossProfit   = markupAmt + taxAmt;
-  const marginPct     = total > 0 ? (grossProfit / total * 100).toFixed(1) : "0";
+  const sellPrice     = subtotal + markupAmt; // price of the work, before pass-through sales tax
+  const grossProfit   = markupAmt; // markup is the profit; sales tax is collected for the state, not margin
+  const marginPct     = sellPrice > 0 ? (grossProfit / sellPrice * 100).toFixed(1) : "0";
   const laborPct      = total > 0 ? (totLab / total * 100).toFixed(1) : "0";
-  const effectiveRate = totHrs > 0 ? (total / totHrs).toFixed(0) : "0";
+  const effectiveRate = totHrs > 0 ? (sellPrice / totHrs).toFixed(0) : "0";
 
-  // ── Request payment via Stripe Checkout ──
-  const requestPayment = async () => {
+  const requestPayment = async (mode = "open") => {
     if (!hasItems || paymentLoading) return;
-    if (!company.stripeKey) {
-      setPaymentError("Add your Stripe Publishable Key in ⚙ Company Settings first.");
+    if (!profile?.stripe_charges_enabled) {
+      setPaymentError("Connect your Stripe account in ⚙ Company Settings first.");
       return;
     }
     setPaymentLoading(true);
     setPaymentError("");
     try {
-      const qn = quoteNumber || genQuoteNum();
-      if (!quoteNumber) { setQuoteNumber(qn); saveQuote(); }
+      // Make sure the quote is saved so the server can charge against its stored amount
+      let id = quoteId;
+      if (!id) { id = await saveQuote(); }
+      if (!id) { setPaymentError("Save the quote first, then request payment."); setPaymentLoading(false); return; }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { setPaymentError("Please sign in again."); setPaymentLoading(false); return; }
 
       const res = await fetch("/api/create-checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          quoteNumber: qn,
-          clientName,
-          clientEmail,
-          jobName,
-          total,
-          depositOnly,
-          depositPercent,
-          companyName: company.name,
-          lineItems: activeItems.slice(0, 5).map(i => ({ label: i.label, amount: i.lineTotal })),
-        }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ quoteId: id, depositOnly, depositPercent }),
       });
       const data = await res.json();
       if (data.url) {
-        window.open(data.url, "_blank");
+        if (mode === "sms") {
+          const msg = `Hi ${clientName || "there"}, here's your secure payment link for ${jobName || quoteNumber || "your project"}: ${data.url} — ${company.name || "Wireway Pro"}`;
+          const sep = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "?&" : "?";
+          window.location.href = `sms:${(clientPhone || "").replace(/[^+\d]/g, "")}${sep}body=${encodeURIComponent(msg)}`;
+        } else if (mode === "copy") {
+          try { await navigator.clipboard.writeText(data.url); setSaveMsg("Payment link copied — paste it anywhere"); setTimeout(() => setSaveMsg(""), 3000); }
+          catch { window.prompt("Copy this payment link:", data.url); }
+        } else {
+          window.open(data.url, "_blank");
+        }
       } else {
         setPaymentError(data.error || "Could not create checkout session.");
       }
@@ -490,7 +479,6 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     }
   };
 
-  // ── Build plain-text quote ──
   const buildQuoteText = () => {
     const cBuyItems = activeItems.filter(i => i.cBuys);
     const iSupply   = activeItems.filter(i => !i.cBuys);
@@ -542,7 +530,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
       "",
       company.terms ? `TERMS:\n${company.terms}` : null,
       "",
-      "Generated by Wireway · NEC 2023 Professional Estimating · wireway.cc",
+      "Generated by Wireway Pro · NEC 2023 Professional Estimating · wirewaypro.com",
     ].filter(Boolean).join("\n");
   };
 
@@ -563,16 +551,15 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     const body = encodeURIComponent(
       `Hi ${clientName || "there"}, here's your electrical estimate from ${company.name || "us"}:\n\n` +
       activeItems.map(i => `• ${i.label} × ${i.qty}`).join("\n") +
-      `\n\nTOTAL: $${total.toLocaleString()}\n\nCall us: ${company.phone || ""}\nwireway.cc`
+      `\n\nTOTAL: $${total.toLocaleString()}\n\nCall us: ${company.phone || ""}\nwirewaypro.com`
     );
     const to = clientPhone ? clientPhone.replace(/\D/g, "") : "";
     window.open(`sms:${to}?body=${body}`);
   };
 
-  // Material pull list
   const buildMaterialList = () => {
     const lines = [
-      "WIREWAY — MATERIAL PULL LIST",
+      "WIREWAY PRO — MATERIAL PULL LIST",
       `Job: ${jobName || "—"}  |  Date: ${new Date().toLocaleDateString()}`,
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
       ...activeItems.filter(i => !i.cBuys && i.mat > 0).map(i =>
@@ -586,71 +573,194 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   };
 
   const TAB = (id, lbl) => (
-    <button onClick={() => setTab(id)} style={{ flex:1, padding:"9px 6px", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, letterSpacing:"0", transition:"all 0.2s", background: tab===id ? "rgba(232,201,122,0.08)" : "transparent", color: tab===id ? "#e8c97a" : "rgba(255,255,255,0.32)", borderBottom: tab===id ? "2px solid #e8c97a" : "2px solid transparent", whiteSpace:"nowrap" }}>{lbl}</button>
+    <button onClick={() => setTab(id)} style={{ flex:1, padding:"9px 6px", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, letterSpacing:"0", transition:"all 0.2s", background: tab===id ? "rgba(var(--accent-rgb),0.08)" : "transparent", color: tab===id ? "var(--accent)" : "rgba(255,255,255,0.32)", borderBottom: tab===id ? "2px solid var(--accent)" : "2px solid transparent", whiteSpace:"nowrap" }}>{lbl}</button>
   );
 
-  const inputStyle = { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:7, padding:"8px 11px", fontSize:13, color:"#fff", fontFamily:"inherit", width:"100%", transition:"border-color 0.15s" };
-  const focusGold = e => e.target.style.borderColor = "rgba(232,201,122,0.4)";
+  const inputStyle = { background:"var(--card)", border:"1px solid var(--line)", borderRadius:7, padding:"8px 11px", fontSize:13, color:"#fff", fontFamily:"inherit", width:"100%", transition:"border-color 0.15s" };
+  const focusGold = e => e.target.style.borderColor = "rgba(var(--accent-rgb),0.4)";
   const blurGray  = e => e.target.style.borderColor = "rgba(255,255,255,0.07)";
 
-  // Render dashboard as separate return
+  // ── DASHBOARD HOME (early return) ──
+  if (showDashboard) {
+    return (
+      <>
+        <style>{`
+          *{box-sizing:border-box;margin:0;padding:0}
+          @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        `}</style>
+        <div style={{ minHeight:"100vh", background:"var(--bg-scene)", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
+          <div style={{ borderBottom:"1px solid var(--line)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
+            <div style={{ maxWidth:680, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <WirewayLogo size={34} fontSize={16} tagline />
+              </div>
+              <div style={{ display:"flex", gap:6 }}>
+                <button onClick={() => setShowCustomers(true)} title="Customers" style={{ padding:"6px 11px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>👥</button>
+                <button onClick={() => { newQuote(true); setShowDashboard(false); }} style={{ padding:"6px 11px", borderRadius:7, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>+ New</button>
+                <button onClick={() => setShowAccount(true)} title="Account" style={{ padding:"6px 10px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>⚙</button>
+              </div>
+            </div>
+          </div>
+          <div style={{ maxWidth:680, margin:"0 auto", padding:"20px 20px 60px" }}>
+            {showElite && <EliteMode profile={profile} onClose={() => setShowElite(false)} />}
+            {isElite(profile) && (
+              <button onClick={() => setShowElite(true)} style={{ width:"100%", marginBottom:16, padding:"13px 16px", borderRadius:12, background:"linear-gradient(135deg, rgba(240,168,24,0.14), rgba(240,168,24,0.04))", border:"1px solid rgba(240,168,24,0.45)", color:"#f0a818", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"inherit", letterSpacing:"0.04em", textAlign:"left", display:"flex", alignItems:"center", gap:10 }}>
+                <span style={{ fontSize:16 }}>⚙</span>
+                <span style={{ flex:1 }}>WIREWAY ELITE — Industrial Estimator</span>
+                <span style={{ fontSize:14 }}>→</span>
+              </button>
+            )}
+            {savedQuotes.length === 0 && !onboard.heroDone && (
+              <WelcomeHero
+                onStartAI={() => {
+                  setOnboardState({ heroDone: true }); setOnboard(o => ({ ...o, heroDone: true }));
+                  setAiSeed("Finished basement: add 8 recessed lights on a dimmer, 6 receptacles on a new 20A circuit, and a smoke/CO detector. Drywall is already up. Homeowner is supplying the light trims.");
+                  setShowDashboard(false); setTimeout(() => setShowAIBuilder(true), 100);
+                }}
+                onDismiss={() => { setOnboardState({ heroDone: true }); setOnboard(o => ({ ...o, heroDone: true })); }}
+              />
+            )}
+            {!onboard.listDone && (savedQuotes.length > 0 || onboard.heroDone) && (() => {
+              const items = [
+                { done: savedQuotes.length > 0, label: "Build your first estimate", hint: "Describe a job — AI does the rest",
+                  onClick: () => { setShowDashboard(false); setTimeout(() => setShowAIBuilder(true), 100); } },
+                { done: !!company.name, label: "Add your company info", hint: "Your name and logo go on every proposal",
+                  onClick: () => { setShowDashboard(false); setTimeout(() => setShowAccount(true), 100); } },
+                { done: clients.length > 0, label: "Save a customer", hint: "Client details auto-fill future quotes",
+                  onClick: () => setShowCustomers(true) },
+                { done: savedQuotes.some(q => ["accepted","paid","deposit_paid"].includes(q.status)), label: "Get a quote signed or paid", hint: "Send a proposal and text the pay link",
+                  onClick: () => { if (savedQuotes[0]) { loadQuote(savedQuotes[0]); setShowDashboard(false); setTab("summary"); } else { setShowDashboard(false); setTimeout(() => setShowAIBuilder(true), 100); } } },
+              ];
+              return items.every(i => i.done) ? null : (
+                <SetupChecklist items={items} onDismiss={() => { setOnboardState({ listDone: true }); setOnboard(o => ({ ...o, listDone: true })); }} />
+              );
+            })()}
+            <Dashboard
+              user={user} profile={profile}
+              onNewQuote={(job) => { newQuote(true); setJobName(job.label); setShowDashboard(false); setTab("services"); }}
+              onLoadQuote={(q) => { loadQuote(q); setShowDashboard(false); }}
+              onShowAI={() => { setShowDashboard(false); setTimeout(() => setShowAIBuilder(true), 100); }}
+              onOpenCalendar={() => { setShowDashboard(false); setTimeout(() => setShowCalendar(true), 100); }}
+            />
+          </div>
+        </div>
+        {showCustomers && (
+          <CustomersView
+            user={user} onClientsChange={setClients}
+            clients={clients} savedQuotes={savedQuotes}
+            onLoadQuote={(q) => { loadQuote(q); setShowCustomers(false); setShowDashboard(false); }}
+            onNewEstimate={(cl) => { newQuote(true); setClientName(cl.name || ""); setClientEmail(cl.email || ""); setClientPhone(cl.phone || ""); setShowCustomers(false); setShowDashboard(false); setTab("services"); }}
+            onClose={() => setShowCustomers(false)}
+          />
+        )}
+        {showAccount && (
+          <div onClick={e => e.target === e.currentTarget && setShowAccount(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", zIndex:400, display:"flex", alignItems:"center", justifyContent:"center", padding:"24px 16px" }}>
+          <div style={{ background:"var(--surface)", border:"1px solid var(--line-strong)", borderRadius:18, width:"100%", maxWidth:380, padding:"24px", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+              <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800 }}>Account</span>
+              <button onClick={() => setShowAccount(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.5)", fontSize:20, cursor:"pointer" }}>✕</button>
+            </div>
+            <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", marginBottom:16 }}>{user?.email}</div>
+
+            <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Appearance</div>
+            <div style={{ marginBottom:16 }}>
+              {THEMES.map(t => {
+                const locked = !t.free && !userIsPro;
+                const active = theme === t.id;
+                return (
+                  <div key={t.id}
+                    onClick={() => {
+                      if (locked) { setShowAccount(false); if (onShowPricing) onShowPricing(); return; }
+                      setTheme(t.id); saveTheme(t.id);
+                      if (user?.id) saveThemePref(user.id, t.id);
+                    }}
+                    style={{ display:"flex", alignItems:"center", gap:11, padding:"9px 11px", marginBottom:5, borderRadius:10, cursor:"pointer",
+                      border: active ? `1px solid ${t.accent}` : "1px solid var(--line)",
+                      background: active ? `rgba(${t.accentRgb},0.08)` : "rgba(255,255,255,0.02)",
+                      opacity: locked ? 0.55 : 1, transition:"all 0.15s" }}>
+                    <span style={{ width:22, height:22, borderRadius:7, flexShrink:0, background:`linear-gradient(135deg, ${t.accent}, rgba(${t.accentRgb},0.4))`, border:"1px solid var(--line-strong)" }} />
+                    <span style={{ flex:1, minWidth:0 }}>
+                      <span style={{ display:"block", fontSize:12.5, fontWeight:700, color: active ? t.accent : "rgba(255,255,255,0.8)" }}>{t.name}</span>
+                      <span style={{ display:"block", fontSize:10, color:"rgba(255,255,255,0.5)" }}>{t.desc}</span>
+                    </span>
+                    {locked ? <span style={{ fontSize:11 }}>🔒</span> : active ? <span style={{ fontSize:11, color:t.accent }}>✓</span> : null}
+                  </div>
+                );
+              })}
+              {!userIsPro && (
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textAlign:"center", marginTop:4 }}>
+                  Themes unlock with Pro
+                </div>
+              )}
+            </div>
+            {onShowPricing && profile?.subscription_status !== "active" && (
+              <button onClick={onShowPricing} style={{ width:"100%", padding:"12px", marginBottom:8, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", borderRadius:10, color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>⚡ Upgrade to Pro</button>
+            )}
+            <button onClick={async () => { await signOut(); window.location.reload(); }} style={{ width:"100%", padding:"12px", background:"rgba(232,126,126,0.06)", border:"1px solid rgba(232,126,126,0.2)", borderRadius:10, color:"#e87e7e", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Sign Out</button>
+          </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#0a0a0c}
+        body{background:var(--bg0)}
         ::-webkit-scrollbar{width:3px}
         ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
         input,textarea,select{outline:none}
         input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.18)}
         select option{background:#1a1a1e}
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        @media(max-width:480px){.hide-xs{display:none!important}}
         @keyframes modalIn{from{opacity:0;transform:scale(0.96) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
         .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px}
-        .modal-box{background:#111115;border:1px solid rgba(255,255,255,0.1);border-radius:18px;width:100%;max-width:600px;animation:modalIn 0.25s ease both;margin:auto}
+        .modal-box{background:linear-gradient(var(--surface,#15151b),var(--surface,#15151b)),#0d0d11;border:1px solid var(--line-strong);border-radius:18px;width:100%;max-width:600px;animation:modalIn 0.25s ease both;margin:auto}
         @media print{.no-print{display:none!important}.print-quote{background:#fff!important;color:#000!important;padding:32px!important}}
       `}</style>
 
-      <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 45% at 50% -5%,rgba(232,201,122,0.065) 0%,transparent 55%),#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:80 }}>
+      <div style={{ minHeight:"100vh", background:"var(--bg-scene)", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:80 }}>
 
         {/* ── HEADER ── */}
-        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.055)", background:"rgba(10,10,12,0.88)", backdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }} className="no-print">
+        <div style={{ borderBottom:"1px solid var(--line)", background:"rgba(10,10,12,0.88)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }} className="no-print">
           <div style={{ maxWidth:800, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:9, minWidth:0, flex:1 }}>
               {logoDataUrl
                 ? <img src={logoDataUrl} alt="logo" style={{ height:32, width:"auto", borderRadius:6, objectFit:"contain" }} />
-                : <img src="/logo192.png" alt="Wireway" style={{ height:32, width:32, borderRadius:6, objectFit:"contain" }} />
+                : <WirewayMark size={32} />
               }
-              <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, letterSpacing:"-0.03em" }}>{company.name || "Wireway"}</span>
-              <span style={{ fontSize:8, fontWeight:700, color:"rgba(232,201,122,0.6)", background:"rgba(232,201,122,0.07)", border:"1px solid rgba(232,201,122,0.16)", padding:"1px 5px", borderRadius:3, letterSpacing:"0.08em", textTransform:"uppercase" }}>NEC 2023</span>
+              <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, letterSpacing:"-0.03em", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:"32vw" }}>{company.name || "Wireway Pro"}</span>
+              <span className="hide-xs" style={{ fontSize:10, fontWeight:700, color:"rgba(var(--accent-rgb),0.6)", background:"rgba(var(--accent-rgb),0.07)", border:"1px solid rgba(var(--accent-rgb),0.16)", padding:"1px 5px", borderRadius:3, letterSpacing:"0.08em", textTransform:"uppercase" }}>NEC 2023</span>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               {hasItems && (
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"#e8c97a", letterSpacing:"-0.02em" }}>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"var(--accent)", letterSpacing:"-0.02em" }}>
                   ${total.toLocaleString()}
                 </span>
-              )}
+            )}
               {onShowPricing && profile?.subscription_status !== "active" && (
-                <button onClick={onShowPricing} style={{ padding:"5px 11px", borderRadius:6, background:"linear-gradient(135deg,rgba(232,201,122,0.18),rgba(232,201,122,0.06))", border:"1px solid rgba(232,201,122,0.3)", color:"#e8c97a", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
+                <button onClick={onShowPricing} style={{ padding:"5px 11px", borderRadius:6, background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-rgb),0.06))", border:"1px solid rgba(var(--accent-rgb),0.3)", color:"var(--accent)", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
                   ⚡ {onTrial && daysLeft > 0 ? `${daysLeft}d left` : "Upgrade"}
                 </button>
-              )}
-              <button onClick={newQuote} style={{ padding:"5px 11px", borderRadius:6, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-                + New
-              </button>
+            )}
+              <button onClick={newQuote} style={{ padding:"5px 11px", borderRadius:6, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                + New </button>
+              <button onClick={() => setShowDashboard(true)} title="Home" style={{ padding:"5px 9px", borderRadius:6, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer" }}>
+                🏠 </button>
               {/* Combined account + company menu */}
-              <div style={{ display:"flex", gap:1, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:7, overflow:"hidden" }}>
-                <button onClick={() => setShowAccount(true)} style={{ padding:"5px 10px", border:"none", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit", borderRight:"1px solid rgba(255,255,255,0.06)" }}>
-                  Account
-                </button>
-                <button onClick={() => { setCompanyDraft(company); setLogoDataUrl(company.logoDataUrl||""); setEditingCompany(true); }} style={{ padding:"5px 10px", border:"none", background:"transparent", color:"rgba(255,255,255,0.45)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+              <div style={{ display:"flex", gap:1, background:"var(--card)", border:"1px solid var(--line-strong)", borderRadius:7, overflow:"hidden" }}>
+                <button onClick={() => setShowAccount(true)} style={{ padding:"5px 10px", border:"none", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit", borderRight:"1px solid var(--line)" }}>
+                  Account </button>
+                <button onClick={() => { setCompanyDraft(company); setLogoDataUrl(company.logoDataUrl||""); setEditingCompany(true); }} style={{ padding:"5px 10px", border:"none", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                   Company
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
+                </div>
+                </div>
+                </div>
 
         <div style={{ maxWidth:800, margin:"0 auto", padding:"0 20px" }}>
 
@@ -663,30 +773,28 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               {paymentSuccess && (
                 <div style={{ padding:"10px 14px", background:"rgba(100,220,130,0.07)", border:"1px solid rgba(100,220,130,0.2)", borderRadius:9, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <span style={{ fontSize:12, color:"#7dcea0", fontWeight:600 }}>
-                    {paymentBanner === "pro" ? "🎉 Wireway Pro is now active." : "✓ Payment received — quote marked paid."}
-                  </span>
+                    {paymentBanner === "pro" ? "🎉 Wireway Pro is now active." : "✓ Payment received — quote marked paid."} </span>
                   <button onClick={() => { setPaymentSuccess(false); if(onClearBanner) onClearBanner(); }} style={{ background:"transparent", border:"none", color:"rgba(100,220,130,0.4)", fontSize:16, cursor:"pointer", padding:"0 4px" }}>✕</button>
                 </div>
-              )}
+                )}
               {proGateMsg && (
-                <div style={{ padding:"9px 14px", background:"rgba(232,201,122,0.06)", border:"1px solid rgba(232,201,122,0.2)", borderRadius:9, fontSize:11, color:"rgba(232,201,122,0.9)", fontWeight:600 }}>
-                  ⚡ {proGateMsg}
-                </div>
-              )}
+                <div style={{ padding:"9px 14px", background:"rgba(var(--accent-rgb),0.06)", border:"1px solid rgba(var(--accent-rgb),0.2)", borderRadius:9, fontSize:11, color:"rgba(var(--accent-rgb),0.9)", fontWeight:600 }}>
+                  ⚡ {proGateMsg} </div>
+                  )}
               {onTrial && daysLeft <= 30 && daysLeft > 0 && (
-                <div style={{ padding:"9px 14px", background:"rgba(232,201,122,0.05)", border:"1px solid rgba(232,201,122,0.15)", borderRadius:9, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontSize:11, color:"rgba(232,201,122,0.75)" }}>⏳ {daysLeft} day{daysLeft!==1?"s":""} remaining in your trial.</span>
-                  {onShowPricing && <button onClick={onShowPricing} style={{ padding:"4px 10px", borderRadius:5, border:"1px solid rgba(232,201,122,0.35)", background:"rgba(232,201,122,0.1)", color:"#e8c97a", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Upgrade</button>}
+                <div style={{ padding:"9px 14px", background:"rgba(var(--accent-rgb),0.05)", border:"1px solid rgba(var(--accent-rgb),0.15)", borderRadius:9, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span style={{ fontSize:11, color:"rgba(var(--accent-rgb),0.75)" }}>⏳ {daysLeft} day{daysLeft!==1?"s":""} remaining in your trial.</span>
+                  {onShowPricing && <button onClick={onShowPricing} style={{ padding:"4px 10px", borderRadius:5, border:"1px solid rgba(var(--accent-rgb),0.35)", background:"rgba(var(--accent-rgb),0.1)", color:"var(--accent)", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Upgrade</button>}
                 </div>
-              )}
+                )}
               {!userIsPro && savedQuotes.length >= 3 && (
                 <div style={{ padding:"9px 14px", background:"rgba(232,126,126,0.05)", border:"1px solid rgba(232,126,126,0.15)", borderRadius:9, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <span style={{ fontSize:11, color:"rgba(232,126,126,0.75)" }}>Quote limit reached — upgrade for unlimited.</span>
                   {onShowPricing && <button onClick={onShowPricing} style={{ padding:"4px 10px", borderRadius:5, border:"1px solid rgba(232,126,126,0.35)", background:"rgba(232,126,126,0.08)", color:"#e87e7e", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Upgrade</button>}
                 </div>
-              )}
-            </div>
-          )}
+                )}
+                </div>
+                )}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:10, animation:"fadeUp 0.4s ease 0.04s both" }} className="no-print">
             {[
               { ph:"Client name",   val:clientName,  set:setClientName },
@@ -697,98 +805,112 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               <input key={f.ph} placeholder={f.ph} value={f.val} onChange={e => f.set(e.target.value)}
                 style={inputStyle} onFocus={focusGold} onBlur={blurGray} />
             ))}
-          </div>
+            </div>
 
           {/* ── RATE SETTINGS ── */}
-          <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.055)", borderRadius:12, padding:"12px 14px", marginBottom:10, animation:"fadeUp 0.4s ease 0.06s both" }} className="no-print">
+          <div style={{ background:"var(--card)", border:"1px solid var(--line)", borderRadius:12, padding:"12px 14px", marginBottom:10, animation:"fadeUp 0.4s ease 0.06s both" }} className="no-print">
             <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
               <div style={{ flex:1, minWidth:200 }}>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginBottom:7 }}>
-                  Hourly — <span style={{ color:"#e8c97a", fontFamily:"'DM Mono',monospace", fontWeight:700 }}>${hourlyRate}/hr</span>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginBottom:7 }}>
+                  Hourly — <span style={{ color:"var(--accent)", fontFamily:"'DM Mono',monospace", fontWeight:700 }}>${hourlyRate}/hr</span>
                 </div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                   {HOURLY_RATES.map(r => <Pill key={r} label={`$${r}`} active={r===hourlyRate} onClick={() => setHourlyRate(r)} />)}
                 </div>
-              </div>
+                </div>
               <div style={{ flex:1, minWidth:150 }}>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginBottom:7 }}>
-                  Markup — <span style={{ color:"#e8c97a", fontFamily:"'DM Mono',monospace", fontWeight:700 }}>{(markup*100).toFixed(0)}%</span>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginBottom:7 }}>
+                  Markup — <span style={{ color:"var(--accent)", fontFamily:"'DM Mono',monospace", fontWeight:700 }}>{(markup*100).toFixed(0)}%</span>
                 </div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                   {MARKUP_OPTIONS.map(m => <Pill key={m.v} label={m.label} active={m.v===markup} onClick={() => setMarkup(m.v)} />)}
                 </div>
-              </div>
-            </div>
-          </div>
+                </div>
+                </div>
+                </div>
 
           {/* ── UNIFIED SETTINGS + TOOLS PANEL ── */}
-          <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.055)", borderRadius:12, padding:"12px 14px", marginBottom:12, animation:"fadeUp 0.4s ease 0.08s both" }} className="no-print">
+          <div style={{ background:"var(--card)", border:"1px solid var(--line)", borderRadius:12, padding:"12px 14px", marginBottom:12, animation:"fadeUp 0.4s ease 0.08s both" }} className="no-print">
 
             {/* Row 1: toggles */}
             <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:10 }}>
               {[
-                { label: showMaterials ? "Mat · On" : "Mat · Off",     active: showMaterials,  action: () => setShowMaterials(v=>!v),  color:"#e8c97a" },
+                { label: showMaterials ? "Mat · On" : "Mat · Off",     active: showMaterials,  action: () => setShowMaterials(v=>!v),  color:"var(--accent)" },
                 { label: clientBuysAll ? "Client buys" : "You supply", active: clientBuysAll,  action: () => setClientBuysAll(v=>!v), color:"#7ec8e8" },
                 { label: flatRateMode  ? "Flat rate" : "Itemized",     active: flatRateMode,   action: () => setFlatRateMode(v=>!v),  color:"#a8e87e" },
                 { label: invoiceMode   ? "Invoice" : "Estimate",       active: invoiceMode,    action: () => setInvoiceMode(v=>!v),   color:"#b87ee8" },
                 { label: taxEnabled    ? `Tax ${(taxRate*100).toFixed(0)}%` : "Add tax", active: taxEnabled, action: () => setTaxEnabled(v=>!v), color:"#e8b87e" },
               ].map(t => (
-                <button key={t.label} onClick={t.action} style={{ padding:"4px 10px", borderRadius:6, fontSize:10, fontWeight:700, border: t.active ? `1px solid ${t.color}40` : "1px solid rgba(255,255,255,0.07)", background: t.active ? `${t.color}12` : "transparent", color: t.active ? t.color : "rgba(255,255,255,0.35)", cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
-                  {t.label}
-                </button>
+                <button key={t.label} onClick={t.action} style={{ padding:"4px 10px", borderRadius:6, fontSize:10, fontWeight:700, border: t.active ? `1px solid ${t.color}40` : "1px solid var(--line)", background: t.active ? `${t.color}12` : "transparent", color: t.active ? t.color : "rgba(255,255,255,0.35)", cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
+                  {t.label} </button>
               ))}
-            </div>
+              </div>
 
             {/* Conditional: tax rate or invoice due */}
             {(taxEnabled || invoiceMode) && (
-              <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:10, paddingTop:8, borderTop:"1px solid rgba(255,255,255,0.05)" }}>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:10, paddingTop:8, borderTop:"1px solid var(--line)" }}>
                 {taxEnabled && (
                   <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                    <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)" }}>Rate:</span>
+                    <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)" }}>Rate:</span>
                     {[0.05,0.06,0.07,0.08,0.09,0.10].map(r => (
-                      <button key={r} onClick={() => setTaxRate(r)} style={{ padding:"3px 7px", borderRadius:4, fontSize:10, fontWeight:700, border: r===taxRate ? "1px solid rgba(232,184,126,0.5)" : "1px solid rgba(255,255,255,0.07)", background: r===taxRate ? "rgba(232,184,126,0.15)" : "transparent", color: r===taxRate ? "#e8b87e" : "rgba(255,255,255,0.3)", cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>{(r*100).toFixed(0)}%</button>
+                      <button key={r} onClick={() => setTaxRate(r)} style={{ padding:"3px 7px", borderRadius:4, fontSize:10, fontWeight:700, border: r===taxRate ? "1px solid rgba(232,184,126,0.5)" : "1px solid var(--line)", background: r===taxRate ? "rgba(232,184,126,0.15)" : "transparent", color: r===taxRate ? "#e8b87e" : "rgba(255,255,255,0.3)", cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>{(r*100).toFixed(0)}%</button>
                     ))}
-                  </div>
-                )}
+                    </div>
+                    )}
                 {invoiceMode && (
                   <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                    <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)" }}>Due:</span>
+                    <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)" }}>Due:</span>
                     <input type="date" value={invoiceDueDate} onChange={e => setInvoiceDueDate(e.target.value)} style={{ ...inputStyle, width:"auto", fontSize:11, padding:"3px 8px", colorScheme:"dark" }} onFocus={focusGold} onBlur={blurGray} />
-                    <button onClick={() => setInvoicePaid(v => !v)} style={{ padding:"3px 9px", borderRadius:5, border: invoicePaid ? "1px solid rgba(100,220,130,0.4)" : "1px solid rgba(255,255,255,0.07)", background: invoicePaid ? "rgba(100,220,130,0.1)" : "transparent", color: invoicePaid ? "#7dcea0" : "rgba(255,255,255,0.35)", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                    <button onClick={() => setInvoicePaid(v => !v)} style={{ padding:"3px 9px", borderRadius:5, border: invoicePaid ? "1px solid rgba(100,220,130,0.4)" : "1px solid var(--line)", background: invoicePaid ? "rgba(100,220,130,0.1)" : "transparent", color: invoicePaid ? "#7dcea0" : "rgba(255,255,255,0.35)", fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                       {invoicePaid ? "✓ Paid" : "Mark paid"}
                     </button>
                   </div>
-                )}
-              </div>
-            )}
+                    )}
+                    </div>
+                    )}
 
-            {/* Row 2: tools — subtle divider separates from toggles */}
-            <div style={{ display:"flex", gap:5, flexWrap:"wrap", paddingTop:8, borderTop:"1px solid rgba(255,255,255,0.05)" }}>
-              {[
-                { label:"⚡ AI Quote", action:() => setShowAIBuilder(true),  highlight: true },
-              { label:"📅 Calendar", action:() => setShowCalendar(true)   },
-              { label:"Wire Calc",  action:() => setWireCalcOpen(true)  },
-                { label:"Load Calc",  action:() => setLoadCalcOpen(true)  },
-                { label:"Checklist",  action:() => setChecklistOpen(true) },
-                { label:"Clients",    action:() => setShowClientDB(true)  },
-                { label:"Mileage",    action:() => setShowMileage(true)   },
-                { label:"Expenses",   action:() => setShowExpenses(true)  },
-                { label:"+ Custom",   action:addCustomItem                },
-                hasItems ? { label:"Pull List", action:buildMaterialList } : null,
-              ].filter(Boolean).map(btn => (
-                <button key={btn.label} onClick={btn.action} style={{ padding:"4px 10px", borderRadius:6, fontSize:10, fontWeight: btn.highlight ? 700 : 600, border: btn.highlight ? "1px solid rgba(232,201,122,0.3)" : "1px solid rgba(255,255,255,0.07)", background: btn.highlight ? "rgba(232,201,122,0.08)" : "transparent", color: btn.highlight ? "#e8c97a" : "rgba(255,255,255,0.45)", cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = btn.highlight ? "rgba(232,201,122,0.15)" : "rgba(255,255,255,0.06)"; e.currentTarget.style.color = btn.highlight ? "#e8c97a" : "#fff"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = btn.highlight ? "rgba(232,201,122,0.08)" : "transparent"; e.currentTarget.style.color = btn.highlight ? "#e8c97a" : "rgba(255,255,255,0.45)"; }}>
-                  {btn.label}
+            {/* Row 2: primary action + collapsible tools */}
+            <div style={{ paddingTop:8, borderTop:"1px solid var(--line)" }}>
+              <button onClick={() => setShowAIBuilder(true)} style={{ width:"100%", padding:"11px", borderRadius:9, border:"1px solid rgba(var(--accent-rgb),0.35)", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-rgb),0.07))", color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                ⚡ AI Quote Builder
+              </button>
+
+              <div style={{ display:"flex", alignItems:"center", gap:9, marginTop:10 }}>
+                <button onClick={() => setShowTools(v=>!v)} style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 11px", borderRadius:6, fontSize:10, fontWeight:700, letterSpacing:"0.04em", border:"1px solid var(--line)", background:"transparent", color:"rgba(255,255,255,0.5)", cursor:"pointer", fontFamily:"inherit" }}>
+                  TOOLS <span style={{ fontSize:8, opacity:0.7 }}>{showTools ? "▲" : "▼"}</span>
                 </button>
-              ))}
-            </div>
-          </div>
+                <div style={{ flex:1, height:1, background:"var(--line)" }} />
+              </div>
+
+              {showTools && (
+                <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:10, animation:"fadeUp 0.25s ease both" }}>
+                  {[
+                    { label:"📅 Calendar",     action:() => setShowCalendar(true)    },
+                    { label:"Wire Calc",       action:() => setWireCalcOpen(true)    },
+                    { label:"Load Calc",       action:() => setLoadCalcOpen(true)    },
+                    { label:"⚡ Load Advisor", action:() => setShowLoadAdvisor(true) },
+                    { label:"Checklist",       action:() => setChecklistOpen(true)   },
+                    { label:"Clients",         action:() => setShowClientDB(true)    },
+                    { label:"Mileage",         action:() => setShowMileage(true)     },
+                    { label:"Expenses",        action:() => setShowExpenses(true)    },
+                    { label:"+ Custom",        action:addCustomItem                  },
+                    hasItems ? { label:"Pull List", action:buildMaterialList } : null,
+                  ].filter(Boolean).map(btn => (
+                    <button key={btn.label} onClick={btn.action} style={{ padding:"5px 11px", borderRadius:6, fontSize:10, fontWeight:600, border:"1px solid var(--line)", background:"transparent", color:"rgba(255,255,255,0.5)", cursor:"pointer", fontFamily:"inherit" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#fff"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}>
+                      {btn.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              </div>
+              </div>
 
           {/* Custom line items */}
           {customItems.length > 0 && (
-            <div style={{ background:"rgba(232,201,122,0.04)", border:"1px solid rgba(232,201,122,0.12)", borderRadius:12, padding:"14px 16px", marginBottom:14 }} className="no-print">
-              <div style={{ fontSize:10, color:"rgba(232,201,122,0.6)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Custom Line Items</div>
+            <div style={{ background:"rgba(var(--accent-rgb),0.04)", border:"1px solid rgba(var(--accent-rgb),0.12)", borderRadius:12, padding:"14px 16px", marginBottom:14 }} className="no-print">
+              <div style={{ fontSize:10, color:"rgba(var(--accent-rgb),0.6)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Custom Line Items</div>
               {customItems.map(item => (
                 <div key={item.id} style={{ display:"grid", gridTemplateColumns:"1fr 55px 75px 75px 65px 30px", gap:5, marginBottom:7, alignItems:"center" }}>
                   <input placeholder="Description" value={item.label} onChange={e => updateCustomItem(item.id, { label:e.target.value })} style={{ ...inputStyle, fontSize:12 }} onFocus={focusGold} onBlur={blurGray} />
@@ -799,22 +921,22 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                   <button onClick={() => removeCustomItem(item.id)} style={{ width:30, height:30, borderRadius:6, border:"1px solid rgba(255,100,100,0.2)", background:"rgba(255,100,100,0.06)", color:"rgba(255,100,100,0.5)", fontSize:14, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
                 </div>
               ))}
-            </div>
-          )}
+              </div>
+              )}
 
           {/* ── TABS ── */}
-          <div style={{ display:"flex", background:"rgba(255,255,255,0.025)", borderRadius:9, border:"1px solid rgba(255,255,255,0.065)", overflow:"hidden", marginBottom:14, animation:"fadeUp 0.4s ease 0.16s both" }} className="no-print">
+          <div style={{ display:"flex", background:"var(--card)", borderRadius:9, border:"1px solid var(--line)", overflow:"hidden", marginBottom:14, animation:"fadeUp 0.4s ease 0.16s both" }} className="no-print">
             {TAB("services", "Services")}
             {TAB("summary",  hasItems ? `Summary $${total.toLocaleString()}` : "Summary")}
             {TAB("saved",    `Saved (${savedQuotes.length})`)}
             {TAB("profit",   "Profit")}
             {TAB("nec",      "NEC 2023")}
             {onShowPricing && profile?.subscription_status !== "active" && (
-              <button onClick={onShowPricing} style={{ padding:"9px 10px", border:"none", background:"linear-gradient(135deg,rgba(232,201,122,0.18),rgba(232,201,122,0.06))", color:"#e8c97a", fontSize:11, fontWeight:800, cursor:"pointer", fontFamily:"'Syne',sans-serif", borderLeft:"1px solid rgba(232,201,122,0.2)", letterSpacing:"-0.01em", whiteSpace:"nowrap" }}>
+              <button onClick={onShowPricing} style={{ padding:"9px 10px", border:"none", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-rgb),0.06))", color:"var(--accent)", fontSize:11, fontWeight:800, cursor:"pointer", fontFamily:"'Syne',sans-serif", borderLeft:"1px solid rgba(var(--accent-rgb),0.2)", letterSpacing:"-0.01em", whiteSpace:"nowrap" }}>
                 ⚡ {onTrial ? `${daysLeft}d left` : "Upgrade"}
               </button>
-            )}
-          </div>
+          )}
+              </div>
 
           {/* ════════════ SERVICES TAB ════════════ */}
           {tab==="services" && (
@@ -823,16 +945,16 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 <CategorySection key={cat.id} category={cat} entries={entries} onUpdate={upd}
                   hourlyRate={hourlyRate} clientBuys={clientBuysAll} showMaterials={showMaterials} />
               ))}
-            </div>
-          )}
+              </div>
+              )}
 
           {/* ════════════ SUMMARY TAB ════════════ */}
           {tab==="summary" && (
             <div style={{ animation:"fadeUp 0.3s ease both" }}>
               {!hasItems ? (
                 <div style={{ textAlign:"center", padding:"52px 20px 40px" }} className="no-print">
-                  <div style={{ fontSize:13, color:"rgba(255,255,255,0.25)", marginBottom:16 }}>No services added yet</div>
-                  <button onClick={() => setTab("services")} style={{ padding:"9px 20px", background:"rgba(232,201,122,0.08)", border:"1px solid rgba(232,201,122,0.22)", borderRadius:8, color:"#e8c97a", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                  <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", marginBottom:16 }}>No services added yet</div>
+                  <button onClick={() => setTab("services")} style={{ padding:"9px 20px", background:"rgba(var(--accent-rgb),0.08)", border:"1px solid rgba(var(--accent-rgb),0.22)", borderRadius:8, color:"var(--accent)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                     Browse Services →
                   </button>
                 </div>
@@ -840,83 +962,108 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 <>
                   {/* ── STAT CARDS ── */}
                   <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }} className="no-print">
-                    <StatCard label="Total Estimate"      value={`$${total.toLocaleString()}`}           color="#e8c97a" />
+                    <StatCard label="Total Estimate"      value={`$${total.toLocaleString()}`}           color="var(--accent)" />
                     <StatCard label="Labor Only"          value={`$${totLab.toLocaleString()}`}          color="#a8e87e" sub={`${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr`} />
                     {showMaterials && <StatCard label="Materials (You)"    value={`$${totMat.toLocaleString()}`}          color="#7eb8e8" />}
                     {totClientBuysMat > 0 && <StatCard label="Client Buys (est.)" value={`$${totClientBuysMat.toLocaleString()}`} color="#e87eb8" sub="not charged to you" />}
                   </div>
 
                   {/* ── QUOTE PREVIEW CARD ── */}
-                  <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:13, padding:"20px", marginBottom:12 }} className="print-quote">
+                  <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid var(--line)", borderRadius:13, padding:"20px", marginBottom:12 }} className="print-quote">
                     {/* Company header */}
-                    <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:16, paddingBottom:16, borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:16, paddingBottom:16, borderBottom:"1px solid var(--line)" }}>
                       {logoDataUrl
                         ? <img src={logoDataUrl} alt="logo" style={{ height:48, width:"auto", maxWidth:120, objectFit:"contain", borderRadius:6 }} />
-                        : <img src="/logo192.png" alt="Wireway" style={{ height:48, width:48, borderRadius:8, objectFit:"contain" }} />
+                        : <WirewayMark size={44} glow={false} />
                       }
                       <div style={{ flex:1 }}>
                         <div style={{ fontFamily:"'Syne',sans-serif", fontSize:15, fontWeight:800, color:"#fff", letterSpacing:"-0.02em" }}>{company.name || "Your Company Name"}</div>
-                        <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:2, lineHeight:1.6 }}>
+                        <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2, lineHeight:1.6 }}>
                           {[company.phone, company.email, company.address, company.license && `Lic: ${company.license}`].filter(Boolean).join("  ·  ")}
                         </div>
-                      </div>
+                        </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
-                        {quoteNumber && <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, color:"#e8c97a", marginBottom:3 }}>{quoteNumber}</div>}
-                        <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em" }}>Date</div>
+                        {quoteNumber && <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, color:"var(--accent)", marginBottom:3 }}>{quoteNumber}</div>}
+                        <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em" }}>Date</div>
                         <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"'DM Mono',monospace" }}>{new Date().toLocaleDateString()}</div>
                         {currentQuoteStatus?.status === "accepted" && (
-                          <div style={{ marginTop:4, fontSize:9, fontWeight:700, color:"#7dcea0", background:"rgba(100,220,130,0.1)", border:"1px solid rgba(100,220,130,0.25)", padding:"2px 6px", borderRadius:4 }}>✓ ACCEPTED</div>
+                          <div style={{ marginTop:4, fontSize:10, fontWeight:700, color:"#7dcea0", background:"rgba(100,220,130,0.1)", border:"1px solid rgba(100,220,130,0.25)", padding:"2px 6px", borderRadius:4 }}>✓ ACCEPTED</div>
                         )}
-                      </div>
-                    </div>
+                        </div>
+                        </div>
 
                     {/* Client info */}
                     {(clientName || jobName || clientEmail || clientPhone) && (
-                      <div style={{ background:"rgba(255,255,255,0.03)", borderRadius:8, padding:"10px 12px", marginBottom:14, display:"grid", gridTemplateColumns:"1fr 1fr", gap:"4px 16px" }}>
-                        {clientName  && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.35)" }}>Client: </span><span style={{ color:"#fff", fontWeight:600 }}>{clientName}</span></div>}
-                        {jobName     && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.35)" }}>Job: </span><span style={{ color:"rgba(255,255,255,0.7)" }}>{jobName}</span></div>}
-                        {clientEmail && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.35)" }}>Email: </span><span style={{ color:"rgba(255,255,255,0.7)" }}>{clientEmail}</span></div>}
-                        {clientPhone && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.35)" }}>Phone: </span><span style={{ color:"rgba(255,255,255,0.7)" }}>{clientPhone}</span></div>}
+                      <div style={{ background:"var(--card)", borderRadius:8, padding:"10px 12px", marginBottom:14, display:"grid", gridTemplateColumns:"1fr 1fr", gap:"4px 16px" }}>
+                        {clientName  && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.5)" }}>Client: </span><span style={{ color:"#fff", fontWeight:600 }}>{clientName}</span>
+                      </div>}
+                        {jobName     && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.5)" }}>Job: </span><span style={{ color:"rgba(255,255,255,0.7)" }}>{jobName}</span>
+                      </div>}
+                        {clientEmail && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.5)" }}>Email: </span><span style={{ color:"rgba(255,255,255,0.7)" }}>{clientEmail}</span>
+                      </div>}
+                        {clientPhone && <div style={{ fontSize:12 }}><span style={{ color:"rgba(255,255,255,0.5)" }}>Phone: </span><span style={{ color:"rgba(255,255,255,0.7)" }}>{clientPhone}</span>
+                      </div>}
                       </div>
-                    )}
+                      )}
 
                     {/* Services provided */}
-                    <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Services Provided</div>
+                    <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Services Provided</div>
                     {CATEGORIES.map(cat => {
                       const items = activeItems.filter(i => cat.services.find(s => s.id===i.id));
                       if (!items.length) return null;
                       return (
                         <div key={cat.id} style={{ marginBottom:12 }}>
-                          <div style={{ fontSize:9, color:cat.color, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:5, opacity:0.85 }}>{cat.label}</div>
-                          {items.map(item => (
-                            <div key={item.id} style={{ display:"flex", alignItems:"flex-start", gap:8, padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
-                              <div style={{ flex:1 }}>
-                                <div style={{ fontSize:12, color:"rgba(255,255,255,0.78)", fontWeight:600 }}>{item.label}</div>
-                                <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontFamily:"'DM Mono',monospace", marginTop:1 }}>
-                                  {item.variantLabel} · {item.nec} · qty {item.qty}
-                                  {item.cBuys ? <span style={{ color:"#7ec8e8", marginLeft:5 }}>· client supplies parts</span> : ""}
+                          <div style={{ fontSize:10, color:cat.color, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:5, opacity:0.85 }}>{cat.label}</div>
+                          {items.map(item => {
+                            const open = expandedLine === item.id;
+                            return (
+                            <div key={item.id} style={{ borderBottom:"1px solid var(--line)" }}>
+                              <button onClick={() => setExpandedLine(open ? null : item.id)} style={{ width:"100%", display:"flex", alignItems:"flex-start", gap:8, padding:"7px 0", background:"transparent", border:"none", cursor:"pointer", textAlign:"left", fontFamily:"inherit" }}>
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ fontSize:12, color:"rgba(255,255,255,0.78)", fontWeight:600 }}>{item.label}</div>
+                                  <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginTop:3 }}>
+                                    {item.nec && item.nec !== "—" && (
+                                      <span style={{ fontSize:9, fontWeight:700, color:"var(--accent)", background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.22)", borderRadius:4, padding:"1px 6px", fontFamily:"'DM Mono',monospace" }}>NEC {item.nec}</span>
+                                    )}
+                                    <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace" }}>
+                                      {item.variantLabel} · qty {item.qty}
+                                      {item.cBuys ? <span style={{ color:"#7ec8e8", marginLeft:5 }}>· client supplies parts</span> : ""}
+                                    </span>
+                                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginLeft:"auto" }}>{open ? "hide math ▲" : "show math ▼"}</span>
+                                  </div>
+                                  </div>
+                                <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:1, flexShrink:0 }}>
+                                  <span style={{ fontSize:10, color:"rgba(162,220,160,0.75)", fontFamily:"'DM Mono',monospace" }}>lab ${item.lab.toLocaleString()}</span>
+                                  {showMaterials && !item.cBuys && <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace" }}>mat ${item.mat.toLocaleString()}</span>}
+                                  <span style={{ fontSize:12, fontWeight:700, color:cat.color, fontFamily:"'DM Mono',monospace" }}>${item.lineTotal.toLocaleString()}</span>
                                 </div>
+                              </button>
+                              {open && (
+                                <div style={{ padding:"0 0 10px", fontSize:10, color:"rgba(255,255,255,0.55)", fontFamily:"'DM Mono',monospace", lineHeight:1.85 }}>
+                                  <div>Labor: ${item.lab.toLocaleString()} — {item.hrs.toFixed(1)} hrs at your ${hourlyRate}/hr rate</div>
+                                  {item.cBuys
+                                    ? <div>Materials: client-supplied — not billed</div>
+                                    : <div>Materials: ${item.mat.toLocaleString()}</div>}
+                                  <div style={{ color:"rgba(255,255,255,0.75)" }}>Line total: ${item.lineTotal.toLocaleString()}</div>
+                                  {item.nec && item.nec !== "—" && <div style={{ color:"rgba(var(--accent-rgb),0.75)" }}>Code basis · NEC {item.nec}</div>}
+                                </div>
+                              )}
                               </div>
-                              <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:1, flexShrink:0 }}>
-                                <span style={{ fontSize:10, color:"rgba(162,220,160,0.75)", fontFamily:"'DM Mono',monospace" }}>lab ${item.lab.toLocaleString()}</span>
-                                {showMaterials && !item.cBuys && <span style={{ fontSize:9, color:"rgba(255,255,255,0.28)", fontFamily:"'DM Mono',monospace" }}>mat ${item.mat.toLocaleString()}</span>}
-                                <span style={{ fontSize:12, fontWeight:700, color:cat.color, fontFamily:"'DM Mono',monospace" }}>${item.lineTotal.toLocaleString()}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                            );
+                          })}
+                          </div>
                       );
                     })}
 
                     {/* Totals */}
-                    <div style={{ background:"linear-gradient(135deg,rgba(232,201,122,0.065) 0%,rgba(255,255,255,0.018) 100%)", border:"1px solid rgba(232,201,122,0.18)", borderRadius:10, padding:"14px 16px", marginTop:8 }}>
+                    <div style={{ background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.065) 0%,rgba(255,255,255,0.018) 100%)", border:"1px solid rgba(var(--accent-rgb),0.18)", borderRadius:10, padding:"14px 16px", marginTop:8 }}>
                       {[
                         showMaterials && { label:"Materials (supplied by us)", val:totMat, color:"#7eb8e8" },
                         { label:`Labor — ${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr`, val:totLab, color:"#a8e87e" },
-                        { label:`Markup — ${(markup*100).toFixed(0)}%`, val:markupAmt, color:"rgba(255,255,255,0.4)" },
+                        { label:`Markup — ${(markup*100).toFixed(0)}%`, val:markupAmt, color:"rgba(255,255,255,0.5)" },
                       ].filter(Boolean).map(row => (
                         <div key={row.label} style={{ display:"flex", justifyContent:"space-between", padding:"4px 0", fontSize:11 }}>
-                          <span style={{ color:"rgba(255,255,255,0.38)" }}>{row.label}</span>
+                          <span style={{ color:"rgba(255,255,255,0.5)" }}>{row.label}</span>
                           <span style={{ fontFamily:"'DM Mono',monospace", color:row.color, fontWeight:600 }}>${row.val.toLocaleString()}</span>
                         </div>
                       ))}
@@ -925,28 +1072,27 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                           <span style={{ color:"rgba(126,200,232,0.45)" }}>Client supplies parts (not charged)</span>
                           <span style={{ fontFamily:"'DM Mono',monospace", color:"rgba(126,200,232,0.45)" }}>~${totClientBuysMat.toLocaleString()}</span>
                         </div>
-                      )}
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:12, marginTop:6, borderTop:"1px solid rgba(232,201,122,0.18)" }}>
+                        )}
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:12, marginTop:6, borderTop:"1px solid rgba(var(--accent-rgb),0.18)" }}>
                         <span style={{ fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:800, color:"#fff" }}>Total Estimate</span>
-                        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:500, color:"#e8c97a", letterSpacing:"-0.03em" }}>${total.toLocaleString()}</span>
+                        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:500, color:"var(--accent)", letterSpacing:"-0.03em" }}>${total.toLocaleString()}</span>
                       </div>
-                    </div>
+                      </div>
 
                     {/* Notes */}
                     {notes && (
-                      <div style={{ marginTop:12, padding:"10px 12px", background:"rgba(255,255,255,0.03)", borderRadius:8, fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.6 }}>
-                        <span style={{ color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em", fontSize:9 }}>Notes: </span>{notes}
+                      <div style={{ marginTop:12, padding:"10px 12px", background:"var(--card)", borderRadius:8, fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.6 }}>
+                        <span style={{ color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", fontSize:10 }}>Notes: </span>{notes}
                       </div>
-                    )}
+                      )}
 
                     {/* Terms */}
                     {company.terms && (
-                      <div style={{ marginTop:10, padding:"10px 12px", background:"rgba(255,255,255,0.02)", borderRadius:8, fontSize:10, color:"rgba(255,255,255,0.3)", lineHeight:1.7 }}>
-                        <div style={{ color:"rgba(255,255,255,0.2)", textTransform:"uppercase", letterSpacing:"0.08em", fontSize:9, marginBottom:4 }}>Terms & Conditions</div>
-                        {company.terms}
-                      </div>
-                    )}
-                  </div>
+                      <div style={{ marginTop:10, padding:"10px 12px", background:"var(--card)", borderRadius:8, fontSize:10, color:"rgba(255,255,255,0.5)", lineHeight:1.7 }}>
+                        <div style={{ color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", fontSize:10, marginBottom:4 }}>Terms & Conditions</div>
+                        {company.terms} </div>
+                        )}
+                        </div>
 
                   {/* ── NOTES INPUT ── */}
                   <textarea placeholder="Job notes, permit info, scope exclusions, warranty..." value={notes} onChange={e => setNotes(e.target.value)} rows={2}
@@ -962,16 +1108,15 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                         <span style={{ fontSize:11 }}>✓</span>
                         <span style={{ fontSize:10, color:"#7dcea0", fontWeight:700 }}>ACCEPTED</span>
                       </div>
-                    )}
-                  </div>
+                      )}
+                      </div>
 
                   {/* ── SAVE + SIGN BUTTONS ── */}
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }} className="no-print">
-                    <button onClick={() => { if (!userIsPro && savedQuotes.length >= 3) { if(onShowPricing) onShowPricing(); return; } saveQuote(); }} style={{ padding:"12px", background: saveMsg ? "rgba(100,220,130,0.1)" : "linear-gradient(135deg,rgba(232,201,122,0.18),rgba(232,201,122,0.07))", border: saveMsg ? "1px solid rgba(100,220,130,0.38)" : "1px solid rgba(232,201,122,0.35)", borderRadius:10, color: saveMsg ? "#7dcea0" : "#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
-                      {saveMsg ? "✓ Saved" : "💾 Save Quote"}
-                    </button>
+                    <button onClick={() => { if (!userIsPro && savedQuotes.length >= 3) { if(onShowPricing) onShowPricing(); return; } saveQuote(); }} style={{ padding:"12px", background: saveMsg ? "rgba(100,220,130,0.1)" : "linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-rgb),0.07))", border: saveMsg ? "1px solid rgba(100,220,130,0.38)" : "1px solid rgba(var(--accent-rgb),0.35)", borderRadius:10, color: saveMsg ? "#7dcea0" : "var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
+                      {saveMsg ? "✓ Saved" : "💾 Save Quote"} </button>
                     <button onClick={() => { setSigName(""); setSigDate(new Date().toLocaleDateString()); setSigSaved(false); setSignModal(true); }}
-                      style={{ padding:"12px", background: currentQuoteStatus?.status === "accepted" ? "rgba(100,220,130,0.1)" : "rgba(255,255,255,0.04)", border: currentQuoteStatus?.status === "accepted" ? "1px solid rgba(100,220,130,0.35)" : "1px solid rgba(255,255,255,0.1)", borderRadius:10, color: currentQuoteStatus?.status === "accepted" ? "#7dcea0" : "rgba(255,255,255,0.5)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
+                      style={{ padding:"12px", background: currentQuoteStatus?.status === "accepted" ? "rgba(100,220,130,0.1)" : "rgba(255,255,255,0.04)", border: currentQuoteStatus?.status === "accepted" ? "1px solid rgba(100,220,130,0.35)" : "1px solid var(--line-strong)", borderRadius:10, color: currentQuoteStatus?.status === "accepted" ? "#7dcea0" : "rgba(255,255,255,0.5)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
                       {currentQuoteStatus?.status === "accepted" ? "✓ Client Signed" : "✍ Client Signature"}
                     </button>
                   </div>
@@ -981,7 +1126,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     {[
                       { icon:"✉", label:"Email",      desc: clientEmail || "Mail app",    action: emailQuote,  color:"#7eb8e8" },
                       { icon:"💬", label:"Text",       desc: clientPhone || "Messages",    action: smsQuote,    color:"#a8e87e" },
-                      { icon:"⎘",  label:"Copy",       desc: copied ? "Copied!" : "Text", action: copyQuote,   color: copied ? "#7dcea0" : "#e8c97a" },
+                      { icon:"⎘",  label:"Copy",       desc: copied ? "Copied!" : "Text", action: copyQuote,   color: copied ? "#7dcea0" : "var(--accent)" },
                       { icon:"🔗", label:"Share Link", desc: quoteId ? "Client link" : "Save first", action: () => {
                         if (!quoteId) { setSaveMsg("Save the quote first."); setTimeout(() => setSaveMsg(""), 2000); return; }
                         const link = `${window.location.origin}/quote/${quoteId}`;
@@ -994,142 +1139,105 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                         onMouseLeave={e => e.currentTarget.style.background=`${btn.color}08`}>
                         <span style={{ fontSize:16 }}>{btn.icon}</span>
                         <span style={{ fontSize:10, fontWeight:700, color:btn.color }}>{btn.label}</span>
-                        <span style={{ fontSize:9, color:"rgba(255,255,255,0.3)" }}>{btn.desc}</span>
+                        <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)" }}>{btn.desc}</span>
                       </button>
                     ))}
-                  </div>
+                    </div>
 
-                  <button onClick={() => window.print()} style={{ width:"100%", padding:"11px", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, color:"rgba(255,255,255,0.5)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }} className="no-print"
-                    onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.08)"}
-                    onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.04)"}>
-                    🖨 Print / Save as PDF
+                  <button onClick={() => setShowProposal(true)} style={{ width:"100%", padding:"13px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-rgb),0.06))", border:"1px solid rgba(var(--accent-rgb),0.35)", borderRadius:10, color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }} className="no-print">
+                    📄 Generate Proposal (PDF)
+                  </button>
+
+                  <button onClick={() => setShowPullList(true)} style={{ width:"100%", padding:"12px", marginTop:6, background:"var(--card)", border:"1px solid var(--line-strong)", borderRadius:10, color:"rgba(255,255,255,0.6)", fontSize:12.5, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }} className="no-print">
+                    🧾 Material Pull List & Prices
                   </button>
 
                   {/* ── ON MY WAY + REVIEW ── */}
                   <div style={{ display:"flex", flexDirection:"column", gap:6, marginTop:2 }} className="no-print">
                     <OnMyWayButton
                       clientName={clientName} clientPhone={clientPhone}
-                      jobAddress={jobName} companyName={company.name}
-                    />
+                      jobAddress={jobName} companyName={company.name} />
                     {currentQuoteStatus?.status === "accepted" || currentQuoteStatus?.status === "paid" ? (
                       <ReviewRequestButton
                         clientName={clientName} clientPhone={clientPhone}
-                        companyName={company.name} reviewUrl={company.reviewUrl}
-                      />
+                        companyName={company.name} reviewUrl={company.reviewUrl} />
                     ) : null}
                     <AutoInvoiceButton
                       isInvoiceMode={invoiceMode}
-                      onConvert={() => { setInvoiceMode(true); setInvoiceDueDate(new Date(Date.now()+30*86400000).toISOString().split("T")[0]); }}
-                    />
+                      onConvert={() => { setInvoiceMode(true); setInvoiceDueDate(new Date(Date.now()+30*86400000).toISOString().split("T")[0]); }} />
                     <QuickBooksExport
                       quote={{ clientName, jobName, quoteNumber, invoiceDueDate }}
                       company={company}
                       activeItems={activeItems}
                       total={total} totLab={totLab} totMat={totMat}
                       markupAmt={markupAmt} taxAmt={taxAmt}
-                      taxRate={taxRate} taxEnabled={taxEnabled}
-                    />
+                      taxRate={taxRate} taxEnabled={taxEnabled} />
                   </div>
 
                   {/* ── PHOTO ATTACHMENTS ── */}
                   {quoteId && (
-                    <div style={{ marginTop:14, padding:"14px 16px", background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.055)", borderRadius:12 }} className="no-print">
+                    <div style={{ marginTop:14, padding:"14px 16px", background:"var(--card)", border:"1px solid var(--line)", borderRadius:12 }} className="no-print">
                       <PhotoAttachments user={user} quoteId={quoteId} />
                     </div>
                   )}
 
-                  {/* ── UPGRADE PROMPT (trial / free users) ── */}
-                  {(!userIsPro || onTrial) && onShowPricing && (
-                    <div style={{ marginTop:16, background:"linear-gradient(135deg,rgba(232,201,122,0.08) 0%,rgba(99,102,241,0.06) 100%)", border:"1px solid rgba(232,201,122,0.2)", borderRadius:14, padding:"20px", textAlign:"center" }} className="no-print">
-                      <div style={{ fontSize:20, marginBottom:8 }}>⚡</div>
-                      <div style={{ fontFamily:"'Syne',sans-serif", fontSize:15, fontWeight:800, color:"#fff", marginBottom:6, letterSpacing:"-0.02em" }}>
-                        {onTrial ? `${daysLeft} days left in your free trial` : "Unlock Pro features"}
-                      </div>
-                      <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:16, lineHeight:1.6 }}>
-                        Client payments · Unlimited quotes · Signatures · Invoice mode · Profit analysis · and more
-                      </div>
-                      <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
-                        <button onClick={onShowPricing} style={{ padding:"11px 24px", background:"linear-gradient(135deg,rgba(232,201,122,0.25),rgba(232,201,122,0.1))", border:"1px solid rgba(232,201,122,0.4)", borderRadius:9, color:"#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-                          Upgrade to Pro — $12/mo
+                  {/* ── DEPOSIT + PAYMENT ── */}
+                  <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+                    <button onClick={() => setDepositOnly(false)} style={{ flex:1, padding:"8px", borderRadius:7, border: !depositOnly ? "1px solid rgba(99,102,241,0.5)" : "1px solid var(--line-strong)", background: !depositOnly ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.03)", color: !depositOnly ? "#818cf8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                      Full Amount
+                    </button>
+                    <button onClick={() => setDepositOnly(true)} style={{ flex:1, padding:"8px", borderRadius:7, border: depositOnly ? "1px solid rgba(99,102,241,0.5)" : "1px solid var(--line-strong)", background: depositOnly ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.03)", color: depositOnly ? "#818cf8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                      Deposit Only
+                    </button>
+                  </div>
+                  {depositOnly && (
+                    <div style={{ display:"flex", gap:4, marginBottom:10 }}>
+                      {[25,50,75,100].map(pct => (
+                        <button key={pct} onClick={() => setDepositPercent(pct)} style={{ flex:1, padding:"6px", borderRadius:6, border: depositPercent===pct ? "1px solid rgba(99,102,241,0.5)" : "1px solid var(--line-strong)", background: depositPercent===pct ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.03)", color: depositPercent===pct ? "#818cf8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>
+                          {pct}%
                         </button>
-                        <button onClick={onShowPricing} style={{ padding:"11px 20px", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:9, color:"rgba(255,255,255,0.4)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-                          View all plans
-                        </button>
-                      </div>
-                      <div style={{ fontSize:10, color:"rgba(255,255,255,0.2)", marginTop:10 }}>
-                        30-day free trial · No credit card required · Cancel anytime
-                      </div>
+                      ))}
                     </div>
                   )}
-
-                  {/* ── STRIPE PAYMENT PANEL ── */}
-                  <div style={{ marginTop:14, background:"linear-gradient(135deg,rgba(99,102,241,0.08) 0%,rgba(139,92,246,0.05) 100%)", border:"1px solid rgba(99,102,241,0.2)", borderRadius:13, padding:"18px 18px 14px" }} className="no-print">
-                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
-                      <div style={{ width:28, height:28, borderRadius:6, background:"rgba(99,102,241,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>⚡</div>
-                      <div>
-                        <div style={{ fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:800, color:"#fff" }}>Request Payment via Stripe</div>
-                        <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)" }}>Client pays online — card or bank · 2.9% + 30¢ per transaction</div>
-                      </div>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", background:"var(--card)", borderRadius:8, marginBottom:12 }}>
+                    <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)" }}>
+                      {depositOnly ? `${depositPercent}% deposit` : "Full payment"} to charge:
+                    </span>
+                    <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:700, color:"#818cf8" }}>
+                      ${depositOnly ? Math.round(total * depositPercent / 100).toLocaleString() : total.toLocaleString()}
+                    </span>
+                  </div>
+                  {paymentError && (
+                    <div style={{ fontSize:11, color:"#e87e7e", background:"rgba(232,126,126,0.08)", border:"1px solid rgba(232,126,126,0.2)", borderRadius:7, padding:"8px 10px", marginBottom:10, lineHeight:1.5 }}>
+                      ⚠ {paymentError}
                     </div>
-
-                    {/* Deposit vs full toggle */}
-                    <div style={{ display:"flex", gap:6, marginBottom:12 }}>
-                      <button onClick={() => setDepositOnly(true)} style={{ flex:1, padding:"8px", borderRadius:8, border: depositOnly ? "1px solid rgba(99,102,241,0.5)" : "1px solid rgba(255,255,255,0.08)", background: depositOnly ? "rgba(99,102,241,0.15)" : "rgba(255,255,255,0.03)", color: depositOnly ? "#818cf8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
-                        Deposit Only
+                  )}
+                  {paymentSuccess && (
+                    <div style={{ fontSize:11, color:"#7dcea0", background:"rgba(100,220,130,0.08)", border:"1px solid rgba(100,220,130,0.2)", borderRadius:7, padding:"8px 10px", marginBottom:10 }}>
+                      ✓ Payment received! Quote marked as paid.
+                    </div>
+                  )}
+                  {!profile?.stripe_charges_enabled ? (
+                    <button onClick={() => setEditingCompany(true)} style={{ width:"100%", padding:"13px", background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:10, color:"#818cf8", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                      ⚙ Connect Stripe in Company Settings
+                    </button>
+                  ) : (
+                    <button onClick={() => requirePro(requestPayment)} disabled={paymentLoading} style={{ width:"100%", padding:"13px", background: paymentLoading ? "rgba(99,102,241,0.06)" : "linear-gradient(135deg,rgba(99,102,241,0.25),rgba(139,92,246,0.15))", border:"1px solid rgba(99,102,241,0.4)", borderRadius:10, color: paymentLoading ? "rgba(129,140,248,0.5)" : "#818cf8", fontSize:13, fontWeight:700, cursor: paymentLoading ? "default" : "pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
+                      {paymentLoading ? "Opening Stripe Checkout..." : `⚡ Send Payment Request — $${depositOnly ? Math.round(total * depositPercent / 100).toLocaleString() : total.toLocaleString()}`}
+                    </button>
+                  )}
+                  {profile?.stripe_charges_enabled && (
+                    <div style={{ display:"flex", gap:6, marginTop:8 }}>
+                      <button onClick={() => requirePro(() => requestPayment("sms"))} disabled={paymentLoading} style={{ flex:1, padding:"10px", borderRadius:9, background:"rgba(126,200,232,0.07)", border:"1px solid rgba(126,200,232,0.25)", color:"#7ec8e8", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                        💬 Text Pay Link
                       </button>
-                      <button onClick={() => setDepositOnly(false)} style={{ flex:1, padding:"8px", borderRadius:8, border: !depositOnly ? "1px solid rgba(99,102,241,0.5)" : "1px solid rgba(255,255,255,0.08)", background: !depositOnly ? "rgba(99,102,241,0.15)" : "rgba(255,255,255,0.03)", color: !depositOnly ? "#818cf8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
-                        Full Amount
+                      <button onClick={() => requirePro(() => requestPayment("copy"))} disabled={paymentLoading} style={{ flex:1, padding:"10px", borderRadius:9, background:"var(--card)", border:"1px solid var(--line-strong)", color:"rgba(255,255,255,0.55)", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                        🔗 Copy Pay Link
                       </button>
                     </div>
-
-                    {/* Deposit percentage selector */}
-                    {depositOnly && (
-                      <div style={{ display:"flex", gap:5, marginBottom:12 }}>
-                        <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)", alignSelf:"center", flexShrink:0 }}>Deposit %:</span>
-                        {[25, 33, 50, 75].map(pct => (
-                          <button key={pct} onClick={() => setDepositPercent(pct)} style={{ flex:1, padding:"6px", borderRadius:6, border: depositPercent===pct ? "1px solid rgba(99,102,241,0.5)" : "1px solid rgba(255,255,255,0.08)", background: depositPercent===pct ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.03)", color: depositPercent===pct ? "#818cf8" : "rgba(255,255,255,0.4)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>{pct}%</button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Amount preview */}
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", background:"rgba(255,255,255,0.04)", borderRadius:8, marginBottom:12 }}>
-                      <span style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>
-                        {depositOnly ? `${depositPercent}% deposit` : "Full payment"} to charge:
-                      </span>
-                      <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:700, color:"#818cf8" }}>
-                        ${depositOnly ? Math.round(total * depositPercent / 100).toLocaleString() : total.toLocaleString()}
-                      </span>
-                    </div>
-
-                    {/* Error message */}
-                    {paymentError && (
-                      <div style={{ fontSize:11, color:"#e87e7e", background:"rgba(232,126,126,0.08)", border:"1px solid rgba(232,126,126,0.2)", borderRadius:7, padding:"8px 10px", marginBottom:10, lineHeight:1.5 }}>
-                        ⚠ {paymentError}
-                      </div>
-                    )}
-
-                    {/* Success message */}
-                    {paymentSuccess && (
-                      <div style={{ fontSize:11, color:"#7dcea0", background:"rgba(100,220,130,0.08)", border:"1px solid rgba(100,220,130,0.2)", borderRadius:7, padding:"8px 10px", marginBottom:10 }}>
-                        ✓ Payment received! Quote marked as paid.
-                      </div>
-                    )}
-
-                    {/* Pay button */}
-                    {!company.stripeKey ? (
-                      <button onClick={() => setEditingCompany(true)} style={{ width:"100%", padding:"13px", background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:10, color:"#818cf8", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-                        ⚙ Connect Stripe in Company Settings
-                      </button>
-                    ) : (
-                      <button onClick={() => requirePro(requestPayment)} disabled={paymentLoading} style={{ width:"100%", padding:"13px", background: paymentLoading ? "rgba(99,102,241,0.06)" : "linear-gradient(135deg,rgba(99,102,241,0.25),rgba(139,92,246,0.15))", border:"1px solid rgba(99,102,241,0.4)", borderRadius:10, color: paymentLoading ? "rgba(129,140,248,0.5)" : "#818cf8", fontSize:13, fontWeight:700, cursor: paymentLoading ? "default" : "pointer", fontFamily:"inherit", transition:"all 0.2s" }}>
-                        {paymentLoading ? "Opening Stripe Checkout..." : `⚡ Send Payment Request — $${depositOnly ? Math.round(total * depositPercent / 100).toLocaleString() : total.toLocaleString()}`}
-                      </button>
-                    )}
-
-                    <div style={{ textAlign:"center", fontSize:9, color:"rgba(255,255,255,0.2)", marginTop:8 }}>
-                      Powered by Stripe · Secure · PCI compliant · Client pays in their browser
-                    </div>
+                  )}
+                  <div style={{ textAlign:"center", fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:8 }}>
+                    Powered by Stripe · Secure · PCI compliant · Apple Pay & Google Pay supported
                   </div>
                 </>
               )}
@@ -1141,149 +1249,186 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             <div style={{ animation:"fadeUp 0.3s ease both" }} className="no-print">
               {/* Free tier limit warning */}
               {!userIsPro && savedQuotes.length >= 3 && onShowPricing && (
-                <div style={{ marginBottom:14, padding:"14px 16px", background:"linear-gradient(135deg,rgba(232,201,122,0.08),rgba(99,102,241,0.05))", border:"1px solid rgba(232,201,122,0.2)", borderRadius:12, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+                <div style={{ marginBottom:14, padding:"14px 16px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.08),rgba(99,102,241,0.05))", border:"1px solid rgba(var(--accent-rgb),0.2)", borderRadius:12, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
                   <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:"#e8c97a", marginBottom:2 }}>Free plan limit reached</div>
-                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>You're using {savedQuotes.length}/3 saved quote slots. Upgrade for unlimited.</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:"var(--accent)", marginBottom:2 }}>Free plan limit reached</div>
+                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)" }}>You're using {savedQuotes.length}/3 saved quote slots. Upgrade for unlimited.</div>
                   </div>
-                  <button onClick={onShowPricing} style={{ padding:"8px 14px", borderRadius:8, border:"1px solid rgba(232,201,122,0.4)", background:"rgba(232,201,122,0.12)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>
+                  <button onClick={onShowPricing} style={{ padding:"8px 14px", borderRadius:8, border:"1px solid rgba(var(--accent-rgb),0.4)", background:"rgba(var(--accent-rgb),0.12)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>
                     Upgrade ⚡
                   </button>
                 </div>
-              )}
+                  )}
               {savedQuotes.length === 0 ? (
-                <div style={{ textAlign:"center", padding:"48px 20px", color:"rgba(255,255,255,0.2)" }}>
+                <div style={{ textAlign:"center", padding:"48px 20px", color:"rgba(255,255,255,0.5)" }}>
                   <div style={{ fontSize:30, marginBottom:10 }}>◎</div>
                   <div style={{ fontSize:13 }}>No saved quotes yet.</div>
-                  <div style={{ fontSize:11, marginTop:6, color:"rgba(255,255,255,0.15)" }}>Build an estimate and tap Save Quote.</div>
-                </div>
+                  <div style={{ fontSize:11, marginTop:6, color:"rgba(255,255,255,0.5)" }}>Build an estimate and tap Save Quote.</div>
+                  </div>
               ) : (
                 <>
-                  <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>
-                    {savedQuotes.length} saved quote{savedQuotes.length !== 1 ? "s" : ""}
-                  </div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>
+                    {savedQuotes.length} saved quote{savedQuotes.length !== 1 ? "s" : ""} </div>
                   {savedQuotes.map(q => (
                     <div key={q.id} style={{
                       background: q.status === "accepted" ? "linear-gradient(135deg,rgba(100,220,130,0.06),rgba(255,255,255,0.02))" : "rgba(255,255,255,0.022)",
-                      border: q.status === "accepted" ? "1px solid rgba(100,220,130,0.2)" : "1px solid rgba(255,255,255,0.065)",
+                      border: q.status === "accepted" ? "1px solid rgba(100,220,130,0.2)" : "1px solid var(--line)",
                       borderRadius:13, padding:"14px 16px", marginBottom:8,
                       display:"flex", alignItems:"center", gap:12,
                     }}>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-                          <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, color:"#e8c97a" }}>{q.quoteNumber}</span>
+                          <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, color:"var(--accent)" }}>{q.quoteNumber}</span>
                           {q.status === "accepted" && (
-                            <span style={{ fontSize:9, fontWeight:700, color:"#7dcea0", background:"rgba(100,220,130,0.12)", border:"1px solid rgba(100,220,130,0.25)", padding:"1px 6px", borderRadius:4, letterSpacing:"0.05em" }}>
+                            <span style={{ fontSize:10, fontWeight:700, color:"#7dcea0", background:"rgba(100,220,130,0.12)", border:"1px solid rgba(100,220,130,0.25)", padding:"1px 6px", borderRadius:4, letterSpacing:"0.05em" }}>
                               ✓ ACCEPTED
                             </span>
-                          )}
+                        )}
                           {q.status === "draft" && (
-                            <span style={{ fontSize:9, color:"rgba(255,255,255,0.25)", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", padding:"1px 6px", borderRadius:4, letterSpacing:"0.05em" }}>
+                            <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)", background:"rgba(255,255,255,0.05)", border:"1px solid var(--line-strong)", padding:"1px 6px", borderRadius:4, letterSpacing:"0.05em" }}>
                               DRAFT
                             </span>
-                          )}
-                        </div>
+                        )}
+                            </div>
                         <div style={{ fontSize:13, fontWeight:600, color:"#fff", marginBottom:2 }}>
-                          {q.clientName || "No client name"}{q.jobName ? ` — ${q.jobName}` : ""}
-                        </div>
-                        <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontFamily:"'DM Mono',monospace" }}>
+                          {q.clientName || "No client name"}{q.jobName ? ` — ${q.jobName}` : ""} </div>
+                        <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace" }}>
                           ${q.total?.toLocaleString()} · {new Date(q.savedAt).toLocaleDateString()}
                           {q.sigName && <span style={{ color:"rgba(100,220,130,0.6)", marginLeft:8 }}>· Signed: {q.sigName}</span>}
                         </div>
-                      </div>
+                        </div>
                       <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                        <button onClick={() => loadQuote(q)} style={{ padding:"7px 14px", borderRadius:7, border:"1px solid rgba(232,201,122,0.3)", background:"rgba(232,201,122,0.08)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-                          Load →
-                        </button>
-                        <button onClick={() => deleteQuote(q.id)} style={{ padding:"7px 10px", borderRadius:7, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"rgba(255,100,100,0.5)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                        <button onClick={() => loadQuote(q)} style={{ padding:"7px 14px", borderRadius:7, border:"1px solid rgba(var(--accent-rgb),0.3)", background:"rgba(var(--accent-rgb),0.08)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                          Load → </button>
+                        <button onClick={() => deleteQuote(q.id)} style={{ padding:"7px 10px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,100,100,0.5)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                           ✕
                         </button>
                       </div>
-                    </div>
+                        </div>
                   ))}
                 </>
-              )}
-            </div>
-          )}
+                )}
+                </div>
+                )}
 
           {/* ════════════ PROFIT ANALYSIS TAB ════════════ */}
           {tab==="profit" && (
             <div style={{ animation:"fadeUp 0.3s ease both" }} className="no-print">
               {!hasItems ? (
-                <div style={{ textAlign:"center", padding:"40px 20px", color:"rgba(255,255,255,0.2)" }}>
+                <div style={{ textAlign:"center", padding:"40px 20px", color:"rgba(255,255,255,0.5)" }}>
                   <div style={{ fontSize:28, marginBottom:10 }}>◎</div>
                   <div style={{ fontSize:13 }}>Add services to see profit analysis.</div>
-                </div>
+                  </div>
               ) : (
                 <>
                   {/* Key metrics */}
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:16 }}>
                     {[
-                      { label:"Total Revenue",     val:`$${total.toLocaleString()}`,         color:"#e8c97a", sub:"what client pays" },
+                      { label:"Total Revenue",     val:`$${total.toLocaleString()}`,         color:"var(--accent)", sub:"what client pays" },
                       { label:"Your Labor",         val:`$${totLab.toLocaleString()}`,         color:"#a8e87e", sub:`${totHrs.toFixed(1)} hrs @ $${hourlyRate}/hr` },
                       { label:"Materials Cost",     val:`$${totMat.toLocaleString()}`,         color:"#7eb8e8", sub:"your out-of-pocket" },
-                      { label:"Gross Profit",       val:`$${markupAmt.toLocaleString()}`,      color:"#e8c97a", sub:`${marginPct}% margin` },
+                      { label:"Gross Profit",       val:`$${markupAmt.toLocaleString()}`,      color:"var(--accent)", sub:`${marginPct}% margin` },
                       { label:"Effective Rate",     val:`$${effectiveRate}/hr`,                color:"#a8e87e", sub:"revenue per hour" },
                       { label:"Labor %",            val:`${laborPct}%`,                        color:"#7eb8e8", sub:"of total invoice" },
                     ].map(c => (
-                      <div key={c.label} style={{ background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"12px 14px" }}>
-                        <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:5 }}>{c.label}</div>
+                      <div key={c.label} style={{ background:"var(--card)", border:"1px solid var(--line)", borderRadius:10, padding:"12px 14px" }}>
+                        <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:5 }}>{c.label}</div>
                         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:18, fontWeight:500, color:c.color }}>{c.val}</div>
-                        <div style={{ fontSize:9, color:"rgba(255,255,255,0.25)", marginTop:2 }}>{c.sub}</div>
-                      </div>
+                        <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:2 }}>{c.sub}</div>
+                        </div>
                     ))}
-                  </div>
+                    </div>
 
                   {/* Profitability grade */}
-                  <div style={{ background: Number(marginPct) >= 30 ? "rgba(100,220,130,0.06)" : Number(marginPct) >= 20 ? "rgba(232,201,122,0.06)" : "rgba(232,120,120,0.06)", border: `1px solid ${Number(marginPct) >= 30 ? "rgba(100,220,130,0.2)" : Number(marginPct) >= 20 ? "rgba(232,201,122,0.2)" : "rgba(232,120,120,0.2)"}`, borderRadius:12, padding:"16px 18px", marginBottom:14 }}>
+                  <div style={{ background: Number(marginPct) >= 30 ? "rgba(100,220,130,0.06)" : Number(marginPct) >= 20 ? "rgba(var(--accent-rgb),0.06)" : "rgba(232,120,120,0.06)", border: `1px solid ${Number(marginPct) >= 30 ? "rgba(100,220,130,0.2)" : Number(marginPct) >= 20 ? "rgba(var(--accent-rgb),0.2)" : "rgba(232,120,120,0.2)"}`, borderRadius:12, padding:"16px 18px", marginBottom:14 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                       <div>
                         <div style={{ fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:800, color:"#fff" }}>
-                          {Number(marginPct) >= 30 ? "✓ Strong margin" : Number(marginPct) >= 20 ? "⚡ Fair margin" : "⚠ Thin margin"}
-                        </div>
-                        <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:3 }}>
+                          {Number(marginPct) >= 30 ? "✓ Strong margin" : Number(marginPct) >= 20 ? "⚡ Fair margin" : "⚠ Thin margin"} </div>
+                        <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:3 }}>
                           {Number(marginPct) >= 30 ? "Industry benchmark: 25–35% is healthy for residential electrical." : Number(marginPct) >= 20 ? "Consider raising markup or hourly rate to improve margins." : "Increase markup or hourly rate — you may be underpriced."}
                         </div>
-                      </div>
-                      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:28, fontWeight:700, color: Number(marginPct) >= 30 ? "#7dcea0" : Number(marginPct) >= 20 ? "#e8c97a" : "#e87e7e" }}>
-                        {marginPct}%
-                      </div>
-                    </div>
-                  </div>
+                        </div>
+                      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:28, fontWeight:700, color: Number(marginPct) >= 30 ? "#7dcea0" : Number(marginPct) >= 20 ? "var(--accent)" : "#e87e7e" }}>
+                        {marginPct}% </div>
+                        </div>
+                        </div>
 
                   {/* Per-service profitability breakdown */}
-                  <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:12, padding:"14px 16px" }}>
-                    <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Service Breakdown</div>
+                  <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid var(--line)", borderRadius:12, padding:"14px 16px" }}>
+                    <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Service Breakdown</div>
                     {activeItems.map(item => {
                       const itemMarkup = (item.lineTotal * markup);
                       const itemRevenue = item.lineTotal + itemMarkup;
                       const itemMargin = itemRevenue > 0 ? ((itemMarkup / itemRevenue) * 100).toFixed(0) : 0;
                       return (
-                        <div key={item.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                        <div key={item.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom:"1px solid var(--line)" }}>
                           <div style={{ flex:1, minWidth:0 }}>
                             <div style={{ fontSize:12, color:"rgba(255,255,255,0.7)", fontWeight:600, lineHeight:1.2 }}>{item.label}</div>
-                            <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", fontFamily:"'DM Mono',monospace", marginTop:1 }}>
+                            <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace", marginTop:1 }}>
                               {item.hrs.toFixed(1)} hrs · lab ${item.lab.toLocaleString()} · mat ${item.mat.toLocaleString()}
                             </div>
-                          </div>
+                            </div>
                           <div style={{ textAlign:"right", flexShrink:0 }}>
-                            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:700, color:"#e8c97a" }}>${itemRevenue.toLocaleString()}</div>
-                            <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", fontFamily:"'DM Mono',monospace" }}>{itemMargin}% margin</div>
+                            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:700, color:"var(--accent)" }}>${itemRevenue.toLocaleString()}</div>
+                            <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace" }}>{itemMargin}% margin</div>
                           </div>
-                        </div>
+                          </div>
                       );
                     })}
-                  </div>
+                    </div>
                 </>
-              )}
+                )}
+                </div>
+                )}
+
+          {/* ════════════ FIRST-RUN WELCOME ════════════ */}
+          {showWelcome && (
+            <div className="modal-overlay" onClick={e => e.target===e.currentTarget && finishOnboarding()}>
+              <div className="modal-box" style={{ padding:"28px 24px", maxWidth:440, textAlign:"center" }}>
+                <img src="/logo192.png" alt="Wireway Pro" style={{ width:56, height:56, borderRadius:13, marginBottom:14 }} />
+                <div style={{ fontFamily:"'Syne',sans-serif", fontSize:20, fontWeight:800, color:"#fff", marginBottom:8, letterSpacing:"-0.02em" }}>Welcome to Wireway Pro</div>
+                <div style={{ fontSize:13.5, color:"rgba(255,255,255,0.6)", lineHeight:1.6, marginBottom:18 }}>
+                  The whole idea: describe a job in plain English and it builds an NEC-coded estimate in seconds. Watch it do one.
+                </div>
+                <div style={{ background:"rgba(255,255,255,0.04)", border:"1px solid var(--line-strong)", borderRadius:10, padding:"12px 14px", fontSize:12.5, color:"rgba(255,255,255,0.7)", fontFamily:"'DM Mono',monospace", marginBottom:18, textAlign:"left", lineHeight:1.5 }}>
+                  "Upgrade the panel to 200A and add a 48-amp EV charger circuit"
+                </div>
+                <button onClick={startSampleQuote} style={{ width:"100%", padding:"13px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.08))", border:"1px solid rgba(var(--accent-rgb),0.4)", borderRadius:10, color:"var(--accent)", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginBottom:8 }}>
+                  ⚡ Build this quote for me
+                </button>
+                <button onClick={finishOnboarding} style={{ width:"100%", padding:"9px", background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                  I'll start my own
+                </button>
+              </div>
             </div>
           )}
 
           {/* ════════════ AI QUOTE BUILDER ════════════ */}
           {showAIBuilder && (
             <AIQuoteBuilder
+              initialPrompt={aiSeed}
+              hourlyRate={hourlyRate}
               onApplyEstimate={applyAIEstimate}
               onClose={() => setShowAIBuilder(false)}
+            />
+          )}
+
+          {/* ════════════ AHA UPGRADE MOMENT (first applied AI estimate) ════════════ */}
+          {ahaUpgrade && (
+            <UpgradeMoment
+              itemCount={ahaUpgrade.count}
+              jobTotal={ahaUpgrade.total}
+              onUpgrade={() => { setAhaUpgrade(null); if (onShowPricing) onShowPricing(); }}
+              onClose={() => setAhaUpgrade(null)}
+            />
+          )}
+
+          {/* ════════════ ELECTRIFICATION LOAD ADVISOR ════════════ */}
+          {showLoadAdvisor && (
+            <LoadAdvisor
+              onApplyEstimate={applyAIEstimate}
+              onClose={() => setShowLoadAdvisor(false)}
             />
           )}
 
@@ -1292,7 +1437,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             <div style={{ position:"fixed", inset:0, zIndex:150, overflowY:"auto" }}>
               <JobCalendar user={user} onClose={() => setShowCalendar(false)} />
             </div>
-          )}
+            )}
 
           {/* ════════════ MILEAGE TRACKER ════════════ */}
           {showMileage && <MileageView user={user} onClose={() => setShowMileage(false)} />}
@@ -1303,10 +1448,10 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
 
-          <div style={{ textAlign:"center", marginTop:44, paddingTop:18, borderTop:"1px solid rgba(255,255,255,0.04)", fontSize:9, color:"rgba(255,255,255,0.13)", letterSpacing:"0.07em" }} className="no-print">
-            WIREWAY · NEC 2023 · wireway.cc
+          <div style={{ textAlign:"center", marginTop:44, paddingTop:18, borderTop:"1px solid var(--line)", fontSize:10, color:"rgba(255,255,255,0.5)", letterSpacing:"0.07em" }} className="no-print">
+            WIREWAY PRO · NEC 2023 · wirewaypro.com
           </div>
-        </div>
+      </div>
       </div>
 
       {/* ════════════ ACCOUNT MODAL ════════════ */}
@@ -1316,37 +1461,41 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
               <div>
                 <div style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, color:"#fff" }}>Account</div>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:2 }}>{user?.email}</div>
-              </div>
-              <button onClick={() => setShowAccount(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:22, cursor:"pointer" }}>✕</button>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>{user?.email}</div>
+                </div>
+              <button onClick={() => setShowAccount(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.5)", fontSize:22, cursor:"pointer" }}>✕</button>
             </div>
 
             {/* Plan status */}
-            <div style={{ background: userIsPro ? "rgba(100,220,130,0.06)" : "rgba(232,201,122,0.06)", border: userIsPro ? "1px solid rgba(100,220,130,0.2)" : "1px solid rgba(232,201,122,0.2)", borderRadius:10, padding:"12px 14px", marginBottom:16 }}>
+            <div style={{ background: userIsPro ? "rgba(100,220,130,0.06)" : "rgba(var(--accent-rgb),0.06)", border: userIsPro ? "1px solid rgba(100,220,130,0.2)" : "1px solid rgba(var(--accent-rgb),0.2)", borderRadius:10, padding:"12px 14px", marginBottom:16 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                 <div>
-                  <div style={{ fontSize:12, fontWeight:700, color: userIsPro ? "#7dcea0" : "#e8c97a" }}>
-                    {userIsPro ? (onTrial ? `Pro Trial — ${daysLeft} days left` : "Wireway Pro") : "Free Plan"}
-                  </div>
-                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:2 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color: userIsPro ? "#7dcea0" : "var(--accent)" }}>
+                    {userIsPro ? (onTrial ? `Pro Trial — ${daysLeft} days left` : "Wireway Pro") : "Free Plan"} </div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:2 }}>
                     {userIsPro ? "All features unlocked" : "3 quote limit · upgrade to unlock everything"}
                   </div>
-                </div>
+                  </div>
                 {!userIsPro && onShowPricing && (
-                  <button onClick={() => { setShowAccount(false); onShowPricing(); }} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(232,201,122,0.4)", background:"rgba(232,201,122,0.1)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                  <button onClick={() => { setShowAccount(false); onShowPricing(); }} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(var(--accent-rgb),0.4)", background:"rgba(var(--accent-rgb),0.1)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                     Upgrade ⚡
                   </button>
-                )}
+              )}
                 {userIsPro && (
                   <button onClick={async () => {
-                    const res = await fetch("/api/billing-portal", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ userId: user.id }) });
-                    const d = await res.json(); if (d.url) window.open(d.url, "_blank");
-                  }} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(255,255,255,0.1)", background:"rgba(255,255,255,0.04)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const token = session?.access_token;
+                    if (!token) return;
+                    const res = await fetch("/api/billing-portal", { method:"POST", headers:{ "Content-Type":"application/json", Authorization:`Bearer ${token}` }, body:JSON.stringify({}) });
+                    const d = await res.json();
+                    if (d.url) { window.location.href = d.url; }
+                    else { alert(d.error || "Could not open billing portal. Try again."); }
+                  }} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"var(--card)", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                     Manage Billing
                   </button>
-                )}
-              </div>
-            </div>
+              )}
+                  </div>
+                  </div>
 
             {/* Stats */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
@@ -1355,12 +1504,12 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 { label:"Clients", val: clients.length },
                 { label:"Accepted", val: savedQuotes.filter(q=>q.status==="accepted"||q.status==="paid").length },
               ].map(s => (
-                <div key={s.label} style={{ background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:8, padding:"10px", textAlign:"center" }}>
-                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:20, fontWeight:700, color:"#e8c97a" }}>{s.val}</div>
-                  <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginTop:2 }}>{s.label}</div>
-                </div>
+                <div key={s.label} style={{ background:"var(--card)", border:"1px solid var(--line)", borderRadius:8, padding:"10px", textAlign:"center" }}>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:20, fontWeight:700, color:"var(--accent)" }}>{s.val}</div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:2 }}>{s.label}</div>
+                  </div>
               ))}
-            </div>
+              </div>
 
             {/* Sign out */}
             <button onClick={async () => {
@@ -1370,8 +1519,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               Sign Out
             </button>
           </div>
-        </div>
-      )}
+            </div>
+            )}
 
       {/* ════════════ COMPANY PROFILE MODAL ════════════ */}
       {signModal && (
@@ -1380,65 +1529,93 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:22 }}>
               <div>
                 <div style={{ fontFamily:"'Syne',sans-serif", fontSize:17, fontWeight:800, color:"#fff" }}>Client Acceptance</div>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:3 }}>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:3 }}>
                   Quote {quoteNumber || "—"} · Total ${total.toLocaleString()}
-                </div>
-              </div>
-              <button onClick={() => setSignModal(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:22, cursor:"pointer" }}>✕</button>
+                  </div>
+                  </div>
+              <button onClick={() => setSignModal(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.5)", fontSize:22, cursor:"pointer" }}>✕</button>
             </div>
 
             {/* Quote summary for reference */}
-            <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"12px 14px", marginBottom:20 }}>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginBottom:8 }}>Scope Summary</div>
+            <div style={{ background:"var(--card)", border:"1px solid var(--line)", borderRadius:10, padding:"12px 14px", marginBottom:20 }}>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginBottom:8 }}>Scope Summary</div>
               {activeItems.slice(0, 5).map(i => (
-                <div key={i.id} style={{ fontSize:11, color:"rgba(255,255,255,0.6)", padding:"3px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
-                  {i.label} ({i.variantLabel}) × {i.qty} — <span style={{ color:"#e8c97a", fontFamily:"'DM Mono',monospace" }}>${i.lineTotal.toLocaleString()}</span>
+                <div key={i.id} style={{ fontSize:11, color:"rgba(255,255,255,0.6)", padding:"3px 0", borderBottom:"1px solid var(--line)" }}>
+                  {i.label} ({i.variantLabel}) × {i.qty} — <span style={{ color:"var(--accent)", fontFamily:"'DM Mono',monospace" }}>${i.lineTotal.toLocaleString()}</span>
                 </div>
               ))}
-              {activeItems.length > 5 && <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", paddingTop:6 }}>+ {activeItems.length - 5} more services</div>}
-              <div style={{ display:"flex", justifyContent:"space-between", paddingTop:10, marginTop:6, borderTop:"1px solid rgba(232,201,122,0.15)" }}>
+              {activeItems.length > 5 && <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", paddingTop:6 }}>+ {activeItems.length - 5} more services</div>}
+              <div style={{ display:"flex", justifyContent:"space-between", paddingTop:10, marginTop:6, borderTop:"1px solid rgba(var(--accent-rgb),0.15)" }}>
                 <span style={{ fontSize:12, color:"rgba(255,255,255,0.5)" }}>Total</span>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"#e8c97a" }}>${total.toLocaleString()}</span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"var(--accent)" }}>${total.toLocaleString()}</span>
               </div>
-            </div>
+              </div>
 
             {/* Acceptance statement */}
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", lineHeight:1.7, marginBottom:20, padding:"12px 14px", background:"rgba(232,201,122,0.04)", borderRadius:8, border:"1px solid rgba(232,201,122,0.12)" }}>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.7, marginBottom:20, padding:"12px 14px", background:"rgba(var(--accent-rgb),0.04)", borderRadius:8, border:"1px solid rgba(var(--accent-rgb),0.12)" }}>
               By entering your name and date below, you acknowledge that you have reviewed this estimate, agree to the scope of work and pricing, and authorize {company.name || "the electrician"} to proceed.
-              {company.terms && <div style={{ marginTop:8, color:"rgba(255,255,255,0.3)", fontSize:10 }}>{company.terms}</div>}
+              {company.terms && <div style={{ marginTop:8, color:"rgba(255,255,255,0.5)", fontSize:10 }}>{company.terms}</div>}
             </div>
 
             {/* Signature fields */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:16 }}>
               <div>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Client Full Name</div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Client Full Name</div>
                 <input placeholder="Type full name to accept" value={sigName} onChange={e => setSigName(e.target.value)}
                   style={{ ...inputStyle }} onFocus={focusGold} onBlur={blurGray} />
               </div>
               <div>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Date</div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Date</div>
                 <input type="date" value={sigDate} onChange={e => setSigDate(e.target.value)}
                   style={{ ...inputStyle, colorScheme:"dark" }} onFocus={focusGold} onBlur={blurGray} />
               </div>
-            </div>
+              </div>
 
             {/* Accept button */}
             {sigSaved ? (
               <div style={{ textAlign:"center", padding:"14px", background:"rgba(100,220,130,0.1)", border:"1px solid rgba(100,220,130,0.3)", borderRadius:10, color:"#7dcea0", fontSize:14, fontWeight:700 }}>
-                ✓ Quote Accepted — {sigName}
-              </div>
+                ✓ Quote Accepted — {sigName} </div>
             ) : (
               <button onClick={acceptQuote} disabled={!sigName}
-                style={{ width:"100%", padding:"14px", background: sigName ? "linear-gradient(135deg,rgba(100,220,130,0.2),rgba(100,220,130,0.08))" : "rgba(255,255,255,0.04)", border: sigName ? "1px solid rgba(100,220,130,0.4)" : "1px solid rgba(255,255,255,0.08)", borderRadius:11, color: sigName ? "#7dcea0" : "rgba(255,255,255,0.25)", fontSize:13, fontWeight:700, cursor: sigName ? "pointer" : "default", fontFamily:"inherit", transition:"all 0.2s" }}>
+                style={{ width:"100%", padding:"14px", background: sigName ? "linear-gradient(135deg,rgba(100,220,130,0.2),rgba(100,220,130,0.08))" : "rgba(255,255,255,0.04)", border: sigName ? "1px solid rgba(100,220,130,0.4)" : "1px solid var(--line-strong)", borderRadius:11, color: sigName ? "#7dcea0" : "rgba(255,255,255,0.25)", fontSize:13, fontWeight:700, cursor: sigName ? "pointer" : "default", fontFamily:"inherit", transition:"all 0.2s" }}>
                 ✍ Accept & Sign Quote
               </button>
-            )}
+          )}
 
-            <div style={{ textAlign:"center", marginTop:10, fontSize:10, color:"rgba(255,255,255,0.2)" }}>
+            <div style={{ textAlign:"center", marginTop:10, fontSize:10, color:"rgba(255,255,255,0.5)" }}>
               This is an electronic acknowledgment. Save or print a copy for your records.
             </div>
           </div>
         </div>
+      )}
+
+      {showCustomers && (
+        <CustomersView
+          user={user} onClientsChange={setClients}
+          clients={clients} savedQuotes={savedQuotes}
+          onLoadQuote={(q) => { loadQuote(q); setShowCustomers(false); }}
+          onNewEstimate={(cl) => { newQuote(true); setClientName(cl.name || ""); setClientEmail(cl.email || ""); setClientPhone(cl.phone || ""); setShowCustomers(false); setTab("services"); }}
+          onClose={() => setShowCustomers(false)}
+        />
+      )}
+
+      {showPullList && (
+        <MaterialsListView
+          activeItems={activeItems}
+          totMat={totMat}
+          jobName={jobName}
+          onClose={() => setShowPullList(false)}
+        />
+      )}
+
+      {showProposal && (
+        <ProposalView
+          company={company} clientName={clientName} clientEmail={clientEmail} clientPhone={clientPhone}
+          jobName={jobName} notes={notes} quoteNumber={quoteNumber} activeItems={activeItems}
+          subtotal={subtotal} markupAmt={markupAmt} taxAmt={taxAmt} taxEnabled={taxEnabled} total={total}
+          depositPercent={depositPercent} sigName={sigSaved ? sigName : ""} sigDate={sigSaved ? sigDate : ""}
+          onClose={() => setShowProposal(false)}
+        />
       )}
 
       <WiremModals {...{

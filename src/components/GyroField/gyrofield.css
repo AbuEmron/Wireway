@@ -1,0 +1,35 @@
+/* GyroField shell — the fixed living background + the content layer above it.
+   Self-contained: paints its own dark base and scopes its own box-sizing, so
+   it needs no global reset and won't affect the rest of your app. */
+
+.ww-field {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  background: var(--ink);   /* dark base behind the translucent canvas drawing */
+}
+
+/* content sits above the field */
+.ww-page { position: relative; z-index: 2; min-height: 100vh; }
+
+/* scope box-sizing to only the new UI so existing screens are untouched */
+.ww-page, .ww-page *, .ww-page *::before, .ww-page *::after { box-sizing: border-box; }
+.ww-hint, .ww-hint * { box-sizing: border-box; }
+
+/* motion / gyro hint pill */
+.ww-hint {
+  position: fixed; z-index: 3; left: 50%; bottom: 22px; transform: translateX(-50%);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--paper);
+  background: rgba(17, 22, 31, 0.7); border: 1px solid var(--hair);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  padding: 8px 15px; border-radius: 999px; cursor: pointer;
+  transition: opacity 0.6s ease; display: flex; align-items: center; gap: 8px;
+}
+.ww-hint__pulse { width: 7px; height: 7px; border-radius: 50%; animation: ww-blink 1.6s infinite; }
+@keyframes ww-blink { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.ww-hint.is-gone { opacity: 0; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) { .ww-hint__pulse { animation: none; } }

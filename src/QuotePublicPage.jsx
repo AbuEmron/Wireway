@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // src/QuotePublicPage.jsx
 // Client-facing quote view — opened via a shareable link
 // No login required. Client can view, accept, and pay.
@@ -68,19 +69,19 @@ export default function QuotePublicPage({ quoteId }) {
   const e = data?.electrician;
 
   const IS = {
-    background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)",
+    background:"var(--card)", border:"1px solid var(--line-strong)",
     borderRadius:8, padding:"10px 13px", fontSize:14, color:"#fff",
     fontFamily:"inherit", width:"100%", outline:"none",
   };
 
   if (loading) return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#0a0a0c" }}>
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"var(--bg0)" }}>
       <div style={{ color:"rgba(255,255,255,0.4)", fontFamily:"sans-serif", fontSize:14 }}>Loading quote...</div>
     </div>
   );
 
   if (error && !data) return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#0a0a0c" }}>
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"var(--bg0)" }}>
       <div style={{ color:"#e87e7e", fontFamily:"sans-serif", fontSize:14 }}>{error}</div>
     </div>
   );
@@ -90,18 +91,18 @@ export default function QuotePublicPage({ quoteId }) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#0a0a0c}
+        body{background:var(--bg0)}
       `}</style>
 
-      <div style={{ minHeight:"100vh", background:"radial-gradient(ellipse 80% 40% at 50% 0%,rgba(232,201,122,0.07) 0%,transparent 55%),#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:60 }}>
+      <div style={{ minHeight:"100vh", background:"var(--bg-scene)", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:60 }}>
 
         {/* Header */}
-        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", padding:"14px 20px", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)" }}>
+        <div style={{ borderBottom:"1px solid var(--line)", padding:"14px 20px", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)" }}>
           <div style={{ maxWidth:600, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               {e?.logo_url
                 ? <img src={e.logo_url} alt="logo" style={{ height:32, width:"auto", borderRadius:5, objectFit:"contain" }} />
-                : <div style={{ width:30, height:30, borderRadius:6, background:"linear-gradient(135deg,#e8c97a,#c9a84c)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:800, color:"#0a0a0c" }}>
+                : <div style={{ width:30, height:30, borderRadius:6, background:"linear-gradient(135deg,var(--accent),#c9a84c)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:800, color:"var(--bg0)" }}>
                     {(e?.company_name || "W")[0].toUpperCase()}
                   </div>
               }
@@ -110,7 +111,7 @@ export default function QuotePublicPage({ quoteId }) {
                 {e?.license_number && <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)" }}>Lic: {e.license_number}</div>}
               </div>
             </div>
-            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:500, color:"#e8c97a" }}>${q?.total?.toLocaleString()}</div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:500, color:"var(--accent)" }}>${q?.total?.toLocaleString()}</div>
           </div>
         </div>
 
@@ -128,8 +129,8 @@ export default function QuotePublicPage({ quoteId }) {
           ) : null}
 
           {/* Quote header */}
-          <div style={{ background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"18px", marginBottom:14 }}>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px 20px", marginBottom:14, paddingBottom:14, borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ background:"var(--card)", border:"1px solid var(--line)", borderRadius:14, padding:"18px", marginBottom:14 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px 20px", marginBottom:14, paddingBottom:14, borderBottom:"1px solid var(--line)" }}>
               {[
                 { label:"Quote #",   val: q?.quote_number },
                 { label:"Date",      val: new Date(q?.created_at).toLocaleDateString() },
@@ -151,13 +152,13 @@ export default function QuotePublicPage({ quoteId }) {
           </div>
 
           {/* Services */}
-          <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:13, padding:"14px 16px", marginBottom:14 }}>
+          <div style={{ background:"rgba(255,255,255,0.022)", border:"1px solid var(--line)", borderRadius:13, padding:"14px 16px", marginBottom:14 }}>
             <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Services</div>
             {q?.entries && Object.keys(q.entries).filter(k => q.entries[k]?.qty > 0).length === 0 && (
               <div style={{ fontSize:12, color:"rgba(255,255,255,0.3)" }}>No line items</div>
             )}
             {q?.entries && Object.entries(q.entries).filter(([,v]) => v?.qty > 0).map(([id, entry]) => (
-              <div key={id} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:"1px solid rgba(255,255,255,0.04)", fontSize:12 }}>
+              <div key={id} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:"1px solid var(--line)", fontSize:12 }}>
                 <span style={{ color:"rgba(255,255,255,0.7)" }}>{id.replace(/_/g," ")} × {entry.qty}</span>
                 <span style={{ fontFamily:"'DM Mono',monospace", color:"rgba(255,255,255,0.5)" }}></span>
               </div>
@@ -165,7 +166,7 @@ export default function QuotePublicPage({ quoteId }) {
           </div>
 
           {/* Totals */}
-          <div style={{ background:"linear-gradient(135deg,rgba(232,201,122,0.07),rgba(255,255,255,0.02))", border:"1px solid rgba(232,201,122,0.2)", borderRadius:13, padding:"16px", marginBottom:20 }}>
+          <div style={{ background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.07),rgba(255,255,255,0.02))", border:"1px solid rgba(var(--accent-rgb),0.2)", borderRadius:13, padding:"16px", marginBottom:20 }}>
             {[
               q?.show_materials && { label:"Materials", val: q?.total_material },
               { label:`Labor (${q?.total_hours?.toFixed(1)} hrs)`, val: q?.total_labor },
@@ -177,15 +178,15 @@ export default function QuotePublicPage({ quoteId }) {
                 <span style={{ fontFamily:"'DM Mono',monospace", color:"rgba(255,255,255,0.55)" }}>${Number(row.val||0).toLocaleString()}</span>
               </div>
             ))}
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:12, marginTop:8, borderTop:"1px solid rgba(232,201,122,0.18)" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:12, marginTop:8, borderTop:"1px solid rgba(var(--accent-rgb),0.18)" }}>
               <span style={{ fontFamily:"'Syne',sans-serif", fontSize:15, fontWeight:800 }}>Total</span>
-              <span style={{ fontFamily:"'DM Mono',monospace", fontSize:24, fontWeight:500, color:"#e8c97a" }}>${Number(q?.total||0).toLocaleString()}</span>
+              <span style={{ fontFamily:"'DM Mono',monospace", fontSize:24, fontWeight:500, color:"var(--accent)" }}>${Number(q?.total||0).toLocaleString()}</span>
             </div>
           </div>
 
           {/* Notes */}
           {q?.notes && (
-            <div style={{ marginBottom:20, padding:"12px 14px", background:"rgba(255,255,255,0.03)", borderRadius:10, fontSize:12, color:"rgba(255,255,255,0.5)", lineHeight:1.7 }}>
+            <div style={{ marginBottom:20, padding:"12px 14px", background:"var(--card)", borderRadius:10, fontSize:12, color:"rgba(255,255,255,0.5)", lineHeight:1.7 }}>
               <div style={{ fontSize:9, color:"rgba(255,255,255,0.25)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Notes</div>
               {q.notes}
             </div>
@@ -193,7 +194,7 @@ export default function QuotePublicPage({ quoteId }) {
 
           {/* Terms */}
           {e?.terms && (
-            <div style={{ marginBottom:20, padding:"12px 14px", background:"rgba(255,255,255,0.02)", borderRadius:10, fontSize:11, color:"rgba(255,255,255,0.3)", lineHeight:1.7 }}>
+            <div style={{ marginBottom:20, padding:"12px 14px", background:"var(--card)", borderRadius:10, fontSize:11, color:"rgba(255,255,255,0.3)", lineHeight:1.7 }}>
               <div style={{ fontSize:9, color:"rgba(255,255,255,0.2)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Terms</div>
               {e.terms}
             </div>
@@ -204,7 +205,7 @@ export default function QuotePublicPage({ quoteId }) {
             <>
               {/* Signature */}
               {q?.status !== "accepted" && (
-                <div style={{ background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:13, padding:"18px", marginBottom:12 }}>
+                <div style={{ background:"var(--card)", border:"1px solid var(--line)", borderRadius:13, padding:"18px", marginBottom:12 }}>
                   <div style={{ fontSize:13, fontWeight:700, color:"#fff", marginBottom:4, fontFamily:"'Syne',sans-serif" }}>Accept this Quote</div>
                   <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginBottom:14, lineHeight:1.6 }}>
                     By signing below you authorize {e?.company_name || "the electrician"} to proceed with the described work.
@@ -220,7 +221,7 @@ export default function QuotePublicPage({ quoteId }) {
                     </div>
                   </div>
                   {error && <div style={{ fontSize:11, color:"#e87e7e", marginBottom:10 }}>{error}</div>}
-                  <button onClick={acceptQuote} disabled={!sigName || signing} style={{ width:"100%", padding:"13px", background: sigName ? "linear-gradient(135deg,rgba(100,220,130,0.2),rgba(100,220,130,0.08))" : "rgba(255,255,255,0.04)", border: sigName ? "1px solid rgba(100,220,130,0.4)" : "1px solid rgba(255,255,255,0.08)", borderRadius:10, color: sigName ? "#7dcea0" : "rgba(255,255,255,0.25)", fontSize:13, fontWeight:700, cursor: sigName ? "pointer" : "default", fontFamily:"inherit" }}>
+                  <button onClick={acceptQuote} disabled={!sigName || signing} style={{ width:"100%", padding:"13px", background: sigName ? "linear-gradient(135deg,rgba(100,220,130,0.2),rgba(100,220,130,0.08))" : "rgba(255,255,255,0.04)", border: sigName ? "1px solid rgba(100,220,130,0.4)" : "1px solid var(--line-strong)", borderRadius:10, color: sigName ? "#7dcea0" : "rgba(255,255,255,0.25)", fontSize:13, fontWeight:700, cursor: sigName ? "pointer" : "default", fontFamily:"inherit" }}>
                     {signing ? "Signing..." : "✍ Accept & Sign Quote"}
                   </button>
                 </div>
@@ -238,7 +239,7 @@ export default function QuotePublicPage({ quoteId }) {
           )}
 
           <div style={{ textAlign:"center", marginTop:32, fontSize:10, color:"rgba(255,255,255,0.15)", letterSpacing:"0.05em" }}>
-            Powered by <span style={{ color:"rgba(232,201,122,0.5)" }}>Wireway</span> · Professional Electrical Estimating
+            Powered by <span style={{ color:"rgba(var(--accent-rgb),0.5)" }}>Wireway</span> · Professional Electrical Estimating
           </div>
         </div>
       </div>

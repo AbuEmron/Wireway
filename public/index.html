@@ -1,8 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&family=Quicksand:wght@600;700&display=swap" rel="stylesheet" />
+
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
+    <link rel="alternate icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0a0a0c" />
     <meta name="description" content="Wireway — Professional NEC 2023 electrical estimating. Build quotes, track labor and materials, send to clients." />
@@ -10,12 +15,90 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta property="og:title" content="Wireway" />
-    <meta property="og:description" content="Professional NEC 2023 electrical estimating for residential contractors." />
+    <meta property="og:title" content="Wireway — AI Electrical Estimating" />
+    <meta property="og:description" content="Describe the job in plain English. Get an NEC-coded estimate in seconds. Send a pro proposal and get paid by text. Built by an electrician, for electricians." />
+    <meta property="og:image" content="https://www.wirewaypro.com/logo512.png" />
+    <meta property="og:url" content="https://www.wirewaypro.com" />
     <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Wireway — AI Electrical Estimating" />
+    <meta name="twitter:description" content="Plain English in. NEC-coded estimate out. Paid by text." />
+    <meta name="twitter:image" content="https://www.wirewaypro.com/logo512.png" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>Wireway</title>
+    <script>
+      function wwLog(msg, stack) {
+        try {
+          fetch("/api/log", { method:"POST", headers:{"Content-Type":"application/json"}, keepalive:true,
+            body: JSON.stringify({ message:String(msg), stack:String(stack||""), url:location.pathname, ua:navigator.userAgent }) });
+        } catch (e) {}
+      }
+      window.addEventListener("unhandledrejection", function (e) {
+        wwLog(e.reason && e.reason.message ? e.reason.message : "unhandled rejection", e.reason && e.reason.stack);
+      });
+      window.onerror = function (msg, src, line, col, err) {
+        wwLog(msg, err && err.stack ? err.stack : src + ":" + line);
+        var el = document.getElementById("root");
+        if (el && !el.hasChildNodes()) {
+          el.innerHTML = '<div style="font-family:sans-serif;color:#fff;background:#0a0a0c;min-height:100vh;padding:40px 24px;text-align:center"><div style="font-size:40px;margin-bottom:16px">⚡</div><div style="font-size:16px;font-weight:700;margin-bottom:8px">Wireway had trouble loading in this browser</div><div style="font-size:13px;color:#aaa;margin-bottom:20px">Tap the menu and choose "Open in Browser" (Safari or Chrome) for the full experience.</div><div style="font-size:10px;color:#555">' + String(msg).slice(0,160) + '</div></div>';
+        }
+      };
+    </script>
+      <style>
+      :root {
+        --accent: #3aa9ff;
+        --accent-rgb: 58,169,255;
+        --bg0: #080b10;
+        --surface: #0e1420;
+        --bg-scene: radial-gradient(ellipse 70% 38% at 50% 0%, rgba(58,169,255,0.10), transparent 60%), radial-gradient(ellipse 60% 42% at 90% 100%, rgba(35,164,85,0.07), transparent 60%), #080b10;
+        --line: rgba(98,165,255,0.13);
+        --line-strong: rgba(98,165,255,0.22);
+        --card: rgba(58,169,255,0.045);
+      }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        background: var(--bg-scene);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior-y: none;
+      }
+      button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+      button:active { transform: scale(0.97); }
+      input, textarea, select { font-family: inherit; }
+      ::selection { background: rgba(var(--accent-rgb), 0.3); }
+      @media print { button:active { transform: none; } }
+      /* ── DESKTOP & UNIVERSAL-DEVICE LAYER ── */
+      /* Hover feedback only on devices with a real pointer (never hijacks touch) */
+      @media (hover: hover) and (pointer: fine) {
+        button { transition: filter 0.15s, transform 0.1s; }
+        button:hover:not(:disabled) { filter: brightness(1.14); }
+        button:active:not(:disabled) { transform: scale(0.985); }
+        a { transition: filter 0.15s; }
+        a:hover { filter: brightness(1.15); }
+      }
+      /* Dark scrollbars so desktop doesn't slice the UI with white bars */
+      * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
+      *::-webkit-scrollbar { width: 9px; height: 9px; }
+      *::-webkit-scrollbar-track { background: transparent; }
+      *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 5px; }
+      *::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+      /* Keyboard users get a visible focus ring; mouse users don't see outlines */
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+      :focus:not(:focus-visible) { outline: none; }
+      /* Brand text selection */
+      ::selection { background: rgba(var(--accent-rgb), 0.3); color: #fff; }
+      /* Breathing room on very large displays */
+      @media (min-width: 1600px) { body { font-size: 16.5px; } }
+    </style>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").catch(function () {});
+        });
+      }
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run Wireway.</noscript>

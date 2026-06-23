@@ -1,5 +1,5 @@
 // src/MileageView.jsx — mileage log with IRS standard rate deduction
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { getTrips, addTrip, deleteTrip, irsRate, IRS_RATES } from "./lib/financeApi";
 
 const IS = {

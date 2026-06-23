@@ -4,8 +4,17 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl  = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnon = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
+// Safe storage — some in-app browsers (Facebook/Instagram/private mode) block
+// localStorage entirely, which crashes the client on init and white-screens the app.
+const memoryStore = {};
+const safeStorage = {
+  getItem: (k) => { try { return window.localStorage.getItem(k); } catch { return memoryStore[k] ?? null; } },
+  setItem: (k, v) => { try { window.localStorage.setItem(k, v); } catch { memoryStore[k] = v; } },
+  removeItem: (k) => { try { window.localStorage.removeItem(k); } catch { delete memoryStore[k]; } },
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnon, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: safeStorage },
 });
 
 // ── AUTH ────────────────────────────────────────────────────────────────────
@@ -26,6 +35,7 @@ export const signIn = async ({ email, password }) => {
 };
 
 export const signOut = async () => {
+  try { window.localStorage.removeItem("wireway_session_v1"); } catch { /* ignore */ }
   const { error } = await supabase.auth.signOut();
   return { error };
 };
@@ -264,4 +274,50 @@ export const uploadPhoto = async (userId, quoteId, file) => {
 export const deletePhoto = async (id) => {
   const { error } = await supabase.from("photos").delete().eq("id", id);
   return { error };
+};
+
+export const updateClient = async (userId, clientId, fields) => {
+  const { data, error } = await supabase
+    .from("clients")
+    .update({ name: fields.name, email: fields.email || null, phone: fields.phone || null })
+    .eq("id", clientId).eq("user_id", userId)
+    .select().single();
+  return { data, error };
+};
+
+export const deleteClient = async (userId, clientId) => {
+  const { error } = await supabase
+    .from("clients").delete().eq("id", clientId).eq("user_id", userId);
+  return { error };
+};
+
+// ── WIREWAY ELITE (industrial tier) ──────
+export const getEliteEstimates = async (userId) =>
+  supabase.from("elite_estimates")
+    .select("id, job_name, co_mode, parent_ref, totals, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+
+export const getEliteEstimate = async (id) =>
+  supabase.from("elite_estimates").select("*").eq("id", id).single();
+
+export const upsertEliteEstimate = async (row) =>
+  supabase.from("elite_estimates")
+    .upsert({ ...row, updated_at: new Date().toISOString() })
+    .select("id")
+    .single();
+
+export const deleteEliteEstimate = async (id) =>
+  supabase.from("elite_estimates").delete().eq("id", id);
+
+// Dark until launch: unlocks for plan="elite" profiles, or on this device
+// via localStorage "wireway_elite_preview" = "1" for pre-launch testing.
+export const isElite = (profile) => {
+  if (profile?.plan === "elite") return true;
+  try { return window.localStorage.getItem("wireway_elite_preview") === "1"; } catch { return false; }
+};
+
+// ── THEME ────────────────────────────────
+export const saveThemePref = async (userId, theme) => {
+  try { await supabase.from("profiles").update({ theme }).eq("id", userId); } catch { /* non-critical */ }
 };

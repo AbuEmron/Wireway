@@ -1,0 +1,55 @@
+.ww-estimator { padding: clamp(16px, 3vw, 32px); display: flex; flex-direction: column; gap: 22px; }
+
+.ww-estimator .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.ww-estimator .proj { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--steel); }
+.ww-estimator .proj .name { color: var(--paper); font-weight: 500; font-size: 15px; }
+.ww-estimator .badge {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .16em; color: var(--signal);
+  border: 1px solid rgba(79,209,197,.3); padding: 4px 8px; border-radius: 6px;
+}
+
+.ww-estimator .work { display: grid; grid-template-columns: 1fr 320px; gap: 22px; align-items: start; }
+@media (max-width: 880px) { .ww-estimator .work { grid-template-columns: 1fr; } }
+
+.ww-estimator .card {
+  background: linear-gradient(180deg, rgba(17,22,31,.86), rgba(17,22,31,.74));
+  border: 1px solid var(--hair); border-radius: 14px;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.ww-estimator .card h2 {
+  font-family: var(--font-display); font-weight: 500; font-size: 14px; letter-spacing: .02em;
+  padding: 16px 18px; border-bottom: 1px solid var(--hair); display: flex; justify-content: space-between; align-items: center;
+}
+.ww-estimator .card h2 .muted { color: var(--steel); font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; font-weight: 400; }
+
+.ww-estimator table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ww-estimator thead th {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .14em; color: var(--steel);
+  text-transform: uppercase; text-align: left; padding: 12px 18px; font-weight: 500;
+}
+.ww-estimator thead th.num, .ww-estimator td.num { text-align: right; font-family: var(--font-mono); }
+.ww-estimator tbody td { padding: 12px 18px; border-top: 1px solid var(--hair); color: var(--paper); }
+.ww-estimator tbody tr:hover { background: rgba(79,209,197,.04); }
+.ww-estimator td.desc .code { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--steel); margin-top: 3px; }
+.ww-estimator td.num.total { color: var(--copper); font-weight: 500; }
+.ww-estimator .addrow {
+  padding: 12px 18px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em;
+  color: var(--steel); cursor: pointer; display: flex; align-items: center; gap: 8px;
+}
+.ww-estimator .addrow:hover { color: var(--signal); }
+.ww-estimator .addrow .plus { width: 16px; height: 16px; border: 1px solid currentColor; border-radius: 5px; display: grid; place-items: center; font-size: 13px; line-height: 1; }
+
+.ww-estimator .totals { padding: 6px 0; }
+.ww-estimator .trow { display: flex; justify-content: space-between; padding: 11px 18px; font-size: 13px; color: var(--steel); }
+.ww-estimator .trow .v { font-family: var(--font-mono); color: var(--paper); }
+.ww-estimator .trow.grand { border-top: 1px solid var(--hair); margin-top: 6px; padding-top: 16px; padding-bottom: 16px; }
+.ww-estimator .trow.grand .l { color: var(--paper); font-family: var(--font-display); font-size: 15px; }
+.ww-estimator .trow.grand .v { color: var(--copper); font-size: 22px; font-weight: 600; }
+.ww-estimator .actions { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
+.ww-estimator .btn { font-family: var(--font-body); font-weight: 600; font-size: 14px; border: none; border-radius: 10px; padding: 13px; cursor: pointer; transition: transform .12s, box-shadow .2s, background .2s, border-color .2s; }
+.ww-estimator .btn:active { transform: translateY(1px); }
+.ww-estimator .btn-primary { background: var(--copper); color: var(--ink); }
+.ww-estimator .btn-primary:hover { background: #ECA05C; box-shadow: 0 8px 26px rgba(224,144,74,.26); }
+.ww-estimator .btn-ghost { background: transparent; color: var(--paper); border: 1px solid var(--hair); }
+.ww-estimator .btn-ghost:hover { border-color: var(--steel); }
+.ww-estimator .btn:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }

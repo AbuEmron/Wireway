@@ -1,29 +1,31 @@
 {
-  "short_name": "Wireway",
-  "name": "Wireway — NEC 2023 Electrical Estimating",
-  "description": "Professional electrical estimating for residential work. NEC 2023 compliant, material vs labor split, client quotes and signatures.",
+  "id": "/",
+  "name": "Wireway Pro — Electrical Estimating",
+  "short_name": "Wireway Pro",
+  "description": "Describe the job in plain English. Get an NEC 2023-coded estimate in seconds, send a professional proposal, and get paid by text. Built by an electrician, for electricians.",
+  "lang": "en-US",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0a0a0c",
+  "background_color": "#080b10",
+  "categories": ["business", "productivity", "utilities"],
   "icons": [
+    { "src": "logo192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "logo512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "maskable-192.png", "type": "image/png", "sizes": "192x192", "purpose": "maskable" },
+    { "src": "maskable-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ],
+  "shortcuts": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
-    {
-      "src": "logo192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "name": "New Estimate",
+      "short_name": "New Estimate",
+      "description": "Start a new electrical estimate",
+      "url": "/?action=new",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
     }
   ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#0a0a0c",
-  "background_color": "#0a0a0c",
-  "orientation": "portrait-primary",
-  "categories": ["business", "productivity", "utilities"],
-  "screenshots": []
+  "prefer_related_applications": false
 }

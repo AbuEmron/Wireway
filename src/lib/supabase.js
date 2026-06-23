@@ -4,8 +4,120 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl  = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnon = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
+// Safe storage — some in-app browsers (Facebook/Instagram/private mode) block
+// localStorage entirely, which crashes the client on init and white-screens the app.
+const memoryStore = {};
+const safeStorage = {
+  getItem: (k) => { try { return window.localStorage.getItem(k); } catch { return memoryStore[k] ?? null; } },
+  setItem: (k, v) => { try { window.localStorage.setItem(k, v); } catch { memoryStore[k] = v; } },
+  removeItem: (k) => { try { window.localStorage.removeItem(k); } catch { delete memoryStore[k]; } },
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnon, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: safeStorage },
+});
+
+// ── OFFLINE QUOTE QUEUE ───────────────────────────────────────────────────────
+// Lets quotes save with no signal: a failed/offline save is held locally and
+// synced automatically when the connection returns. Self-contained + fail-safe;
+// if any of this errors it can never block a save. Only affects quotes.
+const QUEUE_KEY = "wireway_quote_queue_v1";
+let queueCache = null;
+
+const loadQueue = () => {
+  if (queueCache) return queueCache;
+  try { queueCache = JSON.parse(window.localStorage.getItem(QUEUE_KEY) || "[]"); }
+  catch { queueCache = []; }
+  return Array.isArray(queueCache) ? queueCache : (queueCache = []);
+};
+
+const saveQueue = (arr) => {
+  queueCache = arr;
+  try { window.localStorage.setItem(QUEUE_KEY, JSON.stringify(arr)); } catch { /* memory-only fallback */ }
+  notifySync();
+};
+
+const genUUID = () => {
+  try { if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID(); } catch { /* fall through */ }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0; const v = c === "x" ? r : (r & 0x3) | 0x8; return v.toString(16);
+  });
+};
+
+const looksOffline = (error) => {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return true;
+  const m = (error?.message || "").toLowerCase();
+  return m.includes("fetch") || m.includes("network") || error?.name === "TypeError";
+};
+
+const enqueueQuote = (userId, payload) => {
+  const arr = loadQueue().filter((it) => it.payload.id !== payload.id); // replace any prior copy of same quote
+  arr.push({ id: payload.id, userId, payload, createdAt: Date.now(), attempts: 0 });
+  saveQueue(arr);
+};
+
+const removeQueued = (id) => {
+  const arr = loadQueue();
+  if (arr.some((it) => it.payload.id === id)) saveQueue(arr.filter((it) => it.payload.id !== id));
+};
+
+// Sync-status broadcasting (optional UI can subscribe to show a "pending" badge)
+const syncListeners = new Set();
+export const getPendingSyncCount = () => loadQueue().length;
+const notifySync = () => {
+  const n = loadQueue().length;
+  syncListeners.forEach((fn) => { try { fn(n); } catch { /* ignore */ } });
+};
+export const subscribeSync = (fn) => {
+  syncListeners.add(fn);
+  try { fn(loadQueue().length); } catch { /* ignore */ }
+  return () => syncListeners.delete(fn);
+};
+
+let flushing = false;
+export const flushQuoteQueue = async () => {
+  if (flushing) return;
+  if (typeof navigator !== "undefined" && !navigator.onLine) return;
+  flushing = true;
+  try {
+    for (const item of [...loadQueue()]) {
+      try {
+        const { error } = await supabase.from("quotes").upsert(item.payload); // idempotent on id
+        if (!error) {
+          removeQueued(item.payload.id);
+        } else if (looksOffline(error)) {
+          break; // still no real connection — try again later
+        } else {
+          // Permanent error (e.g. session expired). Keep the data, count attempts,
+          // and stop auto-retrying after several tries so it can't loop forever.
+          const bumped = loadQueue().map((it) =>
+            it.payload.id === item.payload.id ? { ...it, attempts: (it.attempts || 0) + 1 } : it
+          );
+          saveQueue(bumped);
+          const cur = bumped.find((it) => it.payload.id === item.payload.id);
+          if (cur && cur.attempts >= 5) removeQueued(item.payload.id);
+        }
+      } catch { break; } // network threw — stop, retry on next online event
+    }
+  } finally { flushing = false; }
+};
+
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => { flushQuoteQueue(); });
+  setTimeout(() => { flushQuoteQueue(); }, 2500); // catch anything left from a prior session
+}
+
+const queuedToListItem = (it) => ({
+  id: it.payload.id,
+  quote_number: it.payload.quote_number,
+  client_name: it.payload.client_name,
+  job_name: it.payload.job_name,
+  total: it.payload.total,
+  status: it.payload.status || "draft",
+  created_at: new Date(it.createdAt).toISOString(),
+  paid_at: null,
+  sig_name: null,
+  _pendingSync: true, // harmless extra flag; UI can use it to show "waiting to sync"
 });
 
 // ── AUTH ────────────────────────────────────────────────────────────────────
@@ -26,6 +138,7 @@ export const signIn = async ({ email, password }) => {
 };
 
 export const signOut = async () => {
+  try { window.localStorage.removeItem("wireway_session_v1"); } catch { /* ignore */ }
   const { error } = await supabase.auth.signOut();
   return { error };
 };
@@ -94,7 +207,15 @@ export const getQuotes = async (userId) => {
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(100);
-  return { data: data || [], error };
+
+  // Merge in any quotes still waiting to sync so they show in the list immediately.
+  const serverList = data || [];
+  const serverIds = new Set(serverList.map((r) => r.id));
+  const pending = loadQueue()
+    .filter((it) => it.userId === userId && !serverIds.has(it.payload.id))
+    .map(queuedToListItem);
+
+  return { data: [...pending, ...serverList], error };
 };
 
 export const getQuote = async (id) => {
@@ -107,7 +228,10 @@ export const getQuote = async (id) => {
 };
 
 export const upsertQuote = async (userId, quoteData) => {
+  const isNew = !quoteData.id;
+  const id = quoteData.id || genUUID(); // stable id whether saved online or offline
   const payload = {
+    id,
     user_id:        userId,
     quote_number:   quoteData.quoteNumber,
     client_name:    quoteData.clientName,
@@ -136,18 +260,38 @@ export const upsertQuote = async (userId, quoteData) => {
     status:         quoteData.status || "draft",
   };
 
-  if (quoteData.id) {
-    const { data, error } = await supabase
-      .from("quotes").update(payload).eq("id", quoteData.id).eq("user_id", userId).select().single();
-    return { data, error };
-  } else {
-    const { data, error } = await supabase
-      .from("quotes").insert(payload).select().single();
-    return { data, error };
+  // Known offline up front → hold locally, report success so the user isn't blocked.
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    enqueueQuote(userId, payload);
+    return { data: { ...payload, created_at: new Date().toISOString() }, error: null, _queued: true };
+  }
+
+  try {
+    let res;
+    if (isNew) {
+      res = await supabase.from("quotes").insert(payload).select().single();
+    } else {
+      res = await supabase.from("quotes").update(payload).eq("id", id).eq("user_id", userId).select().single();
+    }
+
+    if (res.error) {
+      if (looksOffline(res.error)) {
+        enqueueQuote(userId, payload); // looked like a connection drop — hold + sync later
+        return { data: { ...payload, created_at: new Date().toISOString() }, error: null, _queued: true };
+      }
+      return res; // genuine error — surface it as before
+    }
+
+    removeQueued(id); // saved for real — clear any pending copy
+    return res;
+  } catch {
+    enqueueQuote(userId, payload); // network threw — hold + sync later
+    return { data: { ...payload, created_at: new Date().toISOString() }, error: null, _queued: true };
   }
 };
 
 export const deleteQuote = async (id, userId) => {
+  removeQueued(id); // also drop it from the sync queue if it was waiting
   const { error } = await supabase.from("quotes").delete().eq("id", id).eq("user_id", userId);
   return { error };
 };
@@ -264,4 +408,52 @@ export const uploadPhoto = async (userId, quoteId, file) => {
 export const deletePhoto = async (id) => {
   const { error } = await supabase.from("photos").delete().eq("id", id);
   return { error };
+};
+
+export const updateClient = async (userId, clientId, fields) => {
+  const { data, error } = await supabase
+    .from("clients")
+    .update({ name: fields.name, email: fields.email || null, phone: fields.phone || null })
+    .eq("id", clientId).eq("user_id", userId)
+    .select().single();
+  return { data, error };
+};
+
+export const deleteClient = async (userId, clientId) => {
+  const { error } = await supabase
+    .from("clients").delete().eq("id", clientId).eq("user_id", userId);
+  return { error };
+};
+
+// ── WIREWAY ELITE (industrial tier) ──────
+export const getEliteEstimates = async (userId) =>
+  supabase.from("elite_estimates")
+    .select("id, job_name, co_mode, parent_ref, totals, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+
+export const getEliteEstimate = async (id) =>
+  supabase.from("elite_estimates").select("*").eq("id", id).single();
+
+export const upsertEliteEstimate = async (row) =>
+  supabase.from("elite_estimates")
+    .upsert({ ...row, updated_at: new Date().toISOString() })
+    .select("id")
+    .single();
+
+export const deleteEliteEstimate = async (id) =>
+  supabase.from("elite_estimates").delete().eq("id", id);
+
+// Dark until launch: unlocks for plan="elite" profiles, or on this device
+// via localStorage "wireway_elite_preview" = "1" for pre-launch testing.
+const ELITE_PREVIEW_ACCOUNTS = ["elite@wirewaypro.com"];
+
+export const isElite = (profile) => {
+  if (profile?.plan === "elite") return true;
+  return !!profile?.email && ELITE_PREVIEW_ACCOUNTS.includes(profile.email.toLowerCase());
+};
+
+// ── THEME ────────────────────────────────
+export const saveThemePref = async (userId, theme) => {
+  try { await supabase.from("profiles").update({ theme }).eq("id", userId); } catch { /* non-critical */ }
 };

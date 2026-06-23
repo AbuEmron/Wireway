@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // src/features.jsx
 // Six new features for Wireway:
 // 1. JobCalendar      — week/month view, drag-to-schedule
@@ -11,14 +12,14 @@ import { useState, useEffect, useRef } from "react";
 import { getJobs, upsertJob, deleteJob, updateJobStatus, getPhotos, uploadPhoto, deletePhoto } from "./lib/supabase";
 
 // ─── SHARED STYLES ────────────────────────────────────────────────────────────
-const card = { background:"rgba(255,255,255,0.022)", border:"1px solid rgba(255,255,255,0.065)", borderRadius:12 };
-const IS   = { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:7, padding:"8px 11px", fontSize:13, color:"#fff", fontFamily:"inherit", width:"100%", outline:"none" };
-const focusGold = e => e.target.style.borderColor = "rgba(232,201,122,0.4)";
+const card = { background:"rgba(255,255,255,0.022)", border:"1px solid var(--line)", borderRadius:12 };
+const IS   = { background:"var(--card)", border:"1px solid var(--line)", borderRadius:7, padding:"8px 11px", fontSize:13, color:"#fff", fontFamily:"inherit", width:"100%", outline:"none" };
+const focusGold = e => e.target.style.borderColor = "rgba(var(--accent-rgb),0.4)";
 const blurGray  = e => e.target.style.borderColor = "rgba(255,255,255,0.07)";
 
 const STATUS_COLOR = {
   scheduled:   "#7eb8e8",
-  in_progress: "#e8c97a",
+  in_progress: "var(--accent)",
   complete:    "#7dcea0",
   cancelled:   "#e87e7e",
 };
@@ -73,24 +74,24 @@ export function JobCalendar({ user, onClose }) {
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');*{box-sizing:border-box;margin:0;padding:0}body{background:#0a0a0c}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg0)}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-      <div style={{ minHeight:"100vh", background:"#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:60 }}>
+      <div style={{ minHeight:"100vh", background:"var(--bg0)", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:60 }}>
 
         {/* Header */}
-        <div style={{ borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
+        <div style={{ borderBottom:"1px solid var(--line)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
           <div style={{ maxWidth:860, margin:"0 auto", height:54, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <button onClick={() => { setMonth(m => m===0 ? 11 : m-1); if(month===0) setYear(y=>y-1); }} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.08)", borderRadius:6, color:"rgba(255,255,255,0.5)", fontSize:16, cursor:"pointer", padding:"3px 10px" }}>‹</button>
+              <button onClick={() => { setMonth(m => m===0 ? 11 : m-1); if(month===0) setYear(y=>y-1); }} style={{ background:"transparent", border:"1px solid var(--line-strong)", borderRadius:6, color:"rgba(255,255,255,0.5)", fontSize:16, cursor:"pointer", padding:"3px 10px" }}>‹</button>
               <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, letterSpacing:"-0.02em" }}>{monthName} {year}</span>
-              <button onClick={() => { setMonth(m => m===11 ? 0 : m+1); if(month===11) setYear(y=>y+1); }} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.08)", borderRadius:6, color:"rgba(255,255,255,0.5)", fontSize:16, cursor:"pointer", padding:"3px 10px" }}>›</button>
-              <button onClick={() => { setYear(today.getFullYear()); setMonth(today.getMonth()); }} style={{ padding:"4px 10px", borderRadius:5, border:"1px solid rgba(255,255,255,0.07)", background:"transparent", color:"rgba(255,255,255,0.35)", fontSize:10, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Today</button>
+              <button onClick={() => { setMonth(m => m===11 ? 0 : m+1); if(month===11) setYear(y=>y+1); }} style={{ background:"transparent", border:"1px solid var(--line-strong)", borderRadius:6, color:"rgba(255,255,255,0.5)", fontSize:16, cursor:"pointer", padding:"3px 10px" }}>›</button>
+              <button onClick={() => { setYear(today.getFullYear()); setMonth(today.getMonth()); }} style={{ padding:"4px 10px", borderRadius:5, border:"1px solid var(--line)", background:"transparent", color:"rgba(255,255,255,0.35)", fontSize:10, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Today</button>
             </div>
             <div style={{ display:"flex", gap:8 }}>
-              <button onClick={() => { setModal({ date: `${year}-${String(month+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}` }); setDraft({ scheduled_date: `${year}-${String(month+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`, duration_hours: 2, status:"scheduled" }); }} style={{ padding:"6px 14px", borderRadius:7, background:"rgba(232,201,122,0.1)", border:"1px solid rgba(232,201,122,0.3)", color:"#e8c97a", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+              <button onClick={() => { setModal({ date: `${year}-${String(month+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}` }); setDraft({ scheduled_date: `${year}-${String(month+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`, duration_hours: 2, status:"scheduled" }); }} style={{ padding:"6px 14px", borderRadius:7, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                 + New Job
               </button>
-              {onClose && <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"rgba(255,255,255,0.4)", fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>← Back</button>}
+              {onClose && <button onClick={onClose} style={{ padding:"6px 12px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.4)", fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>← Back</button>}
             </div>
           </div>
         </div>
@@ -112,11 +113,11 @@ export function JobCalendar({ user, onClose }) {
               const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
               return (
                 <div key={d} onClick={() => { setDraft({ scheduled_date:ds, duration_hours:2, status:"scheduled" }); setModal({ date:ds }); }}
-                  style={{ minHeight:80, background: isToday ? "rgba(232,201,122,0.07)" : "rgba(255,255,255,0.018)", border: isToday ? "1px solid rgba(232,201,122,0.25)" : "1px solid rgba(255,255,255,0.05)", borderRadius:8, padding:"6px 6px 4px", cursor:"pointer", transition:"background 0.15s" }}
+                  style={{ minHeight:80, background: isToday ? "rgba(var(--accent-rgb),0.07)" : "rgba(255,255,255,0.018)", border: isToday ? "1px solid rgba(var(--accent-rgb),0.25)" : "1px solid var(--line)", borderRadius:8, padding:"6px 6px 4px", cursor:"pointer", transition:"background 0.15s" }}
                   onMouseEnter={e => !isToday && (e.currentTarget.style.background="rgba(255,255,255,0.03)")}
                   onMouseLeave={e => !isToday && (e.currentTarget.style.background="rgba(255,255,255,0.018)")}
                 >
-                  <div style={{ fontSize:11, fontWeight: isToday ? 800 : 500, color: isToday ? "#e8c97a" : "rgba(255,255,255,0.5)", marginBottom:4 }}>{d}</div>
+                  <div style={{ fontSize:11, fontWeight: isToday ? 800 : 500, color: isToday ? "var(--accent)" : "rgba(255,255,255,0.5)", marginBottom:4 }}>{d}</div>
                   {dayJobs.slice(0,3).map(job => (
                     <div key={job.id} onClick={e => { e.stopPropagation(); setModal({ job }); setDraft(job); }}
                       style={{ fontSize:9, fontWeight:700, color: STATUS_COLOR[job.status]||"#7eb8e8", background:`${STATUS_COLOR[job.status]||"#7eb8e8"}15`, borderRadius:3, padding:"2px 4px", marginBottom:2, overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis", cursor:"pointer" }}>
@@ -165,9 +166,9 @@ export function JobCalendar({ user, onClose }) {
 
       {/* ── Job modal ── */}
       {modal && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", zIndex:200, display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"24px 16px" }}
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", zIndex:200, display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"24px 16px" }}
           onClick={e => e.target===e.currentTarget && setModal(null)}>
-          <div style={{ background:"#111115", border:"1px solid rgba(255,255,255,0.1)", borderRadius:18, width:"100%", maxWidth:520, animation:"fadeUp 0.2s ease both", margin:"auto", padding:"24px" }}>
+          <div style={{ background:"var(--surface)", border:"1px solid var(--line-strong)", borderRadius:18, width:"100%", maxWidth:520, animation:"fadeUp 0.2s ease both", margin:"auto", padding:"24px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
               <div style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, color:"#fff" }}>
                 {modal.job ? "Edit Job" : "New Job"}
@@ -190,7 +191,7 @@ export function JobCalendar({ user, onClose }) {
               {/* Status */}
               <div style={{ display:"flex", gap:5 }}>
                 {["scheduled","in_progress","complete","cancelled"].map(s => (
-                  <button key={s} onClick={() => setDraft(p=>({...p,status:s}))} style={{ flex:1, padding:"5px", borderRadius:6, border: draft.status===s ? `1px solid ${STATUS_COLOR[s]}50` : "1px solid rgba(255,255,255,0.07)", background: draft.status===s ? `${STATUS_COLOR[s]}15` : "transparent", color: draft.status===s ? STATUS_COLOR[s] : "rgba(255,255,255,0.3)", fontSize:9, fontWeight:700, cursor:"pointer", fontFamily:"inherit", textTransform:"capitalize" }}>
+                  <button key={s} onClick={() => setDraft(p=>({...p,status:s}))} style={{ flex:1, padding:"5px", borderRadius:6, border: draft.status===s ? `1px solid ${STATUS_COLOR[s]}50` : "1px solid var(--line)", background: draft.status===s ? `${STATUS_COLOR[s]}15` : "transparent", color: draft.status===s ? STATUS_COLOR[s] : "rgba(255,255,255,0.3)", fontSize:9, fontWeight:700, cursor:"pointer", fontFamily:"inherit", textTransform:"capitalize" }}>
                     {s.replace("_"," ")}
                   </button>
                 ))}
@@ -198,7 +199,7 @@ export function JobCalendar({ user, onClose }) {
             </div>
 
             <div style={{ display:"flex", gap:8, marginTop:16 }}>
-              <button onClick={saveJob} disabled={saving||!draft.title} style={{ flex:1, padding:"12px", background:"linear-gradient(135deg,rgba(232,201,122,0.2),rgba(232,201,122,0.08))", border:"1px solid rgba(232,201,122,0.35)", borderRadius:9, color:"#e8c97a", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+              <button onClick={saveJob} disabled={saving||!draft.title} style={{ flex:1, padding:"12px", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.08))", border:"1px solid rgba(var(--accent-rgb),0.35)", borderRadius:9, color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                 {saving ? "Saving..." : "Save Job"}
               </button>
               {modal.job && (
@@ -281,7 +282,7 @@ export function PhotoAttachments({ user, quoteId, quoteName }) {
         <div style={{ fontSize:10, color:"rgba(255,255,255,0.28)", textTransform:"uppercase", letterSpacing:"0.1em" }}>
           Photos {photos.length > 0 && `(${photos.length})`}
         </div>
-        <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ padding:"4px 10px", borderRadius:6, border:"1px solid rgba(232,201,122,0.3)", background:"rgba(232,201,122,0.08)", color:"#e8c97a", fontSize:10, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+        <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ padding:"4px 10px", borderRadius:6, border:"1px solid rgba(var(--accent-rgb),0.3)", background:"rgba(var(--accent-rgb),0.08)", color:"var(--accent)", fontSize:10, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
           {uploading ? "Uploading..." : "+ Add Photo"}
         </button>
         <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" style={{ display:"none" }} onChange={e => handleFiles(e.target.files)} />
@@ -345,7 +346,7 @@ export function QuickBooksExport({ quote, company, activeItems, total, totLab, t
       `Company:  ${company.name || ""}`,
       `License:  ${company.license || ""}`,
       "",
-      "Generated by Wireway — wireway.cc",
+      "Generated by Wireway — wirewaypro.com",
     ].filter(Boolean).join("\n");
     navigator.clipboard.writeText(lines);
     setCopied(true);
@@ -358,12 +359,12 @@ export function QuickBooksExport({ quote, company, activeItems, total, totLab, t
         <button onClick={buildQBText} style={{ flex:1, padding:"10px", background:"rgba(40,180,100,0.08)", border:"1px solid rgba(40,180,100,0.25)", borderRadius:9, color:"#4ade80", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
           {copied ? "✓ Copied!" : "📊 Copy for QuickBooks"}
         </button>
-        <button onClick={() => setShowInstructions(v=>!v)} style={{ padding:"10px 12px", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, background:"transparent", color:"rgba(255,255,255,0.35)", fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>
+        <button onClick={() => setShowInstructions(v=>!v)} style={{ padding:"10px 12px", border:"1px solid var(--line-strong)", borderRadius:9, background:"transparent", color:"rgba(255,255,255,0.35)", fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>
           ?
         </button>
       </div>
       {showInstructions && (
-        <div style={{ marginTop:8, padding:"12px 14px", background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:9, fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.7 }}>
+        <div style={{ marginTop:8, padding:"12px 14px", background:"var(--card)", border:"1px solid var(--line)", borderRadius:9, fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.7 }}>
           <div style={{ fontWeight:700, color:"rgba(255,255,255,0.7)", marginBottom:6 }}>How to import into QuickBooks Online:</div>
           1. Copy the data above<br/>
           2. Open QuickBooks Online → Invoices → New Invoice<br/>
