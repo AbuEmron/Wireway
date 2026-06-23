@@ -17,6 +17,7 @@ import { Pill, StatCard, CategorySection, NECReference } from "./WiremComponents
 import WiremModals from "./WiremModals";
 import MileageView from "./MileageView";
 import ExpensesView from "./ExpensesView";
+import PlaidView from "./PlaidView";
 import LoadAdvisor from "./LoadAdvisor";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
@@ -101,6 +102,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showAIBuilder,  setShowAIBuilder]  = useState(false);
   const [showMileage,    setShowMileage]    = useState(false);
   const [showExpenses,   setShowExpenses]   = useState(false);
+  const [showPlaid,      setShowPlaid]      = useState(false);
   const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
@@ -893,6 +895,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     { label:"Clients",         action:() => setShowClientDB(true)    },
                     { label:"Mileage",         action:() => setShowMileage(true)     },
                     { label:"Expenses",        action:() => setShowExpenses(true)    },
+                    { label:"Bank Link",       action:() => setShowPlaid(true)       },
                     { label:"+ Custom",        action:addCustomItem                  },
                     hasItems ? { label:"Pull List", action:buildMaterialList } : null,
                   ].filter(Boolean).map(btn => (
@@ -1443,7 +1446,10 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           {showMileage && <MileageView user={user} onClose={() => setShowMileage(false)} />}
 
           {/* ════════════ EXPENSES TRACKER ════════════ */}
-          {showExpenses && <ExpensesView user={user} onClose={() => setShowExpenses(false)} />}
+          {showExpenses && <ExpensesView user={user} onClose={() => setShowExpenses(false)} onOpenPlaid={() => { setShowExpenses(false); setShowPlaid(true); }} />}
+
+          {/* ════════════ PLAID BANK IMPORT ════════════ */}
+          {showPlaid && <PlaidView user={user} onClose={() => setShowPlaid(false)} />}
 
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
