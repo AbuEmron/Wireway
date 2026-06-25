@@ -18,6 +18,7 @@ import WiremModals from "./WiremModals";
 import MileageView from "./MileageView";
 import ExpensesView from "./ExpensesView";
 import PlaidView from "./PlaidView";
+import { BottomNav, MoreSheet } from "./BottomNav";
 import LoadAdvisor from "./LoadAdvisor";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
@@ -113,6 +114,32 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showPullList,   setShowPullList]   = useState(SAVED ? !!SAVED.showPullList : false);
   const [showCustomers,  setShowCustomers]  = useState(false);
   const [showDashboard,  setShowDashboard]  = useState(SAVED ? !!SAVED.showDashboard : true);
+  const [showMore,       setShowMore]       = useState(false);
+  const closeOverlays = () => { setShowCalendar(false); setShowMileage(false); setShowExpenses(false); setShowPlaid(false); setShowCustomers(false); setShowLoadAdvisor(false); setShowAIBuilder(false); setShowElite(false); };
+  const navGo = (dest) => {
+    setShowMore(false);
+    switch (dest) {
+      case "home":      closeOverlays(); setShowDashboard(true); break;
+      case "estimate":  closeOverlays(); setShowDashboard(false); break;
+      case "calendar":  setShowDashboard(false); setTimeout(() => setShowCalendar(true), 0); break;
+      case "clients":   setShowCustomers(true); break;
+      case "more":      setShowMore(true); break;
+      case "bank":      setShowDashboard(false); setTimeout(() => setShowPlaid(true), 0); break;
+      case "mileage":   setShowDashboard(false); setTimeout(() => setShowMileage(true), 0); break;
+      case "expenses":  setShowDashboard(false); setTimeout(() => setShowExpenses(true), 0); break;
+      case "ai":        setShowDashboard(false); setTimeout(() => setShowAIBuilder(true), 0); break;
+      case "advisor":   setShowDashboard(false); setTimeout(() => setShowLoadAdvisor(true), 0); break;
+      case "elite":     setShowDashboard(true); setTimeout(() => setShowElite(true), 0); break;
+      case "settings":  setShowAccount(true); break;
+      case "company":   setShowDashboard(false); setTimeout(() => { setCompanyDraft(company); setLogoDataUrl(company.logoDataUrl || ""); setEditingCompany(true); }, 0); break;
+      case "nec":       setShowDashboard(false); setTab("nec"); break;
+      case "wirecalc":  setShowDashboard(false); setTimeout(() => setWireCalcOpen(true), 0); break;
+      case "loadcalc":  setShowDashboard(false); setTimeout(() => setLoadCalcOpen(true), 0); break;
+      case "checklist": setShowDashboard(false); setTimeout(() => setChecklistOpen(true), 0); break;
+      default: break;
+    }
+  };
+  const activeNav = showCalendar ? "calendar" : showCustomers ? "clients" : showDashboard ? "home" : "estimate";
   const [theme,          setTheme]          = useState(() => profile?.theme || getSavedTheme());
   useEffect(() => { applyTheme(theme); }, [theme]);
 
@@ -597,14 +624,11 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 <WirewayLogo size={34} fontSize={16} tagline />
               </div>
               <div style={{ display:"flex", gap:6 }}>
-                <button onClick={() => setShowCustomers(true)} title="Customers" style={{ padding:"6px 11px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>👥</button>
                 <button onClick={() => { newQuote(true); setShowDashboard(false); }} style={{ padding:"6px 11px", borderRadius:7, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>+ New</button>
-                <button onClick={() => { setShowDashboard(false); setTimeout(() => setShowPlaid(true), 120); }} title="Bank / Expenses" style={{ padding:"6px 11px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>🏦</button>
-                <button onClick={() => setShowAccount(true)} title="Account" style={{ padding:"6px 10px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>⚙</button>
               </div>
             </div>
           </div>
-          <div style={{ maxWidth:680, margin:"0 auto", padding:"20px 20px 60px" }}>
+          <div style={{ maxWidth:680, margin:"0 auto", padding:"20px 20px 96px" }}>
             {showElite && <EliteMode profile={profile} onClose={() => setShowElite(false)} />}
             {isElite(profile) && (
               <button onClick={() => setShowElite(true)} style={{ width:"100%", marginBottom:16, padding:"13px 16px", borderRadius:12, background:"linear-gradient(135deg, rgba(240,168,24,0.14), rgba(240,168,24,0.04))", border:"1px solid rgba(240,168,24,0.45)", color:"#f0a818", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"inherit", letterSpacing:"0.04em", textAlign:"left", display:"flex", alignItems:"center", gap:10 }}>
@@ -722,6 +746,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           </div>
           </div>
         )}
+        <BottomNav active={activeNav} onGo={navGo} />
+        {showMore && <MoreSheet isElite={isElite(profile)} onGo={navGo} onClose={() => setShowMore(false)} onSignOut={async () => { await signOut(); window.location.reload(); }} />}
       </>
     );
   }
@@ -770,23 +796,11 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
             )}
               <button onClick={newQuote} style={{ padding:"5px 11px", borderRadius:6, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
                 + New </button>
-              <button onClick={() => setShowDashboard(true)} title="Home" style={{ padding:"5px 9px", borderRadius:6, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer" }}>
-                🏠 </button>
-              <button onClick={() => setShowPlaid(true)} title="Bank / Expenses" style={{ padding:"5px 9px", borderRadius:6, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer" }}>
-                🏦 </button>
-              {/* Combined account + company menu */}
-              <div style={{ display:"flex", gap:1, background:"var(--card)", border:"1px solid var(--line-strong)", borderRadius:7, overflow:"hidden" }}>
-                <button onClick={() => setShowAccount(true)} style={{ padding:"5px 10px", border:"none", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit", borderRight:"1px solid var(--line)" }}>
-                  Account </button>
-                <button onClick={() => { setCompanyDraft(company); setLogoDataUrl(company.logoDataUrl||""); setEditingCompany(true); }} style={{ padding:"5px 10px", border:"none", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-                  Company
-                </button>
               </div>
                 </div>
                 </div>
-                </div>
 
-        <div style={{ maxWidth:800, margin:"0 auto", padding:"0 20px" }}>
+        <div style={{ maxWidth:800, margin:"0 auto", padding:"0 20px 96px" }}>
 
           {/* ── SPACER (replaces hero — cleaner on daily use) ── */}
           <div style={{ height:20 }} className="no-print" />
@@ -893,7 +907,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     </div>
                     )}
 
-            {/* Row 2: primary action + collapsible tools */}
+            {/* Row 2: primary action + estimate-context tools */}
             <div style={{ paddingTop:8, borderTop:"1px solid var(--line)" }}>
               <button onClick={() => setShowAIBuilder(true)} style={{ width:"100%", padding:"11px", borderRadius:9, border:"1px solid rgba(var(--accent-rgb),0.35)", background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-rgb),0.07))", color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                 ⚡ AI Quote Builder
@@ -901,7 +915,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
               <div style={{ display:"flex", alignItems:"center", gap:9, marginTop:10 }}>
                 <button onClick={() => setShowTools(v=>!v)} style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 11px", borderRadius:6, fontSize:10, fontWeight:700, letterSpacing:"0.04em", border:"1px solid var(--line)", background:"transparent", color:"rgba(255,255,255,0.5)", cursor:"pointer", fontFamily:"inherit" }}>
-                  TOOLS <span style={{ fontSize:8, opacity:0.7 }}>{showTools ? "▲" : "▼"}</span>
+                  ESTIMATE TOOLS <span style={{ fontSize:8, opacity:0.7 }}>{showTools ? "▲" : "▼"}</span>
                 </button>
                 <div style={{ flex:1, height:1, background:"var(--line)" }} />
               </div>
@@ -909,20 +923,10 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               {showTools && (
                 <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:10, animation:"fadeUp 0.25s ease both" }}>
                   {[
-                    { label:"📅 Calendar",     action:() => setShowCalendar(true)    },
-                    { label:"Wire Calc",       action:() => setWireCalcOpen(true)    },
-                    { label:"Load Calc",       action:() => setLoadCalcOpen(true)    },
-                    { label:"⚡ Load Advisor", action:() => setShowLoadAdvisor(true) },
-                    { label:"Checklist",       action:() => setChecklistOpen(true)   },
-                    { label:"Clients",         action:() => setShowClientDB(true)    },
-                    { label:"Mileage",         action:() => setShowMileage(true)     },
-                    { label:"Expenses",        action:() => setShowExpenses(true)    },
-                    { label:"+ Custom",        action:addCustomItem                  },
+                    { label:"+ Custom line", action:addCustomItem },
                     hasItems ? { label:"Pull List", action:buildMaterialList } : null,
                   ].filter(Boolean).map(btn => (
-                    <button key={btn.label} onClick={btn.action} style={{ padding:"5px 11px", borderRadius:6, fontSize:10, fontWeight:600, border:"1px solid var(--line)", background:"transparent", color:"rgba(255,255,255,0.5)", cursor:"pointer", fontFamily:"inherit" }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#fff"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}>
+                    <button key={btn.label} onClick={btn.action} style={{ padding:"5px 11px", borderRadius:6, fontSize:10, fontWeight:600, border:"1px solid var(--line)", background:"transparent", color:"rgba(255,255,255,0.5)", cursor:"pointer", fontFamily:"inherit" }}>
                       {btn.label}
                     </button>
                   ))}
@@ -1708,6 +1712,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
         companySaving,showAccount,setShowAccount,user,profile,savedQuotes,
         onShowPricing,paymentBanner,paymentSuccess,setPaymentSuccess,onClearBanner,
       }} />
+        <BottomNav active={activeNav} onGo={navGo} />
+        {showMore && <MoreSheet isElite={isElite(profile)} onGo={navGo} onClose={() => setShowMore(false)} onSignOut={async () => { await signOut(); window.location.reload(); }} />}
     </>
   );
 }
