@@ -349,8 +349,6 @@ function makeVariant(variant, getEnergize) {
 
 export default function GyroField({ variant = 'hero', onEnergize }) {
   const canvasRef = useRef(null);
-  const hintRef = useRef(null);
-  const hintTextRef = useRef(null);
   const energizeRef = useRef(onEnergize);
   energizeRef.current = onEnergize;
 
@@ -382,23 +380,23 @@ export default function GyroField({ variant = 'hero', onEnergize }) {
 
     /* ---- input plumbing (shared across all variants) ---- */
     const onMouse = (e) => { t.x = (e.clientX / W) * 2 - 1; t.y = (e.clientY / H) * 2 - 1; };
-    let baseB = null, live = false;
+    let baseB = null;
     const onTilt = (e) => {
       if (e.gamma == null) return;
       if (baseB == null) baseB = e.beta || 45;
       t.x = Math.max(-1, Math.min(1, e.gamma / 32));
       t.y = Math.max(-1, Math.min(1, ((e.beta || 45) - baseB) / 32));
-      live = true;
     };
 
-    const hint = hintRef.current;
     const isTouch = window.matchMedia('(pointer: coarse)').matches;
     const needsPerm =
       typeof DeviceOrientationEvent !== 'undefined' &&
       typeof DeviceOrientationEvent.requestPermission === 'function';
-    if (isTouch && hintTextRef.current)
-      hintTextRef.current.textContent = needsPerm ? 'Tap — then tilt' : 'Tilt your phone';
 
+    // Turn on gyroscope tilt. Where the platform gates device orientation behind
+    // a permission (iOS Safari), requestPermission() MUST be called from inside a
+    // user gesture — so this only ever runs from the first natural tap below,
+    // never from a dedicated "enable gyroscope" button.
     const enable = async () => {
       try {
         if (needsPerm) {
@@ -408,51 +406,34 @@ export default function GyroField({ variant = 'hero', onEnergize }) {
         window.addEventListener('deviceorientation', onTilt, true);
       } catch (_) {}
     };
-    const goneTimers = [];
-    const gone = () => hint && hint.classList.add('is-gone');
-    const onHintClick = () => { enable(); goneTimers.push(setTimeout(gone, 400)); };
-    const onFirstTap = () => { if (isTouch) enable(); };
 
-    hint && hint.addEventListener('click', onHintClick);
-    document.addEventListener('click', onFirstTap, { once: true });
+    // iOS: piggyback the one-time permission prompt on the first tap the user
+    // makes anyway — no extra UI, no recurring nag. If they decline we never ask
+    // again and simply fall back to the static / no-tilt view.
+    const onFirstTap = () => { if (isTouch && needsPerm) enable(); };
+    if (isTouch && needsPerm) document.addEventListener('click', onFirstTap, { once: true });
 
     if (!isTouch) {
+      // Desktop: parallax follows the mouse. No permission, no prompt.
       window.addEventListener('mousemove', onMouse, { passive: true });
-      goneTimers.push(setTimeout(gone, 4200));
     } else if (!needsPerm) {
+      // Android / non-iOS touch: device orientation is allowed without a prompt,
+      // so start listening automatically on mount — no button required.
       window.addEventListener('deviceorientation', onTilt, true);
-      goneTimers.push(setTimeout(() => { if (live) gone(); }, 4200));
     }
 
     window.addEventListener('resize', resize, { passive: true });
     resize();
     if (!reduce) raf = requestAnimationFrame(frame);
-    else gone();
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', onMouse);
       window.removeEventListener('deviceorientation', onTilt, true);
-      hint && hint.removeEventListener('click', onHintClick);
       document.removeEventListener('click', onFirstTap);
-      goneTimers.forEach(clearTimeout);
     };
   }, [variant]);
 
-  // hint pulse color matches the variant's accent
-  const accent = variant === 'steel' || variant === 'circuit' ? '224,144,74' : '79,209,197';
-
-  return (
-    <>
-      <canvas ref={canvasRef} className="ww-field" />
-      <div ref={hintRef} className="ww-hint">
-        <span
-          className="ww-hint__pulse"
-          style={{ background: `rgb(${accent})`, boxShadow: `0 0 8px rgb(${accent})` }}
-        />
-        <span ref={hintTextRef}>Move your mouse</span>
-      </div>
-    </>
-  );
+  return <canvas ref={canvasRef} className="ww-field" />;
 }
