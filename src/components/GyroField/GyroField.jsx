@@ -8,7 +8,8 @@ import './gyrofield.css';
   <GyroField variant="hero|steel|synapse|horizon|circuit" onEnergize={fn} />
 
   One engine, five expressions of the living conductor field. Tracks the
-  mouse on desktop and the gyroscope on mobile (with iOS tap-to-enable),
+  mouse on desktop and the gyroscope on Android (iOS device-orientation tilt is
+  intentionally disabled so iPhone users never see a motion-permission prompt),
   and renders a static frame when prefers-reduced-motion is set.
 
   onEnergize: optional, fired by the "circuit" variant each time a pulse
@@ -389,38 +390,25 @@ export default function GyroField({ variant = 'hero', onEnergize }) {
     };
 
     const isTouch = window.matchMedia('(pointer: coarse)').matches;
-    const needsPerm =
+    // iOS Safari is the only platform that gates device orientation behind
+    // DeviceOrientationEvent.requestPermission(). Product decision: iPhone users
+    // must NEVER see that prompt — so on iOS we attach no deviceorientation
+    // listener, never call requestPermission(), and register no first-tap trigger.
+    // They get the static / mouse-fallback background only.
+    const iosNeedsPerm =
       typeof DeviceOrientationEvent !== 'undefined' &&
       typeof DeviceOrientationEvent.requestPermission === 'function';
-
-    // Turn on gyroscope tilt. Where the platform gates device orientation behind
-    // a permission (iOS Safari), requestPermission() MUST be called from inside a
-    // user gesture — so this only ever runs from the first natural tap below,
-    // never from a dedicated "enable gyroscope" button.
-    const enable = async () => {
-      try {
-        if (needsPerm) {
-          const res = await DeviceOrientationEvent.requestPermission();
-          if (res !== 'granted') return;
-        }
-        window.addEventListener('deviceorientation', onTilt, true);
-      } catch (_) {}
-    };
-
-    // iOS: piggyback the one-time permission prompt on the first tap the user
-    // makes anyway — no extra UI, no recurring nag. If they decline we never ask
-    // again and simply fall back to the static / no-tilt view.
-    const onFirstTap = () => { if (isTouch && needsPerm) enable(); };
-    if (isTouch && needsPerm) document.addEventListener('click', onFirstTap, { once: true });
 
     if (!isTouch) {
       // Desktop: parallax follows the mouse. No permission, no prompt.
       window.addEventListener('mousemove', onMouse, { passive: true });
-    } else if (!needsPerm) {
-      // Android / non-iOS touch: device orientation is allowed without a prompt,
-      // so start listening automatically on mount — no button required.
+    } else if (!iosNeedsPerm) {
+      // Android / non-iOS touch: device orientation is allowed without any prompt,
+      // so start listening automatically on mount — no button, no permission call.
       window.addEventListener('deviceorientation', onTilt, true);
     }
+    // iOS (isTouch && iosNeedsPerm): intentionally do nothing — no requestPermission,
+    // no deviceorientation listener, no first-tap handler. Zero motion prompt, ever.
 
     window.addEventListener('resize', resize, { passive: true });
     resize();
@@ -431,7 +419,6 @@ export default function GyroField({ variant = 'hero', onEnergize }) {
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', onMouse);
       window.removeEventListener('deviceorientation', onTilt, true);
-      document.removeEventListener('click', onFirstTap);
     };
   }, [variant]);
 
