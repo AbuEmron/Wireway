@@ -163,6 +163,16 @@ export default function QuotePublicPage({ quoteId }) {
                 <span style={{ fontFamily:"'DM Mono',monospace", color:"rgba(255,255,255,0.5)" }}></span>
               </div>
             ))}
+            {/* Custom & travel/mileage line items */}
+            {Array.isArray(q?.custom_items) && q.custom_items.filter(i => i?.label && (i?.qty ?? 1) > 0).map(item => {
+              const lineTotal = ((Number(item.materialCost) || 0) + (Number(item.laborCost) || 0)) * (Number(item.qty) || 1);
+              return (
+                <div key={item.id} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:"1px solid var(--line)", fontSize:12 }}>
+                  <span style={{ color:"rgba(255,255,255,0.7)" }}>{item.kind === "mileage" ? "🚗 " : ""}{item.label}{(Number(item.qty) || 1) > 1 ? ` × ${item.qty}` : ""}</span>
+                  <span style={{ fontFamily:"'DM Mono',monospace", color:"rgba(255,255,255,0.5)" }}>${lineTotal.toLocaleString()}</span>
+                </div>
+              );
+            })}
           </div>
 
           {/* Totals */}

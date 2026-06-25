@@ -20,6 +20,7 @@ import ExpensesView from "./ExpensesView";
 import PlaidView from "./PlaidView";
 import { BottomNav, MoreSheet } from "./BottomNav";
 import LoadAdvisor from "./LoadAdvisor";
+import { DEFAULT_BILLABLE_RATE, getUnbilledTrips, markTripsBilled, unmarkTripsBilled } from "./lib/financeApi";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
 // Snapshot the working state continuously; restore it on reload so the
@@ -66,6 +67,17 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [savedQuotes,    setSavedQuotes]    = useState([]);
   const [saveMsg,        setSaveMsg]        = useState("");
   const [customItems,    setCustomItems]    = useState(SAVED?.customItems || []);
+  // Billable mileage: configurable per-mile rate (default = IRS standard, but
+  // independent of the tax-deduction rate). Persisted to localStorage as the
+  // default for new mileage lines; each line also stores its own editable rate.
+  const [billableRate,   setBillableRate]   = useState(() => {
+    try { const v = parseFloat(window.localStorage.getItem("ww_mileage_rate")); return v > 0 ? v : DEFAULT_BILLABLE_RATE; }
+    catch { return DEFAULT_BILLABLE_RATE; }
+  });
+  const [showMileagePicker, setShowMileagePicker] = useState(false);
+  const [unbilledTrips,     setUnbilledTrips]     = useState([]);
+  const [tripPick,          setTripPick]          = useState({});
+  const [mileageBusy,       setMileageBusy]       = useState(false);
   const [taxEnabled,     setTaxEnabled]     = useState(false);
   const [taxRate,        setTaxRate]        = useState(0.08);
   const [invoiceMode,    setInvoiceMode]    = useState(false);
@@ -215,8 +227,95 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
   const addCustomItem = () => setCustomItems(p => [...p, { id: Date.now(), label: "", qty: 1, materialCost: 0, laborCost: 0, laborHours: 0 }]);
   const updateCustomItem = (id, data) => setCustomItems(p => p.map(i => i.id === id ? { ...i, ...data } : i));
-  const removeCustomItem = (id) => setCustomItems(p => p.filter(i => i.id !== id));
+  const removeCustomItem = (id) => setCustomItems(p => {
+    const item = p.find(i => i.id === id);
+    // If a billable-mileage line is removed, return its trips to the unbilled pool.
+    if (item?.kind === "mileage" && item.tripIds?.length && user?.id) {
+      unmarkTripsBilled(user.id, item.tripIds).catch(() => {});
+    }
+    return p.filter(i => i.id !== id);
+  });
   const toggleCheck = (id) => setCheckedItems(p => ({ ...p, [id]: !p[id] }));
+
+  // ── BILLABLE MILEAGE ───────────────────────────────────────────────────────
+  // Trips carry no client/job link, so we resolve "which miles belong to this
+  // invoice" with an explicit picker. A mileage charge is stored as a tagged
+  // custom line (kind:"mileage") so it reuses the whole line-item pipeline —
+  // totals, save to custom_items, proposal + public page all just work.
+  const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+  const mileageLabel = (miles, rate) =>
+    `Travel — ${Number(miles).toLocaleString()} mi @ $${Number(rate).toFixed(3)}/mi`;
+
+  useEffect(() => {
+    try { window.localStorage.setItem("ww_mileage_rate", String(billableRate)); } catch { /* storage blocked */ }
+  }, [billableRate]);
+
+  const tripsOnQuote = () =>
+    customItems.filter(i => i.kind === "mileage").flatMap(i => i.tripIds || []);
+
+  const openMileagePicker = async () => {
+    if (!user?.id) return;
+    setMileageBusy(true);
+    setShowMileagePicker(true);
+    const { data } = await getUnbilledTrips(user.id);
+    const onQuote = new Set(tripsOnQuote());
+    setUnbilledTrips((data || []).filter(t => !onQuote.has(t.id)));
+    setTripPick({});
+    setMileageBusy(false);
+  };
+
+  const pickedTrips = () => unbilledTrips.filter(t => tripPick[t.id]);
+  const pickedMiles = () => pickedTrips().reduce((s, t) => s + Number(t.miles || 0), 0);
+
+  // Add the selected trips as a single editable mileage line on the quote.
+  const addMileageLine = () => {
+    const trips = pickedTrips();
+    if (!trips.length) return;
+    const miles = round2(trips.reduce((s, t) => s + Number(t.miles || 0), 0));
+    const rate  = billableRate;
+    setCustomItems(p => [...p, {
+      id: Date.now(),
+      kind: "mileage",
+      label: mileageLabel(miles, rate),
+      qty: 1,
+      materialCost: round2(miles * rate),
+      laborCost: 0,
+      laborHours: 0,
+      miles,
+      rate,
+      tripIds: trips.map(t => t.id),
+    }]);
+    setShowMileagePicker(false);
+    setTripPick({});
+  };
+
+  // Add a flat travel fee with no linked trips (manual entry / fallback).
+  const addFlatTravelFee = () => {
+    setCustomItems(p => [...p, {
+      id: Date.now(),
+      kind: "mileage",
+      label: "Travel — flat fee",
+      qty: 1,
+      materialCost: 0,
+      laborCost: 0,
+      laborHours: 0,
+      miles: 0,
+      rate: billableRate,
+      tripIds: [],
+    }]);
+    setShowMileagePicker(false);
+  };
+
+  // Recompute a mileage line's amount whenever its miles or rate change.
+  const updateMileageLine = (id, patch) => setCustomItems(p => p.map(i => {
+    if (i.id !== id) return i;
+    const miles = patch.miles !== undefined ? Number(patch.miles) || 0 : Number(i.miles) || 0;
+    const rate  = patch.rate  !== undefined ? Number(patch.rate)  || 0 : Number(i.rate)  || 0;
+    const next  = { ...i, ...patch, miles, rate, materialCost: round2(miles * rate) };
+    // Keep the auto label in sync unless the user typed their own (flat fee).
+    if (next.tripIds?.length || i.label?.startsWith("Travel — ") ) next.label = mileageLabel(miles, rate);
+    return next;
+  }));
 
   const saveClientToDB = async () => {
     if (!clientName || !user?.id) return;
@@ -249,6 +348,10 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
     if (data) {
       setQuoteId(data.id);
       setSavedQuotes(prev => { const idx=prev.findIndex(q=>q.id===data.id); return idx>=0?prev.map((q,i)=>i===idx?data:q):[data,...prev]; });
+      // Link any billed-mileage trips to this saved quote and mark them billed
+      // so they drop out of the unbilled picker (prevents double-billing).
+      const billTrips = customItems.filter(i => i.kind === "mileage").flatMap(i => i.tripIds || []);
+      if (billTrips.length) markTripsBilled(user.id, billTrips, data.id).catch(() => {});
     }
     saveClientToDB();
     setSaveMsg(error ? "Save failed" : "Saved!"); setTimeout(() => setSaveMsg(""), 2000);
@@ -924,6 +1027,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:10, animation:"fadeUp 0.25s ease both" }}>
                   {[
                     { label:"+ Custom line", action:addCustomItem },
+                    { label:"🚗 Add tracked mileage", action:openMileagePicker },
                     hasItems ? { label:"Pull List", action:buildMaterialList } : null,
                   ].filter(Boolean).map(btn => (
                     <button key={btn.label} onClick={btn.action} style={{ padding:"5px 11px", borderRadius:6, fontSize:10, fontWeight:600, border:"1px solid var(--line)", background:"transparent", color:"rgba(255,255,255,0.5)", cursor:"pointer", fontFamily:"inherit" }}>
@@ -939,7 +1043,29 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           {customItems.length > 0 && (
             <div style={{ background:"rgba(var(--accent-rgb),0.04)", border:"1px solid rgba(var(--accent-rgb),0.12)", borderRadius:12, padding:"14px 16px", marginBottom:14 }} className="no-print">
               <div style={{ fontSize:10, color:"rgba(var(--accent-rgb),0.6)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Custom Line Items</div>
-              {customItems.map(item => (
+              {customItems.map(item => item.kind === "mileage" ? (
+                <div key={item.id} style={{ marginBottom:7, padding:"9px 11px", borderRadius:8, border:"1px solid rgba(var(--accent-rgb),0.2)", background:"rgba(var(--accent-rgb),0.05)" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:7 }}>
+                    <span style={{ fontSize:12 }}>🚗</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:"var(--accent)", flex:1 }}>
+                      Tracked Mileage{item.tripIds?.length ? ` · ${item.tripIds.length} trip${item.tripIds.length>1?"s":""}` : " · flat fee"}
+                    </span>
+                    <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:700, color:"#fff" }}>${round2(item.materialCost).toLocaleString()}</span>
+                    <button onClick={() => removeCustomItem(item.id)} style={{ width:28, height:28, borderRadius:6, border:"1px solid rgba(255,100,100,0.2)", background:"rgba(255,100,100,0.06)", color:"rgba(255,100,100,0.5)", fontSize:13, cursor:"pointer" }}>✕</button>
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6, alignItems:"center" }}>
+                    <label style={{ fontSize:9, color:"rgba(255,255,255,0.45)" }}>Miles
+                      <input type="number" min="0" step="0.1" value={item.miles||""} onChange={e => updateMileageLine(item.id, { miles:Number(e.target.value) })} style={{ ...inputStyle, fontSize:12, marginTop:2 }} onFocus={focusGold} onBlur={blurGray} />
+                    </label>
+                    <label style={{ fontSize:9, color:"rgba(255,255,255,0.45)" }}>Rate $/mi
+                      <input type="number" min="0" step="0.001" value={item.rate||""} onChange={e => updateMileageLine(item.id, { rate:Number(e.target.value) })} style={{ ...inputStyle, fontSize:12, marginTop:2 }} onFocus={focusGold} onBlur={blurGray} />
+                    </label>
+                    <label style={{ fontSize:9, color:"rgba(255,255,255,0.45)" }}>Charge
+                      <input type="number" min="0" step="0.01" value={item.materialCost||""} onChange={e => updateMileageLine(item.id, { miles: (Number(e.target.value)||0) / (Number(item.rate)||1), materialCost:Number(e.target.value) })} style={{ ...inputStyle, fontSize:12, marginTop:2 }} onFocus={focusGold} onBlur={blurGray} />
+                    </label>
+                  </div>
+                </div>
+              ) : (
                 <div key={item.id} style={{ display:"grid", gridTemplateColumns:"1fr 55px 75px 75px 65px 30px", gap:5, marginBottom:7, alignItems:"center" }}>
                   <input placeholder="Description" value={item.label} onChange={e => updateCustomItem(item.id, { label:e.target.value })} style={{ ...inputStyle, fontSize:12 }} onFocus={focusGold} onBlur={blurGray} />
                   <input placeholder="Qty" type="number" min="1" value={item.qty} onChange={e => updateCustomItem(item.id, { qty:Number(e.target.value) })} style={{ ...inputStyle, fontSize:12 }} onFocus={focusGold} onBlur={blurGray} />
@@ -1082,6 +1208,30 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                           </div>
                       );
                     })}
+
+                    {/* Custom & travel line items (not part of the catalog categories) */}
+                    {(() => {
+                      const extras = activeItems.filter(i => !CATEGORIES.some(c => c.services.find(s => s.id === i.id)));
+                      if (!extras.length) return null;
+                      return (
+                        <div style={{ marginBottom:12 }}>
+                          <div style={{ fontSize:10, color:"var(--accent)", textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:5, opacity:0.85 }}>Additional</div>
+                          {extras.map(item => (
+                            <div key={item.id} style={{ display:"flex", alignItems:"flex-start", gap:8, padding:"7px 0", borderBottom:"1px solid var(--line)" }}>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:12, color:"rgba(255,255,255,0.78)", fontWeight:600 }}>{item.kind === "mileage" ? "🚗 " : ""}{item.label}</div>
+                                {item.kind === "mileage" && Number(item.miles) > 0 && (
+                                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"'DM Mono',monospace", marginTop:2 }}>
+                                    {Number(item.miles).toLocaleString()} mi × ${Number(item.rate).toFixed(3)}/mi
+                                  </div>
+                                )}
+                              </div>
+                              <span style={{ fontSize:12, fontWeight:700, color:"var(--accent)", fontFamily:"'DM Mono',monospace", flexShrink:0 }}>${item.lineTotal.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
 
                     {/* Totals */}
                     <div style={{ background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.065) 0%,rgba(255,255,255,0.018) 100%)", border:"1px solid rgba(var(--accent-rgb),0.18)", borderRadius:10, padding:"14px 16px", marginTop:8 }}>
@@ -1409,6 +1559,78 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 )}
                 </div>
                 )}
+
+          {/* ════════════ ADD TRACKED MILEAGE ════════════ */}
+          {showMileagePicker && (
+            <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setShowMileagePicker(false)}>
+              <div className="modal-box" style={{ padding:"22px 20px", maxWidth:460, width:"100%", maxHeight:"86vh", overflowY:"auto" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                  <span style={{ fontSize:18 }}>🚗</span>
+                  <div style={{ fontFamily:"'Syne',sans-serif", fontSize:17, fontWeight:800, color:"#fff", letterSpacing:"-0.02em" }}>Add Tracked Mileage</div>
+                </div>
+                <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", lineHeight:1.5, marginBottom:14 }}>
+                  Pull unbilled trips from your mileage log onto this quote as a billable line. The billing rate is separate from your tax-deduction rate.
+                </div>
+
+                {/* Billing rate (default for new lines) */}
+                <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", background:"rgba(var(--accent-rgb),0.05)", border:"1px solid rgba(var(--accent-rgb),0.18)", borderRadius:9, marginBottom:14 }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:"var(--accent)" }}>Billing rate</div>
+                    <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>Default ${DEFAULT_BILLABLE_RATE.toFixed(3)}/mi (IRS). Editable per line too.</div>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    <span style={{ fontSize:13, color:"rgba(255,255,255,0.6)" }}>$</span>
+                    <input type="number" min="0" step="0.001" value={billableRate} onChange={e => setBillableRate(Number(e.target.value) || 0)} style={{ ...inputStyle, fontSize:13, width:84, textAlign:"right" }} onFocus={focusGold} onBlur={blurGray} />
+                    <span style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>/mi</span>
+                  </div>
+                </div>
+
+                {mileageBusy ? (
+                  <div style={{ textAlign:"center", padding:"28px", color:"rgba(255,255,255,0.4)", fontSize:13 }}>Loading trips…</div>
+                ) : unbilledTrips.length === 0 ? (
+                  <div style={{ textAlign:"center", padding:"24px 16px" }}>
+                    <div style={{ fontSize:13, color:"rgba(255,255,255,0.55)", marginBottom:6 }}>No unbilled trips found.</div>
+                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginBottom:16 }}>Log trips in the Mileage tracker, or add a flat travel fee.</div>
+                  </div>
+                ) : (
+                  <div style={{ border:"1px solid var(--line)", borderRadius:9, overflow:"hidden", marginBottom:14 }}>
+                    {unbilledTrips.map(t => {
+                      const on = !!tripPick[t.id];
+                      return (
+                        <button key={t.id} onClick={() => setTripPick(p => ({ ...p, [t.id]: !p[t.id] }))} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 12px", background: on ? "rgba(var(--accent-rgb),0.08)" : "transparent", border:"none", borderBottom:"1px solid var(--line)", cursor:"pointer", textAlign:"left", fontFamily:"inherit" }}>
+                          <div style={{ width:18, height:18, borderRadius:5, border: on ? "1px solid var(--accent)" : "1px solid var(--line-strong)", background: on ? "var(--accent)" : "transparent", color:"var(--bg0)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:800, flexShrink:0 }}>{on ? "✓" : ""}</div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:12, color:"rgba(255,255,255,0.8)", fontWeight:600, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{t.purpose || "Trip"}</div>
+                            <div style={{ fontSize:10, color:"rgba(255,255,255,0.45)", fontFamily:"'DM Mono',monospace", marginTop:1 }}>
+                              {t.trip_date}{t.start_loc || t.end_loc ? ` · ${[t.start_loc, t.end_loc].filter(Boolean).join(" → ")}` : ""}
+                            </div>
+                          </div>
+                          <div style={{ fontSize:12, fontWeight:700, color:"var(--accent)", fontFamily:"'DM Mono',monospace", flexShrink:0 }}>{Number(t.miles).toLocaleString()} mi</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {pickedTrips().length > 0 && (
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 12px", background:"rgba(255,255,255,0.03)", borderRadius:9, marginBottom:14 }}>
+                    <span style={{ fontSize:12, color:"rgba(255,255,255,0.6)" }}>{pickedTrips().length} trip{pickedTrips().length>1?"s":""} · {round2(pickedMiles()).toLocaleString()} mi</span>
+                    <span style={{ fontFamily:"'DM Mono',monospace", fontSize:15, fontWeight:700, color:"var(--accent)" }}>${round2(pickedMiles() * billableRate).toLocaleString()}</span>
+                  </div>
+                )}
+
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                  <button onClick={addFlatTravelFee} style={{ padding:"11px", background:"rgba(255,255,255,0.04)", border:"1px solid var(--line-strong)", borderRadius:9, color:"rgba(255,255,255,0.6)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                    + Flat travel fee
+                  </button>
+                  <button onClick={addMileageLine} disabled={pickedTrips().length === 0} style={{ padding:"11px", background: pickedTrips().length ? "linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.08))" : "rgba(255,255,255,0.03)", border: pickedTrips().length ? "1px solid rgba(var(--accent-rgb),0.4)" : "1px solid var(--line)", borderRadius:9, color: pickedTrips().length ? "var(--accent)" : "rgba(255,255,255,0.25)", fontSize:13, fontWeight:700, cursor: pickedTrips().length ? "pointer" : "default", fontFamily:"inherit" }}>
+                    Add to quote
+                  </button>
+                </div>
+                <button onClick={() => setShowMileagePicker(false)} style={{ width:"100%", marginTop:8, padding:"8px", background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
+              </div>
+            </div>
+          )}
 
           {/* ════════════ FIRST-RUN WELCOME ════════════ */}
           {showWelcome && (
