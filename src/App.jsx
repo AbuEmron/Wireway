@@ -10,6 +10,7 @@ import GyroBackdrop from "./components/GyroBackdrop";
 import AuthScreen from "./AuthScreen";
 import SubscriptionPage from "./SubscriptionPage";
 import QuotePublicPage from "./QuotePublicPage";
+import AppointmentPublicPage from "./AppointmentPublicPage";
 import Wireway from "./electrical-estimator";
 export default function App() {
   const [session,       setSession]       = useState(undefined);
@@ -22,6 +23,8 @@ export default function App() {
   const path = window.location.pathname;
   const quoteMatch = path.match(/^\/quote\/([a-f0-9-]{36})$/i);
   const publicQuoteId = quoteMatch?.[1];
+  const apptMatch = path.match(/^\/appt\/([a-f0-9-]{36})$/i);
+  const publicApptId = apptMatch?.[1];
   const loadProfile = useCallback(async (userId) => {
     setLoading(true);
     const { data } = await getProfile(userId);
@@ -57,6 +60,12 @@ export default function App() {
   if (publicQuoteId) return (
     <GyroBackdrop variant="synapse" reskin={false}>
       <QuotePublicPage quoteId={publicQuoteId} />
+    </GyroBackdrop>
+  );
+  // Public appointment page — no auth needed (client confirm / reschedule / cancel)
+  if (publicApptId) return (
+    <GyroBackdrop variant="synapse" reskin={false}>
+      <AppointmentPublicPage appointmentId={publicApptId} />
     </GyroBackdrop>
   );
   // Loading splash

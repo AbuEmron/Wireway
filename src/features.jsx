@@ -9,7 +9,7 @@
 // 6. AutoInvoiceConvert — auto-flips accepted quote to invoice
 
 import { useState, useEffect, useRef } from "react";
-import { getJobs, upsertJob, deleteJob, updateJobStatus, getPhotos, uploadPhoto, deletePhoto } from "./lib/supabase";
+import { getJobs, upsertJob, deleteJob, updateJobStatus, updateJob, getPhotos, uploadPhoto, deletePhoto } from "./lib/supabase";
 
 // ─── SHARED STYLES ────────────────────────────────────────────────────────────
 const card = { background:"rgba(255,255,255,0.022)", border:"1px solid var(--line)", borderRadius:12 };
@@ -23,6 +23,14 @@ const STATUS_COLOR = {
   complete:    "#7dcea0",
   cancelled:   "#e87e7e",
 };
+
+const ATTENTION = "#f0a818";
+const CHANGE_META = {
+  confirmed:            { label: "Client confirmed",   color: "#7dcea0", icon: "✓" },
+  reschedule_requested: { label: "Reschedule request", color: "#7eb8e8", icon: "🕑" },
+  cancel_requested:     { label: "Client cancelled",   color: "#e87e7e", icon: "✕" },
+};
+const miniBtn = (col) => ({ padding:"5px 10px", borderRadius:6, border:`1px solid ${col}40`, background:`${col}12`, color:col, fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit" });
 
 // ─── 1. JOB CALENDAR ─────────────────────────────────────────────────────────
 export function JobCalendar({ user, onClose }) {
@@ -72,6 +80,24 @@ export function JobCalendar({ user, onClose }) {
     if (data) setJobs(prev => prev.map(j => j.id===data.id ? data : j));
   };
 
+  const patchJob = async (id, patch) => {
+    const { data } = await updateJob(id, user.id, patch);
+    if (data) setJobs(prev => prev.map(j => j.id===data.id ? data : j));
+    return data;
+  };
+  const acceptReschedule = (job) => patchJob(job.id, {
+    scheduled_date: job.proposed_date || job.scheduled_date,
+    scheduled_time: job.proposed_time || job.scheduled_time,
+    change_status: "none", proposed_date: null, proposed_time: null, seen_by_owner: true,
+  });
+  const declineReschedule = (job) => patchJob(job.id, {
+    change_status: "none", proposed_date: null, proposed_time: null, seen_by_owner: true,
+  });
+  const acknowledge = (job) => patchJob(job.id, { change_status: "none", seen_by_owner: true });
+
+  const needsAttention = jobs.filter(j => j.seen_by_owner === false);
+  const cancelledJobs  = jobs.filter(j => j.status === "cancelled");
+
   return (
     <>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg0)}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
@@ -98,6 +124,46 @@ export function JobCalendar({ user, onClose }) {
 
         <div style={{ maxWidth:860, margin:"0 auto", padding:"16px 20px" }}>
 
+          {/* ── NEEDS ATTENTION — client changes ── */}
+          {needsAttention.length > 0 && (
+            <div style={{ marginBottom:16, border:`1px solid ${ATTENTION}55`, background:`${ATTENTION}10`, borderRadius:12, padding:"12px 14px" }}>
+              <div style={{ fontSize:11, fontWeight:800, color:ATTENTION, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>⚠ Needs attention — {needsAttention.length} client change{needsAttention.length>1?"s":""}</div>
+              {needsAttention.map(job => {
+                const meta = CHANGE_META[job.change_status] || { label:"Update", color:ATTENTION, icon:"•" };
+                return (
+                  <div key={job.id} style={{ display:"flex", flexDirection:"column", gap:8, padding:"10px 0", borderTop:"1px solid var(--line)" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                      <span style={{ fontSize:10, fontWeight:800, color:meta.color, background:`${meta.color}1a`, border:`1px solid ${meta.color}40`, borderRadius:5, padding:"2px 7px", whiteSpace:"nowrap" }}>{meta.icon} {meta.label}</span>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:700, color:"#fff", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{job.title}</div>
+                        <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontFamily:"'DM Mono',monospace" }}>{job.client_name || ""}</div>
+                      </div>
+                    </div>
+                    {job.change_status === "reschedule_requested" && (
+                      <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"'DM Mono',monospace" }}>
+                        {job.scheduled_date} {job.scheduled_time?.slice(0,5)} → <span style={{ color:"#7eb8e8" }}>{job.proposed_date} {job.proposed_time?.slice(0,5)}</span>
+                      </div>
+                    )}
+                    {job.change_status === "cancel_requested" && job.cancel_reason && (
+                      <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)" }}>Reason: {job.cancel_reason}</div>
+                    )}
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                      {job.change_status === "reschedule_requested" ? (
+                        <>
+                          <button onClick={() => acceptReschedule(job)} style={miniBtn("#7dcea0")}>Accept new time</button>
+                          <button onClick={() => declineReschedule(job)} style={miniBtn("rgba(255,255,255,0.5)")}>Keep original</button>
+                        </>
+                      ) : (
+                        <button onClick={() => acknowledge(job)} style={miniBtn("rgba(255,255,255,0.5)")}>Mark as seen</button>
+                      )}
+                      <button onClick={() => { setModal({ job }); setDraft(job); }} style={miniBtn("#7eb8e8")}>Open</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Day headers */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2, marginBottom:4 }}>
             {DAYS.map(d => <div key={d} style={{ textAlign:"center", fontSize:10, color:"rgba(255,255,255,0.28)", fontWeight:700, letterSpacing:"0.05em", padding:"4px 0" }}>{d}</div>)}
@@ -120,8 +186,8 @@ export function JobCalendar({ user, onClose }) {
                   <div style={{ fontSize:11, fontWeight: isToday ? 800 : 500, color: isToday ? "var(--accent)" : "rgba(255,255,255,0.5)", marginBottom:4 }}>{d}</div>
                   {dayJobs.slice(0,3).map(job => (
                     <div key={job.id} onClick={e => { e.stopPropagation(); setModal({ job }); setDraft(job); }}
-                      style={{ fontSize:9, fontWeight:700, color: STATUS_COLOR[job.status]||"#7eb8e8", background:`${STATUS_COLOR[job.status]||"#7eb8e8"}15`, borderRadius:3, padding:"2px 4px", marginBottom:2, overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis", cursor:"pointer" }}>
-                      {job.scheduled_time?.slice(0,5)} {job.title}
+                      style={{ fontSize:9, fontWeight:700, color: STATUS_COLOR[job.status]||"#7eb8e8", background:`${STATUS_COLOR[job.status]||"#7eb8e8"}15`, borderRadius:3, padding:"2px 4px", marginBottom:2, overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis", cursor:"pointer", border: job.seen_by_owner===false ? `1px solid ${ATTENTION}` : "1px solid transparent" }}>
+                      {job.seen_by_owner===false ? "● " : ""}{job.scheduled_time?.slice(0,5)} {job.title}
                     </div>
                   ))}
                   {dayJobs.length > 3 && <div style={{ fontSize:9, color:"rgba(255,255,255,0.25)" }}>+{dayJobs.length-3} more</div>}
@@ -161,6 +227,26 @@ export function JobCalendar({ user, onClose }) {
               ))}
             </div>
           )}
+          {/* ── Cancelled appointments ── */}
+          {cancelledJobs.length > 0 && (
+            <details style={{ marginTop:20 }}>
+              <summary style={{ fontSize:10, color:"#e87e7e", textTransform:"uppercase", letterSpacing:"0.1em", cursor:"pointer", fontWeight:700 }}>Cancelled ({cancelledJobs.length})</summary>
+              <div style={{ marginTop:10 }}>
+                {cancelledJobs.slice().sort((a,b)=>(b.scheduled_date||"").localeCompare(a.scheduled_date||"")).map(job => (
+                  <div key={job.id} onClick={() => { setModal({ job }); setDraft(job); }} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", ...card, marginBottom:6, cursor:"pointer", opacity:0.75 }}>
+                    <div style={{ width:3, height:32, borderRadius:2, background:"#e87e7e", flexShrink:0 }}/>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:"#fff", textDecoration:"line-through" }}>{job.title}</div>
+                      <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:"'DM Mono',monospace" }}>
+                        {job.scheduled_date} {job.scheduled_time?.slice(0,5)} · {job.client_name}{job.change_status==="cancel_requested" ? " · cancelled by client" : ""}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+
         </div>
       </div>
 
@@ -176,6 +262,16 @@ export function JobCalendar({ user, onClose }) {
               <button onClick={() => setModal(null)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontSize:22, cursor:"pointer" }}>✕</button>
             </div>
 
+            {modal.job && modal.job.change_status && modal.job.change_status !== "none" && (() => {
+              const meta = CHANGE_META[modal.job.change_status]; if (!meta) return null;
+              return (
+                <div style={{ marginBottom:12, padding:"10px 12px", borderRadius:9, background:`${meta.color}12`, border:`1px solid ${meta.color}40`, color:meta.color, fontSize:11, fontWeight:700 }}>
+                  {meta.icon} {meta.label}
+                  {modal.job.change_status==="reschedule_requested" && <span style={{ display:"block", marginTop:3, fontWeight:500, color:"rgba(255,255,255,0.6)", fontFamily:"'DM Mono',monospace" }}>Proposed: {modal.job.proposed_date} {modal.job.proposed_time?.slice(0,5)}</span>}
+                  {modal.job.change_status==="cancel_requested" && modal.job.cancel_reason && <span style={{ display:"block", marginTop:3, fontWeight:500, color:"rgba(255,255,255,0.6)" }}>Reason: {modal.job.cancel_reason}</span>}
+                </div>
+              );
+            })()}
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               <input placeholder="Job title *" value={draft.title||""} onChange={e=>setDraft(p=>({...p,title:e.target.value}))} style={IS} onFocus={focusGold} onBlur={blurGray}/>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
@@ -215,6 +311,11 @@ export function JobCalendar({ user, onClose }) {
                 📍 Send "On My Way" Text to {draft.client_name || "Client"}
               </button>
             )}
+            {modal.job && (
+              <button onClick={() => sendApptLink(modal.job)} style={{ width:"100%", marginTop:6, padding:"10px", background:"rgba(126,184,232,0.06)", border:"1px solid rgba(126,184,232,0.2)", borderRadius:9, color:"#7eb8e8", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                🔗 Send Appointment Link{modal.job.client_name ? ` to ${modal.job.client_name}` : ""}
+              </button>
+            )}
 
             {/* Review request (complete jobs only) */}
             {draft.status === "complete" && draft.client_phone && (
@@ -243,6 +344,20 @@ export function sendReviewRequest(job, companyName = "", reviewUrl = "") {
   const link = reviewUrl || "https://g.page/r/YOUR_GOOGLE_REVIEW_LINK";
   const msg  = encodeURIComponent(
     `Hi ${job.client_name || "there"}, thanks for choosing ${companyName || "us"} for your electrical work! We'd really appreciate a quick Google review — it takes less than a minute:\n${link}\nThank you! 🙏`
+  );
+  const to = (job.client_phone || "").replace(/\D/g,"");
+  window.open(`sms:${to}?body=${msg}`);
+}
+
+// ─── SEND APPOINTMENT LINK HELPER ────────────────────────────────────────────
+export function sendApptLink(job, companyName = "") {
+  if (!job?.id) return;
+  const url  = `${window.location.origin}/appt/${job.id}`;
+  const when = job.scheduled_date
+    ? `${job.scheduled_date}${job.scheduled_time ? " at " + job.scheduled_time.slice(0,5) : ""}`
+    : "the scheduled time";
+  const msg  = encodeURIComponent(
+    `Hi ${job.client_name || "there"}, here's your appointment with ${companyName || "us"}${job.title ? " — " + job.title : ""} on ${when}. Confirm, reschedule, or cancel here: ${url}`
   );
   const to = (job.client_phone || "").replace(/\D/g,"");
   window.open(`sms:${to}?body=${msg}`);

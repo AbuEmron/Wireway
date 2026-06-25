@@ -157,6 +157,8 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
     .sort((a,b) => a.scheduled_date.localeCompare(b.scheduled_date))
     .slice(0, 3);
 
+  const needsAttention = jobs.filter(j => j.seen_by_owner === false);
+
   const recentQuotes = [...quotes]
     .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 5);
@@ -225,6 +227,18 @@ export default function Dashboard({ user, profile, onNewQuote, onLoadQuote, onSh
             ))}
           </div>
         </div>
+
+        {/* ── CLIENT CHANGES — NEEDS ATTENTION ── */}
+        {needsAttention.length > 0 && (
+          <div onClick={onOpenCalendar} style={{ marginBottom:16, padding:"12px 14px", background:"rgba(240,168,24,0.08)", border:"1px solid rgba(240,168,24,0.35)", borderRadius:12, cursor:"pointer", display:"flex", alignItems:"center", gap:12, animation:"fadeUp 0.4s ease both" }}>
+            <span style={{ fontSize:18 }}>⚠️</span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:13, fontWeight:800, color:"#f0a818" }}>{needsAttention.length} appointment{needsAttention.length>1?"s":""} need{needsAttention.length>1?"":"s"} your attention</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", marginTop:1 }}>A client confirmed, rescheduled, or cancelled — tap to review.</div>
+            </div>
+            <span style={{ fontSize:14, color:"#f0a818" }}>→</span>
+          </div>
+        )}
 
         {/* ── UPCOMING JOBS ── */}
         {upcomingJobs.length > 0 && (
