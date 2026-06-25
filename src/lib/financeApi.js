@@ -14,6 +14,11 @@ export const CURRENT_IRS_RATE = IRS_RATES[2026];
 
 export const irsRate = (year) => IRS_RATES[year] ?? CURRENT_IRS_RATE;
 
+// Default rate used when *billing* tracked mileage to a client on a quote/invoice.
+// Defaults to the IRS standard business rate, but this is independent of the
+// tax-deduction rate above — the user can override it per line or in settings.
+export const DEFAULT_BILLABLE_RATE = CURRENT_IRS_RATE;
+
 export const EXPENSE_CATEGORIES = [
   { id: "materials",      label: "Materials & Parts",   scheduleC: "Line 22",  color: "#7eb8e8" },
   { id: "fuel",           label: "Gas & Fuel",          scheduleC: "Line 9",   color: "#e8b87e" },
@@ -61,6 +66,56 @@ export const deleteTrip = async (id, userId) => {
     .from("trips")
     .delete()
     .eq("id", id)
+    .eq("user_id", userId);
+  return { error };
+};
+
+// ── BILLABLE MILEAGE ─────────────────────────────────────────────────────────
+// Trips have no native client/job link (only free-text purpose/locations), so
+// "which miles belong to this invoice" is resolved by an explicit picker plus an
+// optional billed_at / billed_quote_id marker on the trip. These columns are added
+// by supabase/migration_mileage_billing.sql (nullable, additive — no new endpoint).
+
+// Trips not yet billed onto any quote. Falls back gracefully if the billed_at
+// column hasn't been migrated yet (returns all trips, newest first).
+export const getUnbilledTrips = async (userId) => {
+  let res = await supabase
+    .from("trips")
+    .select("*")
+    .eq("user_id", userId)
+    .is("billed_at", null)
+    .order("trip_date", { ascending: false })
+    .limit(250);
+  if (res.error) {
+    // Column may not exist yet — degrade to "all trips" so the picker still works.
+    res = await supabase
+      .from("trips")
+      .select("*")
+      .eq("user_id", userId)
+      .order("trip_date", { ascending: false })
+      .limit(250);
+  }
+  return { data: res.data || [], error: res.error };
+};
+
+// Mark the given trips as billed onto a quote (links trip → quote).
+export const markTripsBilled = async (userId, tripIds, quoteId) => {
+  if (!tripIds || tripIds.length === 0) return { error: null };
+  const { error } = await supabase
+    .from("trips")
+    .update({ billed_at: new Date().toISOString(), billed_quote_id: quoteId || null })
+    .in("id", tripIds)
+    .eq("user_id", userId);
+  return { error };
+};
+
+// Return the given trips to the unbilled pool (e.g. the mileage line was removed).
+export const unmarkTripsBilled = async (userId, tripIds) => {
+  if (!tripIds || tripIds.length === 0) return { error: null };
+  const { error } = await supabase
+    .from("trips")
+    .update({ billed_at: null, billed_quote_id: null })
+    .in("id", tripIds)
     .eq("user_id", userId);
   return { error };
 };
