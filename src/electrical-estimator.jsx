@@ -599,6 +599,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               <div style={{ display:"flex", gap:6 }}>
                 <button onClick={() => setShowCustomers(true)} title="Customers" style={{ padding:"6px 11px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>👥</button>
                 <button onClick={() => { newQuote(true); setShowDashboard(false); }} style={{ padding:"6px 11px", borderRadius:7, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", color:"var(--accent)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>+ New</button>
+                <button onClick={() => { setShowDashboard(false); setTimeout(() => setShowPlaid(true), 120); }} title="Bank / Expenses" style={{ padding:"6px 11px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>🏦</button>
                 <button onClick={() => setShowAccount(true)} title="Account" style={{ padding:"6px 10px", borderRadius:7, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>⚙</button>
               </div>
             </div>
@@ -659,12 +660,33 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           <div onClick={e => e.target === e.currentTarget && setShowAccount(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", zIndex:400, display:"flex", alignItems:"center", justifyContent:"center", padding:"24px 16px" }}>
           <div style={{ background:"var(--surface)", border:"1px solid var(--line-strong)", borderRadius:18, width:"100%", maxWidth:380, padding:"24px", fontFamily:"'DM Sans',sans-serif", color:"#fff" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-              <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800 }}>Account</span>
+              <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800 }}>Settings</span>
               <button onClick={() => setShowAccount(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.5)", fontSize:20, cursor:"pointer" }}>✕</button>
             </div>
             <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", marginBottom:16 }}>{user?.email}</div>
 
-            <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Appearance</div>
+            <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Business & integrations</div>
+            <button onClick={() => { setShowAccount(false); setShowDashboard(false); setTimeout(() => { setCompanyDraft(company); setLogoDataUrl(company.logoDataUrl||""); setEditingCompany(true); }, 120); }} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"12px 14px", marginBottom:8, borderRadius:10, border:"1px solid var(--line)", background:"var(--card)", color:"#fff", cursor:"pointer", fontFamily:"inherit", textAlign:"left" }}>
+              <span style={{ fontSize:16 }}>🏢</span>
+              <span style={{ flex:1, minWidth:0 }}>
+                <span style={{ display:"block", fontSize:12.5, fontWeight:700 }}>Business info & logo</span>
+                <span style={{ display:"block", fontSize:10.5, color:"rgba(255,255,255,0.45)", marginTop:1 }}>Name, license, address, terms & quote defaults</span>
+              </span>
+              <span style={{ color:"rgba(255,255,255,0.3)" }}>→</span>
+            </button>
+            <button onClick={() => { setShowAccount(false); setShowDashboard(false); setTimeout(() => setShowPlaid(true), 120); }} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"12px 14px", marginBottom:16, borderRadius:10, border:"1px solid var(--line)", background:"var(--card)", color:"#fff", cursor:"pointer", fontFamily:"inherit", textAlign:"left" }}>
+              <span style={{ fontSize:16 }}>🏦</span>
+              <span style={{ flex:1, minWidth:0 }}>
+                <span style={{ display:"block", fontSize:12.5, fontWeight:700 }}>Bank / Expenses</span>
+                <span style={{ display:"block", fontSize:10.5, color:"rgba(255,255,255,0.45)", marginTop:1 }}>Auto-import & categorize job purchases (Plaid)</span>
+              </span>
+              <span style={{ color:"rgba(255,255,255,0.3)" }}>→</span>
+            </button>
+            {onShowPricing && profile?.subscription_status !== "active" && (
+              <button onClick={onShowPricing} style={{ width:"100%", padding:"12px", marginBottom:16, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", borderRadius:10, color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>⚡ Upgrade to Pro</button>
+            )}
+            <details style={{ marginTop:4, marginBottom:12, borderTop:"1px solid var(--line)", paddingTop:12 }}>
+              <summary style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.1em", cursor:"pointer" }}>Appearance (theme)</summary>
             <div style={{ marginBottom:16 }}>
               {THEMES.map(t => {
                 const locked = !t.free && !userIsPro;
@@ -695,9 +717,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 </div>
               )}
             </div>
-            {onShowPricing && profile?.subscription_status !== "active" && (
-              <button onClick={onShowPricing} style={{ width:"100%", padding:"12px", marginBottom:8, background:"rgba(var(--accent-rgb),0.1)", border:"1px solid rgba(var(--accent-rgb),0.3)", borderRadius:10, color:"var(--accent)", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>⚡ Upgrade to Pro</button>
-            )}
+            </details>
             <button onClick={async () => { await signOut(); window.location.reload(); }} style={{ width:"100%", padding:"12px", background:"rgba(232,126,126,0.06)", border:"1px solid rgba(232,126,126,0.2)", borderRadius:10, color:"#e87e7e", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Sign Out</button>
           </div>
           </div>
@@ -752,6 +772,8 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 + New </button>
               <button onClick={() => setShowDashboard(true)} title="Home" style={{ padding:"5px 9px", borderRadius:6, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer" }}>
                 🏠 </button>
+              <button onClick={() => setShowPlaid(true)} title="Bank / Expenses" style={{ padding:"5px 9px", borderRadius:6, border:"1px solid var(--line-strong)", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer" }}>
+                🏦 </button>
               {/* Combined account + company menu */}
               <div style={{ display:"flex", gap:1, background:"var(--card)", border:"1px solid var(--line-strong)", borderRadius:7, overflow:"hidden" }}>
                 <button onClick={() => setShowAccount(true)} style={{ padding:"5px 10px", border:"none", background:"transparent", color:"rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit", borderRight:"1px solid var(--line)" }}>
@@ -895,7 +917,6 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     { label:"Clients",         action:() => setShowClientDB(true)    },
                     { label:"Mileage",         action:() => setShowMileage(true)     },
                     { label:"Expenses",        action:() => setShowExpenses(true)    },
-                    { label:"Bank Link",       action:() => setShowPlaid(true)       },
                     { label:"+ Custom",        action:addCustomItem                  },
                     hasItems ? { label:"Pull List", action:buildMaterialList } : null,
                   ].filter(Boolean).map(btn => (
@@ -1466,7 +1487,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           <div className="modal-box" style={{ padding:"24px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
               <div>
-                <div style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, color:"#fff" }}>Account</div>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, color:"#fff" }}>Settings</div>
                 <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>{user?.email}</div>
                 </div>
               <button onClick={() => setShowAccount(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.5)", fontSize:22, cursor:"pointer" }}>✕</button>
@@ -1502,7 +1523,23 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               )}
                   </div>
                   </div>
-
+            <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Business & integrations</div>
+            <button onClick={() => { setShowAccount(false); setCompanyDraft(company); setLogoDataUrl(company.logoDataUrl||""); setEditingCompany(true); }} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"12px 14px", marginBottom:8, borderRadius:10, border:"1px solid var(--line)", background:"var(--card)", color:"#fff", cursor:"pointer", fontFamily:"inherit", textAlign:"left" }}>
+              <span style={{ fontSize:16 }}>🏢</span>
+              <span style={{ flex:1, minWidth:0 }}>
+                <span style={{ display:"block", fontSize:12.5, fontWeight:700 }}>Business info & logo</span>
+                <span style={{ display:"block", fontSize:10.5, color:"rgba(255,255,255,0.45)", marginTop:1 }}>Name, license, address, terms & quote defaults</span>
+              </span>
+              <span style={{ color:"rgba(255,255,255,0.3)" }}>→</span>
+            </button>
+            <button onClick={() => { setShowAccount(false); setShowPlaid(true); }} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"12px 14px", marginBottom:16, borderRadius:10, border:"1px solid var(--line)", background:"var(--card)", color:"#fff", cursor:"pointer", fontFamily:"inherit", textAlign:"left" }}>
+              <span style={{ fontSize:16 }}>🏦</span>
+              <span style={{ flex:1, minWidth:0 }}>
+                <span style={{ display:"block", fontSize:12.5, fontWeight:700 }}>Bank / Expenses</span>
+                <span style={{ display:"block", fontSize:10.5, color:"rgba(255,255,255,0.45)", marginTop:1 }}>Auto-import & categorize job purchases (Plaid)</span>
+              </span>
+              <span style={{ color:"rgba(255,255,255,0.3)" }}>→</span>
+            </button>
             {/* Stats */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
               {[
@@ -1516,7 +1553,39 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                   </div>
               ))}
               </div>
-
+            <details style={{ marginTop:4, marginBottom:12, borderTop:"1px solid var(--line)", paddingTop:12 }}>
+              <summary style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.1em", cursor:"pointer" }}>Appearance (theme)</summary>
+            <div style={{ marginBottom:16 }}>
+              {THEMES.map(t => {
+                const locked = !t.free && !userIsPro;
+                const active = theme === t.id;
+                return (
+                  <div key={t.id}
+                    onClick={() => {
+                      if (locked) { setShowAccount(false); if (onShowPricing) onShowPricing(); return; }
+                      setTheme(t.id); saveTheme(t.id);
+                      if (user?.id) saveThemePref(user.id, t.id);
+                    }}
+                    style={{ display:"flex", alignItems:"center", gap:11, padding:"9px 11px", marginBottom:5, borderRadius:10, cursor:"pointer",
+                      border: active ? `1px solid ${t.accent}` : "1px solid var(--line)",
+                      background: active ? `rgba(${t.accentRgb},0.08)` : "rgba(255,255,255,0.02)",
+                      opacity: locked ? 0.55 : 1, transition:"all 0.15s" }}>
+                    <span style={{ width:22, height:22, borderRadius:7, flexShrink:0, background:`linear-gradient(135deg, ${t.accent}, rgba(${t.accentRgb},0.4))`, border:"1px solid var(--line-strong)" }} />
+                    <span style={{ flex:1, minWidth:0 }}>
+                      <span style={{ display:"block", fontSize:12.5, fontWeight:700, color: active ? t.accent : "rgba(255,255,255,0.8)" }}>{t.name}</span>
+                      <span style={{ display:"block", fontSize:10, color:"rgba(255,255,255,0.5)" }}>{t.desc}</span>
+                    </span>
+                    {locked ? <span style={{ fontSize:11 }}>🔒</span> : active ? <span style={{ fontSize:11, color:t.accent }}>✓</span> : null}
+                  </div>
+                );
+              })}
+              {!userIsPro && (
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", textAlign:"center", marginTop:4 }}>
+                  Themes unlock with Pro
+                </div>
+              )}
+            </div>
+            </details>
             {/* Sign out */}
             <button onClick={async () => {
               await signOut();

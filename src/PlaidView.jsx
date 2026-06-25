@@ -56,6 +56,8 @@ function RecatSelect({ currentCat, txnId, onSave }) {
 export default function PlaidView({ user, onClose }) {
   const [linkToken,    setLinkToken]    = useState(null);
   const [tokenError,   setTokenError]   = useState(null);
+  const [errorKind,    setErrorKind]    = useState(null); // "config" | "auth" | "network"
+  const [tokenLoading, setTokenLoading] = useState(true);
   const [items,        setItems]        = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [txnLoading,   setTxnLoading]   = useState(false);
@@ -66,16 +68,29 @@ export default function PlaidView({ user, onClose }) {
   const [tab,          setTab]          = useState("transactions");
 
   // ── Fetch Plaid link token ──────────────────────────────────────────────────
-  useEffect(() => {
-    (async () => {
+  const fetchLinkToken = useCallback(async () => {
+    setTokenLoading(true);
+    setTokenError(null);
+    setErrorKind(null);
+    try {
       const data = await apiPost("/api/plaid-create-link-token");
-      if (data.link_token) {
+      if (data?.link_token) {
         setLinkToken(data.link_token);
       } else {
-        setTokenError(data.error || "Plaid not configured.");
+        const msg = (data?.error || "").toLowerCase();
+        if (msg.includes("not configured")) setErrorKind("config");
+        else if (msg.includes("sign in") || msg.includes("session")) setErrorKind("auth");
+        else setErrorKind("network");
+        setTokenError(data?.error || "Couldn't start bank linking.");
       }
-    })();
+    } catch {
+      setErrorKind("network");
+      setTokenError("Couldn't reach bank linking — check your connection.");
+    }
+    setTokenLoading(false);
   }, []);
+
+  useEffect(() => { fetchLinkToken(); }, [fetchLinkToken]);
 
   // ── Load items + transactions ───────────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -160,46 +175,61 @@ export default function PlaidView({ user, onClose }) {
 
   const YEARS = [2022, 2023, 2024, 2025].reverse();
 
-  // ── Unconfigured state ──────────────────────────────────────────────────────
+  // ── Error state — friendly for end users; technical detail only for the owner ──
   if (tokenError) {
+    const userMsg =
+      errorKind === "config"
+        ? "Bank linking isn't switched on for this account yet. Please check back soon."
+        : errorKind === "auth"
+        ? "Your session timed out. Please sign in again, then reopen Bank Link."
+        : "We couldn't reach the bank-linking service. Check your connection and try again.";
+
     return (
       <div style={{ position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.82)", backdropFilter: "blur(8px)", display: "flex", justifyContent: "center", alignItems: "center", padding: "24px 16px" }}>
-        <div style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, width: "100%", maxWidth: 560, padding: "32px 28px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
+        <div style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, width: "100%", maxWidth: 480, padding: "32px 28px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
-              <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 17, fontWeight: 800, color: "#fff" }}>Auto Card Import</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>Plaid bank connection</div>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 17, fontWeight: 800, color: "#fff" }}>Connect Your Bank</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>Auto-import job purchases</div>
             </div>
             <button onClick={onClose} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 22, cursor: "pointer" }}>✕</button>
           </div>
 
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", background: "rgba(232,184,126,0.1)", border: "1px solid rgba(232,184,126,0.25)", borderRadius: 6, fontSize: 10, fontWeight: 700, color: "#e8b87e", marginBottom: 20 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#e8b87e", display: "inline-block" }} />
-            Needs Plaid API keys to activate
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.7, marginBottom: 22 }}>
+            {userMsg}
           </div>
 
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", lineHeight: 1.8, marginBottom: 20 }}>
-            {tokenError}
+          <div style={{ display: "flex", gap: 8, marginBottom: errorKind === "config" ? 18 : 0 }}>
+            {errorKind !== "config" && (
+              <button onClick={fetchLinkToken} disabled={tokenLoading}
+                style={{ flex: 1, padding: "12px", background: "linear-gradient(135deg,rgba(126,184,232,0.18),rgba(126,184,232,0.07))", border: "1px solid rgba(126,184,232,0.4)", borderRadius: 10, color: "#7eb8e8", fontSize: 13, fontWeight: 700, cursor: tokenLoading ? "default" : "pointer", fontFamily: "inherit" }}>
+                {tokenLoading ? "Trying..." : "Try Again"}
+              </button>
+            )}
+            <button onClick={onClose}
+              style={{ flex: errorKind === "config" ? 1 : "0 0 auto", padding: "12px 18px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "rgba(255,255,255,0.45)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              Close
+            </button>
           </div>
 
-          <div style={{ background: "rgba(232,201,122,0.04)", border: "1px solid rgba(232,201,122,0.12)", borderRadius: 12, padding: "16px", marginBottom: 20 }}>
-            <div style={{ fontSize: 10, color: "rgba(232,201,122,0.6)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>To activate — add these Vercel env vars</div>
-            {[
-              { name: "PLAID_CLIENT_ID",   note: "From Plaid dashboard → Team Settings → Keys" },
-              { name: "PLAID_SECRET",      note: "Sandbox or production secret" },
-              { name: "PLAID_ENV",         note: "sandbox · development · production" },
-            ].map((v) => (
-              <div key={v.name} style={{ marginBottom: 10 }}>
-                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "#e8c97a", marginBottom: 2 }}>{v.name}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{v.note}</div>
+          {errorKind === "config" && (
+            <details style={{ background: "rgba(232,201,122,0.04)", border: "1px solid rgba(232,201,122,0.12)", borderRadius: 10, padding: "12px 14px", marginTop: 18 }}>
+              <summary style={{ fontSize: 10, color: "rgba(232,201,122,0.6)", textTransform: "uppercase", letterSpacing: "0.1em", cursor: "pointer" }}>Account owner setup</summary>
+              <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, margin: "10px 0" }}>
+                Add these environment variables in Vercel, then redeploy:
               </div>
-            ))}
-          </div>
-
-          <button onClick={onClose}
-            style={{ width: "100%", padding: "12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-            Close
-          </button>
+              {[
+                { name: "PLAID_CLIENT_ID", note: "Plaid dashboard → Team Settings → Keys" },
+                { name: "PLAID_SECRET",    note: "Sandbox or production secret" },
+                { name: "PLAID_ENV",       note: "sandbox · development · production" },
+              ].map((v) => (
+                <div key={v.name} style={{ marginBottom: 8 }}>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "#e8c97a" }}>{v.name}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{v.note}</div>
+                </div>
+              ))}
+            </details>
+          )}
         </div>
       </div>
     );
