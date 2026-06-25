@@ -385,6 +385,19 @@ export const updateJobStatus = async (id, status) => {
   return { data, error };
 };
 
+// Partial update of a job (owner-scoped) — used for accept/decline reschedule and
+// acknowledging client changes from the calendar.
+export const updateJob = async (id, userId, patch) => {
+  const { data, error } = await supabase
+    .from("jobs")
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+  return { data, error };
+};
+
 // ── PHOTOS ───────────────────────────────────────────────────────────────────
 
 export const getPhotos = async (quoteId) => {
