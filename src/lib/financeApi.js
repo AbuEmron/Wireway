@@ -2,14 +2,17 @@
 import { supabase } from "./supabase";
 
 // IRS standard mileage rates by tax year
+// IRS standard mileage rate by tax year (business). Easy to update: add next year here.
 export const IRS_RATES = {
   2022: 0.585,
   2023: 0.655,
   2024: 0.67,
   2025: 0.70,
+  2026: 0.725, // 72.5¢/mile — IRS business standard mileage rate for 2026
 };
+export const CURRENT_IRS_RATE = IRS_RATES[2026];
 
-export const irsRate = (year) => IRS_RATES[year] ?? IRS_RATES[2025];
+export const irsRate = (year) => IRS_RATES[year] ?? CURRENT_IRS_RATE;
 
 export const EXPENSE_CATEGORIES = [
   { id: "materials",      label: "Materials & Parts",   scheduleC: "Line 22",  color: "#7eb8e8" },
