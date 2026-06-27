@@ -19,6 +19,20 @@ import MileageView from "./MileageView";
 import ExpensesView from "./ExpensesView";
 import PlaidView from "./PlaidView";
 import { BottomNav, MoreSheet } from "./BottomNav";
+import JobCostingView from "./JobCostingView";
+import ReceiptCaptureView from "./ReceiptCaptureView";
+import SubcontractorsView from "./SubcontractorsView";
+import TimeTrackingView from "./TimeTrackingView";
+import ProgressBillingView from "./ProgressBillingView";
+import ReceivablesView from "./ReceivablesView";
+import MoneyDashboardView from "./MoneyDashboardView";
+import ROIView from "./ROIView";
+import ROIBadge from "./components/ROIBadge";
+import InsightsView from "./InsightsView";
+import QuoteInsightBanner from "./components/QuoteInsightBanner";
+import ComplianceView from "./ComplianceView";
+import ReferralView from "./ReferralView";
+import MarketIntelView from "./MarketIntelView";
 import LoadAdvisor from "./LoadAdvisor";
 import { DEFAULT_BILLABLE_RATE, getUnbilledTrips, markTripsBilled, unmarkTripsBilled } from "./lib/financeApi";
 // ── SESSION RESTORE ──────────────────────────────────────────────
@@ -116,6 +130,18 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showMileage,    setShowMileage]    = useState(false);
   const [showExpenses,   setShowExpenses]   = useState(false);
   const [showPlaid,      setShowPlaid]      = useState(false);
+  const [showJobCosting, setShowJobCosting] = useState(false);
+  const [showReceipt,    setShowReceipt]    = useState(false);
+  const [showSubs,       setShowSubs]       = useState(false);
+  const [showTime,       setShowTime]       = useState(false);
+  const [showBilling,    setShowBilling]    = useState(false);
+  const [showAR,         setShowAR]         = useState(false);
+  const [showMoney,      setShowMoney]      = useState(false);
+  const [showROI,        setShowROI]        = useState(false);
+  const [showInsights,   setShowInsights]   = useState(false);
+  const [showCompliance, setShowCompliance] = useState(false);
+  const [showReferral,   setShowReferral]   = useState(false);
+  const [showMarket,     setShowMarket]     = useState(false);
   const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
@@ -127,7 +153,11 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showCustomers,  setShowCustomers]  = useState(false);
   const [showDashboard,  setShowDashboard]  = useState(SAVED ? !!SAVED.showDashboard : true);
   const [showMore,       setShowMore]       = useState(false);
-  const closeOverlays = () => { setShowCalendar(false); setShowMileage(false); setShowExpenses(false); setShowPlaid(false); setShowCustomers(false); setShowLoadAdvisor(false); setShowAIBuilder(false); setShowElite(false); };
+  const closeOverlays = () => {
+    setShowCalendar(false); setShowMileage(false); setShowExpenses(false); setShowPlaid(false); setShowCustomers(false); setShowLoadAdvisor(false); setShowAIBuilder(false); setShowElite(false);
+    // Phase 2 overlays
+    setShowJobCosting(false); setShowReceipt(false); setShowSubs(false); setShowTime(false); setShowBilling(false); setShowAR(false); setShowMoney(false); setShowROI(false); setShowInsights(false); setShowCompliance(false); setShowReferral(false); setShowMarket(false);
+  };
   const navGo = (dest) => {
     setShowMore(false);
     switch (dest) {
@@ -139,6 +169,19 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
       case "bank":      setShowDashboard(false); setTimeout(() => setShowPlaid(true), 0); break;
       case "mileage":   setShowDashboard(false); setTimeout(() => setShowMileage(true), 0); break;
       case "expenses":  setShowDashboard(false); setTimeout(() => setShowExpenses(true), 0); break;
+      // ── Phase 2 destinations (surfaced via the More sheet) ──
+      case "jobcosting": setShowDashboard(false); setTimeout(() => setShowJobCosting(true), 0); break;
+      case "money":      setShowDashboard(false); setTimeout(() => setShowMoney(true), 0); break;
+      case "roi":        setShowDashboard(false); setTimeout(() => setShowROI(true), 0); break;
+      case "billing":    setShowDashboard(false); setTimeout(() => setShowBilling(true), 0); break;
+      case "ar":         setShowDashboard(false); setTimeout(() => setShowAR(true), 0); break;
+      case "receipt":    setShowDashboard(false); setTimeout(() => setShowReceipt(true), 0); break;
+      case "time":       setShowDashboard(false); setTimeout(() => setShowTime(true), 0); break;
+      case "subs":       setShowDashboard(false); setTimeout(() => setShowSubs(true), 0); break;
+      case "compliance": setShowDashboard(false); setTimeout(() => setShowCompliance(true), 0); break;
+      case "insights":   setShowDashboard(false); setTimeout(() => setShowInsights(true), 0); break;
+      case "market":     setShowDashboard(false); setTimeout(() => setShowMarket(true), 0); break;
+      case "referral":   setShowDashboard(false); setTimeout(() => setShowReferral(true), 0); break;
       case "ai":        setShowDashboard(false); setTimeout(() => setShowAIBuilder(true), 0); break;
       case "advisor":   setShowDashboard(false); setTimeout(() => setShowLoadAdvisor(true), 0); break;
       case "elite":     setShowDashboard(true); setTimeout(() => setShowElite(true), 0); break;
@@ -887,6 +930,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               <span className="hide-xs" style={{ fontSize:10, fontWeight:700, color:"rgba(var(--accent-rgb),0.6)", background:"rgba(var(--accent-rgb),0.07)", border:"1px solid rgba(var(--accent-rgb),0.16)", padding:"1px 5px", borderRadius:3, letterSpacing:"0.08em", textTransform:"uppercase" }}>NEC 2023</span>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <ROIBadge user={user} onOpen={() => setShowROI(true)} />
               {hasItems && (
                 <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"var(--accent)", letterSpacing:"-0.02em" }}>
                   ${total.toLocaleString()}
@@ -1114,6 +1158,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 </div>
               ) : (
                 <>
+                  <QuoteInsightBanner user={user} estCost={totMat + totLab} estMaterial={totMat} jobName={jobName} />
                   {/* ── STAT CARDS ── */}
                   <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }} className="no-print">
                     <StatCard label="Total Estimate"      value={`$${total.toLocaleString()}`}           color="var(--accent)" />
@@ -1693,10 +1738,46 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           {showMileage && <MileageView user={user} onClose={() => setShowMileage(false)} />}
 
           {/* ════════════ EXPENSES TRACKER ════════════ */}
-          {showExpenses && <ExpensesView user={user} onClose={() => setShowExpenses(false)} onOpenPlaid={() => { setShowExpenses(false); setShowPlaid(true); }} />}
+          {showExpenses && <ExpensesView user={user} profile={profile} onShowPricing={onShowPricing} onClose={() => setShowExpenses(false)} onOpenPlaid={() => { setShowExpenses(false); setShowPlaid(true); }} />}
 
           {/* ════════════ PLAID BANK IMPORT ════════════ */}
           {showPlaid && <PlaidView user={user} onClose={() => setShowPlaid(false)} />}
+
+          {/* ════════════ JOB COSTING — BID vs ACTUAL ════════════ */}
+          {showJobCosting && <JobCostingView user={user} profile={profile} onShowPricing={onShowPricing} onClose={() => setShowJobCosting(false)} />}
+
+          {/* ════════════ SNAP A RECEIPT ════════════ */}
+          {showReceipt && <ReceiptCaptureView user={user} onClose={() => setShowReceipt(false)} />}
+
+          {/* ════════════ SUBCONTRACTORS + 1099 ════════════ */}
+          {showSubs && <SubcontractorsView user={user} company={company} onClose={() => setShowSubs(false)} />}
+
+          {/* ════════════ TIME-TO-JOB LABOR ════════════ */}
+          {showTime && <TimeTrackingView user={user} onClose={() => setShowTime(false)} />}
+
+          {/* ════════════ PROGRESS BILLING + RETAINAGE ════════════ */}
+          {showBilling && <ProgressBillingView user={user} company={company} profile={profile} onShowPricing={onShowPricing} onClose={() => setShowBilling(false)} />}
+
+          {/* ════════════ GET-PAID-FASTER A/R ════════════ */}
+          {showAR && <ReceivablesView user={user} profile={profile} company={company} onClose={() => setShowAR(false)} />}
+
+          {/* ════════════ MONEY DASHBOARD ════════════ */}
+          {showMoney && <MoneyDashboardView user={user} profile={profile} onShowPricing={onShowPricing} onClose={() => setShowMoney(false)} />}
+
+          {/* ════════════ ROI METER ════════════ */}
+          {showROI && <ROIView user={user} onClose={() => setShowROI(false)} />}
+
+          {/* ════════════ COMPOUNDING INSIGHTS ════════════ */}
+          {showInsights && <InsightsView user={user} onClose={() => setShowInsights(false)} />}
+
+          {/* ════════════ COMPLIANCE ════════════ */}
+          {showCompliance && <ComplianceView user={user} onClose={() => setShowCompliance(false)} />}
+
+          {/* ════════════ REFERRAL FLYWHEEL ════════════ */}
+          {showReferral && <ReferralView user={user} onClose={() => setShowReferral(false)} />}
+
+          {/* ════════════ LOCAL MARKET INTELLIGENCE ════════════ */}
+          {showMarket && <MarketIntelView user={user} profile={profile} onProfileUpdate={onProfileUpdate} onClose={() => setShowMarket(false)} />}
 
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}

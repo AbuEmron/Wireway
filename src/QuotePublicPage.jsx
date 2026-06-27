@@ -248,8 +248,11 @@ export default function QuotePublicPage({ quoteId }) {
             </>
           )}
 
-          <div style={{ textAlign:"center", marginTop:32, fontSize:10, color:"rgba(255,255,255,0.15)", letterSpacing:"0.05em" }}>
-            Powered by <span style={{ color:"rgba(var(--accent-rgb),0.5)" }}>Wireway</span> · Professional Electrical Estimating
+          <div style={{ textAlign:"center", marginTop:32, fontSize:10, color:"rgba(255,255,255,0.2)", letterSpacing:"0.04em" }}>
+            <a href={`${window.location.origin}/?ref=${encodeURIComponent(q?.user_id || "")}&src=quote`}
+               style={{ color:"rgba(var(--accent-rgb),0.5)", textDecoration:"none" }}>
+              Powered by Wireway — get professional quotes &amp; invoices like this
+            </a>
           </div>
         </div>
       </div>

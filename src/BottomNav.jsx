@@ -89,10 +89,34 @@ export function MoreSheet({ onGo, onClose, onSignOut, isElite = false }) {
           <button onClick={onClose} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.45)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>✕</button>
         </div>
 
-        <Group title="Money">
+        <Group title="Jobs & profit">
+          <Row icon="💰" label="Job Costing" hint="Bid vs. actual profit per job" onClick={() => onGo("jobcosting")} />
+          <Row icon="📊" label="Money dashboard" hint="Bid · won · collected · profit" onClick={() => onGo("money")} />
+          <Row icon="📈" label="ROI — made & saved" hint="What Wireway has earned you" onClick={() => onGo("roi")} />
+          <Row icon="🧠" label="Pricing insights" hint="Learn from your own jobs" onClick={() => onGo("insights")} />
+        </Group>
+
+        <Group title="Get paid">
+          <Row icon="🧾" label="Progress billing" hint="Deposits · draws · retainage" onClick={() => onGo("billing")} />
+          <Row icon="💵" label="Get paid (A/R)" hint="Aging + tap-to-pay reminders" onClick={() => onGo("ar")} />
+        </Group>
+
+        <Group title="On the job">
+          <Row icon="📸" label="Snap a receipt" hint="Photo → expense on the job" onClick={() => onGo("receipt")} />
+          <Row icon="⏱️" label="Time on the job" hint="Clock in/out · real labor cost" onClick={() => onGo("time")} />
+          <Row icon="👷" label="Subcontractors & 1099" hint="Per-sub ledger · 1099 worksheet" onClick={() => onGo("subs")} />
+        </Group>
+
+        <Group title="Bank & tax">
           <Row icon="🏦" label="Bank / Expenses" hint="Auto-import & categorize purchases" onClick={() => onGo("bank")} />
           <Row icon="🚗" label="Mileage" hint="Live GPS or manual · IRS deduction" onClick={() => onGo("mileage")} />
-          <Row icon="🧾" label="Expenses & tax export" hint="Schedule C summary" onClick={() => onGo("expenses")} />
+          <Row icon="📄" label="Expenses & tax export" hint="Schedule C summary" onClick={() => onGo("expenses")} />
+          <Row icon="⚖️" label="Compliance" hint="1099 · Schedule C · renewals" onClick={() => onGo("compliance")} />
+        </Group>
+
+        <Group title="Grow">
+          <Row icon="🌎" label="Local market" hint="Anonymous price benchmarks" onClick={() => onGo("market")} />
+          <Row icon="🎁" label="Refer & earn" hint="Share Wireway, track signups" onClick={() => onGo("referral")} />
         </Group>
 
         <Group title="Estimating tools">

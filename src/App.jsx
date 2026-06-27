@@ -11,7 +11,9 @@ import AuthScreen from "./AuthScreen";
 import SubscriptionPage from "./SubscriptionPage";
 import QuotePublicPage from "./QuotePublicPage";
 import AppointmentPublicPage from "./AppointmentPublicPage";
+import PayDrawsPublicPage from "./PayDrawsPublicPage";
 import Wireway from "./electrical-estimator";
+import { logReferral } from "./lib/referral";
 export default function App() {
   const [session,       setSession]       = useState(undefined);
   const [profile,       setProfile]       = useState(null);
@@ -25,6 +27,33 @@ export default function App() {
   const publicQuoteId = quoteMatch?.[1];
   const apptMatch = path.match(/^\/appt\/([a-f0-9-]{36})$/i);
   const publicApptId = apptMatch?.[1];
+  const payMatch = path.match(/^\/pay\/([a-f0-9-]{36})$/i);
+  const publicPayJobId = payMatch?.[1];
+  // Referral capture — log a visit from a contractor's branded public doc, stash
+  // the ref for signup attribution, then clean the URL so refresh doesn't re-log.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (!ref) return;
+    logReferral({ ref, kind: "visit", source: params.get("src") || "link" });
+    try { window.localStorage.setItem("ww_ref", ref); } catch { /* ignore */ }
+    params.delete("ref"); params.delete("src");
+    const qs = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+  }, []);
+
+  // Signup attribution — when a brand-new account lands and we have a stashed ref.
+  useEffect(() => {
+    if (!session?.user) return;
+    let ref = null;
+    try { ref = window.localStorage.getItem("ww_ref"); } catch { /* ignore */ }
+    if (ref && ref !== session.user.id) {
+      const created = session.user.created_at ? new Date(session.user.created_at).getTime() : 0;
+      if (created && Date.now() - created < 10 * 60 * 1000) logReferral({ ref, kind: "signup", source: "app" });
+    }
+    try { window.localStorage.removeItem("ww_ref"); } catch { /* ignore */ }
+  }, [session?.user?.id]);
+
   const loadProfile = useCallback(async (userId) => {
     setLoading(true);
     const { data } = await getProfile(userId);
@@ -66,6 +95,12 @@ export default function App() {
   if (publicApptId) return (
     <GyroBackdrop variant="synapse" reskin={false}>
       <AppointmentPublicPage appointmentId={publicApptId} />
+    </GyroBackdrop>
+  );
+  // Public tap-to-pay / homeowner portal — no auth needed
+  if (publicPayJobId) return (
+    <GyroBackdrop variant="synapse" reskin={false}>
+      <PayDrawsPublicPage jobId={publicPayJobId} />
     </GyroBackdrop>
   );
   // Loading splash
