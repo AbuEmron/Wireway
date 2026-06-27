@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Information Security Policy — Wireway</title>
+<style>
+  :root { --accent:#f0a818; --bg:#0a0a0c; --ink:#e9e9ec; --muted:#9a9aa2; --line:rgba(255,255,255,0.08); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.7; -webkit-font-smoothing:antialiased; }
+  .bar { position:sticky; top:0; background:rgba(10,10,12,0.9); backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line); padding:14px 20px; }
+  .bar .wrap { max-width:720px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; }
+  .brand { font-weight:800; letter-spacing:-0.02em; font-size:17px; color:#fff; }
+  .brand span { color:var(--accent); }
+  .back { color:var(--muted); text-decoration:none; font-size:13px; }
+  .back:hover { color:var(--ink); }
+  main { max-width:720px; margin:0 auto; padding:28px 20px 80px; }
+  h1 { font-size:26px; letter-spacing:-0.02em; margin:8px 0 4px; color:#fff; }
+  h2 { font-size:16px; margin:30px 0 8px; color:var(--accent); letter-spacing:-0.01em; }
+  p { margin:10px 0; color:var(--ink); }
+  ul { margin:10px 0; padding-left:22px; }
+  li { margin:6px 0; color:var(--ink); }
+  strong { color:#fff; }
+  a { color:var(--accent); }
+  .eff { color:var(--muted); font-size:13px; }
+  footer { max-width:720px; margin:0 auto; padding:24px 20px 60px; border-top:1px solid var(--line);
+    color:var(--muted); font-size:12px; }
+</style>
+</head>
+<body>
+  <div class="bar"><div class="wrap">
+    <div class="brand">Wire<span>way</span></div>
+    <a class="back" href="/">&larr; Back to app</a>
+  </div></div>
+  <main>
+<h1>Wireway — Information Security Policy</h1>
+<p class="eff">Effective date: June 27, 2026</p>
+<p>This Information Security Policy describes how Jalil Muhammad (operating as Wireway) ("Wireway," "we," "us") protects the confidentiality, integrity, and availability of the data entrusted to Wireway Pro (the "Service"). It governs the people, processes, and technology used to operate the Service, and reflects the architecture and controls actually in place.</p>
+
+<h2>1. Purpose and Scope</h2>
+<p>Wireway Pro is a web and mobile application for independent electrical contractors. It helps contractors create estimates and quotes, schedule and cost jobs, track expenses and mileage, manage subcontractors, bill clients, and collect payment. This policy applies to all systems, data, code, and third-party services that make up the Service, and to everyone who operates or maintains it.</p>
+<p>Where the Service accesses a user's financial information — such as bank and card transactions through Plaid — it does so only on behalf of, and at the direction of, the account holder, solely to provide features the account holder has requested. Wireway does not access, use, or process that data for any independent purpose.</p>
+
+<h2>2. Governance and Risk Management</h2>
+<p>The Founder serves as Wireway's Information Security Lead and holds overall accountability for security decisions, controls, and this policy. Security risks to the Service — including risks to confidentiality, integrity, and availability of contractor and consumer financial data — are identified, assessed, mitigated, and monitored on an ongoing basis as part of normal operations.</p>
+<p>This policy and the controls it describes are reviewed at least annually, and additionally whenever a material change to the architecture occurs or following any security incident, so that the Service's safeguards keep pace with how it actually operates.</p>
+
+<h2>3. Identity and Access Management</h2>
+<p>Access to data follows the principle of least privilege. Application data is segregated per user through PostgreSQL Row-Level Security (RLS), so each account can read and write only its own records (owner-scoping). Every administrator and operator uses a unique, individual account — there are no shared logins.</p>
+<ul>
+<li><strong>Privileged keys</strong> — service-role and other privileged database keys are used only in server-side code; they are never exposed in the client application or browser bundle.</li>
+<li><strong>Multi-factor authentication</strong> — MFA is enforced on the core operational accounts that can change the Service or its data, including GitHub (source code), Vercel (hosting/deployment), and Supabase (authentication, database, and storage).</li>
+<li><strong>End-user authentication</strong> — end users sign in with email and password managed by our authentication provider. Consumer-facing multi-factor authentication is on the product roadmap.</li>
+</ul>
+
+<h2>4. Data Protection and Encryption</h2>
+<p>Data is encrypted in transit using TLS 1.2 or higher for all connections between users, the Service, and its subprocessors. Data at rest is encrypted through our managed PostgreSQL provider.</p>
+<p>Plaid access tokens — the credentials that allow transaction syncing — are stored server-side only, are restricted at the column level, and are never readable by the client application. Consumer financial data accessed through the Service is never sold, licensed, or shared for any party's independent benefit; it is used only to deliver the features the account holder has requested.</p>
+
+<h2>5. Infrastructure and Network Security</h2>
+<p>The Service runs on Vercel serverless infrastructure for application and API hosting, with a Supabase-managed PostgreSQL database for data, authentication, and file storage. The database is not publicly exposed for direct access; application and API code reach it through controlled, authenticated server-side connections.</p>
+<p>All secrets and credentials are stored in protected environment variables on the hosting and database platforms. Secrets are never committed to source control and are never included in client-side bundles.</p>
+
+<h2>6. Secure Development and Change Management</h2>
+<p>All source code is maintained under Git version control, providing a full, auditable history of changes. Production deployments are automated from the main branch and require a successful build to ship, preventing broken or unverified code from reaching production. Third-party dependencies are sourced from trusted registries and kept updated to incorporate security fixes.</p>
+
+<h2>7. Third-Party and Vendor Management</h2>
+<p>Wireway relies on a small set of vetted subprocessors, each accessed only for its specific function and provided only the data necessary to perform it:</p>
+<ul>
+<li><strong>Plaid</strong> — secure connection to users' bank and card accounts for transaction data.</li>
+<li><strong>Stripe</strong> — payment processing and payout to contractors.</li>
+<li><strong>Supabase</strong> — authentication, database, and file storage.</li>
+<li><strong>Vercel</strong> — application and API hosting and deployment.</li>
+</ul>
+<p>We access only the data each subprocessor needs to deliver its function, and we rely on these providers' own security and compliance programs as part of our overall control environment.</p>
+
+<h2>8. Logging and Monitoring</h2>
+<p>Platform and application logs are retained and reviewed to detect errors and security-relevant events, and to support investigation and troubleshooting. Authentication events — such as sign-ins and credential changes — are handled and recorded by our managed authentication provider, which provides the underlying account-security controls for the Service.</p>
+
+<h2>9. Incident Response</h2>
+<p>Suspected or confirmed security incidents are investigated promptly by the Information Security Lead. Our response prioritizes containment first — for example, rotating credentials and revoking access — to limit any potential impact before remediation.</p>
+<p>If an incident involves data accessed through Plaid, we will notify Plaid in accordance with our agreement and notify affected users without undue delay. In all cases, we work to identify and remediate the root cause and to apply controls that reduce the likelihood of recurrence.</p>
+
+<h2>10. Data Retention and User Rights</h2>
+<p>Users remain in control of their data. A user can export all of their own data from the Service at any time. Upon a verified deletion request, we remove the user's data — including financial data and any stored access tokens. When a user disconnects a linked financial institution or deletes their account, the associated Plaid access tokens are revoked so that no further data can be accessed.</p>
+
+<h2>11. Policy Review</h2>
+<p>This policy is owned by the Information Security Lead and is reviewed at least annually, and after any material change or security incident, to ensure it remains accurate and effective. This version is effective June 27, 2026.</p>
+<p>Questions about this policy or Wireway's security practices: <a href="mailto:support@wirewaypro.com">support@wirewaypro.com</a>.</p>
+  </main>
+  <footer>Wireway · operated by Jalil Muhammad · <a href="mailto:support@wirewaypro.com">support@wirewaypro.com</a></footer>
+</body>
+</html>

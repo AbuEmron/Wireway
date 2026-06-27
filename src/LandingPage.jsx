@@ -236,6 +236,8 @@ export default function LandingPage({ onSignIn, onSignUp }) {
             <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 8px", fontSize:10 }}>·</span>
             <a href="/terms.html" style={{ color:"rgba(255,255,255,0.3)", textDecoration:"none", fontSize:10 }}>Terms</a>
             <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 8px", fontSize:10 }}>·</span>
+            <a href="/security.html" style={{ color:"rgba(255,255,255,0.3)", textDecoration:"none", fontSize:10 }}>Security</a>
+            <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 8px", fontSize:10 }}>·</span>
             <a href="mailto:support@wirewaypro.com" style={{ color:"rgba(255,255,255,0.3)", textDecoration:"none", fontSize:10 }}>support@wirewaypro.com</a>
           </div>
         </footer>

@@ -112,6 +112,8 @@ export default function AuthScreen({ onAuth, initialMode = "signin", onBack }) {
               <a href="/terms.html" target="_blank" rel="noreferrer" style={{ color:"rgba(255,255,255,0.62)" }}>Terms of Service</a>
               {" "}and{" "}
               <a href="/privacy.html" target="_blank" rel="noreferrer" style={{ color:"rgba(255,255,255,0.62)" }}>Privacy Policy</a>.
+              {" "}See also our{" "}
+              <a href="/security.html" target="_blank" rel="noreferrer" style={{ color:"rgba(255,255,255,0.62)" }}>Security Policy</a>.
             </p>
           )}
 
