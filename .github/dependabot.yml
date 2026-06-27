@@ -1,0 +1,25 @@
+# Dependabot — automated dependency vulnerability scanning + version updates.
+# Combined with "Dependabot alerts" + "Dependabot security updates" (enabled in
+# repo Settings → Code security), this opens PRs for vulnerable/outdated npm deps.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
+  # Keep the GitHub Actions we use (CodeQL, etc.) patched too.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "ci"

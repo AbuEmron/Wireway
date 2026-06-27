@@ -67,7 +67,16 @@
 <h2>6. Secure Development and Change Management</h2>
 <p>All source code is maintained under Git version control, providing a full, auditable history of changes. Production deployments are automated from the main branch and require a successful build to ship, preventing broken or unverified code from reaching production. Third-party dependencies are sourced from trusted registries and kept updated to incorporate security fixes.</p>
 
-<h2>7. Third-Party and Vendor Management</h2>
+<h2>7. Vulnerability Management</h2>
+<p>We run automated security scanning against the production codebase on an ongoing basis:</p>
+<ul>
+<li><strong>Dependency vulnerability scanning</strong> — GitHub Dependabot continuously scans our dependencies for known vulnerabilities and automatically opens pull requests to patch affected packages.</li>
+<li><strong>Static code scanning</strong> — GitHub CodeQL performs automated static analysis of the codebase on every change to the main branch, on pull requests, and on a weekly schedule, surfacing potential security issues before and after deployment.</li>
+<li><strong>Secret scanning</strong> — GitHub secret scanning is enabled to detect credentials or keys accidentally committed to the repository.</li>
+</ul>
+<p>Identified vulnerabilities are remediated on a defined service-level timeline based on severity: <strong>critical</strong> vulnerabilities within 7 days, <strong>high</strong> within 30 days, and <strong>medium and low</strong> at the next regular update cycle. We also monitor for end-of-life and outdated dependencies and remediate them through Dependabot's automated update pull requests, keeping the dependency base current and supportable.</p>
+
+<h2>8. Third-Party and Vendor Management</h2>
 <p>Wireway relies on a small set of vetted subprocessors, each accessed only for its specific function and provided only the data necessary to perform it:</p>
 <ul>
 <li><strong>Plaid</strong> — secure connection to users' bank and card accounts for transaction data.</li>
@@ -77,17 +86,17 @@
 </ul>
 <p>We access only the data each subprocessor needs to deliver its function, and we rely on these providers' own security and compliance programs as part of our overall control environment.</p>
 
-<h2>8. Logging and Monitoring</h2>
+<h2>9. Logging and Monitoring</h2>
 <p>Platform and application logs are retained and reviewed to detect errors and security-relevant events, and to support investigation and troubleshooting. Authentication events — such as sign-ins and credential changes — are handled and recorded by our managed authentication provider, which provides the underlying account-security controls for the Service.</p>
 
-<h2>9. Incident Response</h2>
+<h2>10. Incident Response</h2>
 <p>Suspected or confirmed security incidents are investigated promptly by the Information Security Lead. Our response prioritizes containment first — for example, rotating credentials and revoking access — to limit any potential impact before remediation.</p>
 <p>If an incident involves data accessed through Plaid, we will notify Plaid in accordance with our agreement and notify affected users without undue delay. In all cases, we work to identify and remediate the root cause and to apply controls that reduce the likelihood of recurrence.</p>
 
-<h2>10. Data Retention and User Rights</h2>
+<h2>11. Data Retention and User Rights</h2>
 <p>Users remain in control of their data. A user can export all of their own data from the Service at any time. Upon a verified deletion request, we remove the user's data — including financial data and any stored access tokens. When a user disconnects a linked financial institution or deletes their account, the associated Plaid access tokens are revoked so that no further data can be accessed.</p>
 
-<h2>11. Policy Review</h2>
+<h2>12. Policy Review</h2>
 <p>This policy is owned by the Information Security Lead and is reviewed at least annually, and after any material change or security incident, to ensure it remains accurate and effective. This version is effective June 27, 2026.</p>
 <p>Questions about this policy or Wireway's security practices: <a href="mailto:support@wirewaypro.com">support@wirewaypro.com</a>.</p>
   </main>
