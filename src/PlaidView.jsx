@@ -158,11 +158,17 @@ export default function PlaidView({ user, onClose }) {
     setRecatId(null);
   };
 
-  // ── Remove bank ─────────────────────────────────────────────────────────────
+  // ── Disconnect bank ─────────────────────────────────────────────────────────
+  // Revokes the access token at Plaid (server-side /item/remove), then removes the
+  // connection and its synced transactions. Nothing is left active.
   const handleRemoveBank = async (itemId) => {
-    if (!window.confirm("Remove this bank connection? Existing transactions stay.")) return;
-    await supabase.from("plaid_items").delete().eq("id", itemId).eq("user_id", user.id);
+    if (!window.confirm("Disconnect this bank? We'll revoke access at Plaid and delete its synced transactions. This can't be undone.")) return;
+    const res = await apiPost("/api/plaid-remove-item", { itemId });
+    if (res && res.error) { setSyncMsg(res.error); setTimeout(() => setSyncMsg(""), 4000); return; }
     setItems((prev) => prev.filter((i) => i.id !== itemId));
+    setTransactions((prev) => prev.filter((t) => t.plaid_item_id !== itemId));
+    setSyncMsg("Bank disconnected — access revoked.");
+    setTimeout(() => setSyncMsg(""), 4000);
   };
 
   // ── Category summary ────────────────────────────────────────────────────────
@@ -377,7 +383,7 @@ export default function PlaidView({ user, onClose }) {
                   </div>
                   <button onClick={() => handleRemoveBank(item.id)}
                     style={{ padding: "5px 12px", borderRadius: 7, border: "1px solid rgba(232,126,126,0.3)", background: "rgba(232,126,126,0.06)", color: "#e87e7e", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    Remove
+                    Disconnect
                   </button>
                 </div>
               ))}
