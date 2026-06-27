@@ -30,6 +30,7 @@ import ROIBadge from "./components/ROIBadge";
 import InsightsView from "./InsightsView";
 import QuoteInsightBanner from "./components/QuoteInsightBanner";
 import ComplianceView from "./ComplianceView";
+import ReferralView from "./ReferralView";
 import LoadAdvisor from "./LoadAdvisor";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
@@ -125,6 +126,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showROI,        setShowROI]        = useState(false);
   const [showInsights,   setShowInsights]   = useState(false);
   const [showCompliance, setShowCompliance] = useState(false);
+  const [showReferral,   setShowReferral]   = useState(false);
   const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
@@ -920,6 +922,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     { label:"⏱️ Time",         action:() => setShowTime(true)        },
                     { label:"🧾 Billing",      action:() => setShowBilling(true)     },
                     { label:"💵 Get Paid",     action:() => setShowAR(true)          },
+                    { label:"🎁 Refer",        action:() => setShowReferral(true)    },
                     { label:"📅 Calendar",     action:() => setShowCalendar(true)    },
                     { label:"Wire Calc",       action:() => setWireCalcOpen(true)    },
                     { label:"Load Calc",       action:() => setLoadCalcOpen(true)    },
@@ -1514,6 +1517,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
           {/* ════════════ COMPLIANCE ════════════ */}
           {showCompliance && <ComplianceView user={user} onClose={() => setShowCompliance(false)} />}
+
+          {/* ════════════ REFERRAL FLYWHEEL ════════════ */}
+          {showReferral && <ReferralView user={user} onClose={() => setShowReferral(false)} />}
 
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}

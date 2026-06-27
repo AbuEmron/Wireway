@@ -37,6 +37,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       job: { id: job.id, title: job.title, client_name: job.client_name },
       company: { name: profile?.company_name || "", logo_url: profile?.logo_url || "" },
+      ref: job.user_id, // referral attribution for the branded "Powered by Wireway" CTA
       can_pay: !!profile?.stripe_charges_enabled,
       draws: (draws || []).map((d) => ({
         id: d.id, label: d.label, status: d.status, due_date: d.due_date, net: drawNet(d),

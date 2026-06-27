@@ -44,9 +44,9 @@ export default function PayDrawsPublicPage({ jobId }) {
   if (loading) return <div style={center}><div style={{ color: "rgba(255,255,255,0.4)", fontFamily: "sans-serif", fontSize: 14 }}>Loading…</div></div>;
   if (error && !data) return <div style={center}><div style={{ color: "#e87e7e", fontFamily: "sans-serif", fontSize: 14 }}>{error}</div></div>;
 
-  const { job, company, draws = [], can_pay } = data;
+  const { job, company, draws = [], can_pay, ref } = data;
   const outstanding = draws.filter((d) => d.status !== "paid").reduce((s, d) => s + d.net, 0);
-  const refUrl = `https://wireway.cc/?ref=${encodeURIComponent(job?.id || "")}&src=pay`;
+  const refUrl = `${window.location.origin}/?ref=${encodeURIComponent(ref || "")}&src=pay`;
 
   return (
     <>
