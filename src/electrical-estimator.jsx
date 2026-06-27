@@ -24,6 +24,7 @@ import SubcontractorsView from "./SubcontractorsView";
 import TimeTrackingView from "./TimeTrackingView";
 import ProgressBillingView from "./ProgressBillingView";
 import ReceivablesView from "./ReceivablesView";
+import MoneyDashboardView from "./MoneyDashboardView";
 import LoadAdvisor from "./LoadAdvisor";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
@@ -115,6 +116,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showTime,       setShowTime]       = useState(false);
   const [showBilling,    setShowBilling]    = useState(false);
   const [showAR,         setShowAR]         = useState(false);
+  const [showMoney,      setShowMoney]      = useState(false);
   const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
@@ -899,6 +901,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               {showTools && (
                 <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:10, animation:"fadeUp 0.25s ease both" }}>
                   {[
+                    { label:"📊 Money",        action:() => setShowMoney(true)       },
                     { label:"💰 Job Costing",  action:() => setShowJobCosting(true)  },
                     { label:"📸 Snap Receipt", action:() => setShowReceipt(true)     },
                     { label:"👷 Subs / 1099",  action:() => setShowSubs(true)        },
@@ -1486,6 +1489,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
           {/* ════════════ GET-PAID-FASTER A/R ════════════ */}
           {showAR && <ReceivablesView user={user} profile={profile} company={company} onClose={() => setShowAR(false)} />}
+
+          {/* ════════════ MONEY DASHBOARD ════════════ */}
+          {showMoney && <MoneyDashboardView user={user} onClose={() => setShowMoney(false)} />}
 
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
