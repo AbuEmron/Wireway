@@ -6,6 +6,7 @@ import {
   getDraws, upsertDraw, deleteDraw, setDrawStatus, syncJobCollected,
   generateSchedule, scheduleTotals, drawNet, drawRetainage, buildDrawInvoiceText,
 } from "./lib/billing";
+import { canCollectPayments } from "./lib/entitlements";
 
 const IS = {
   background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)",
@@ -23,7 +24,7 @@ const STATUS = {
   paid:     { c: GREEN, label: "Paid" },
 };
 
-export default function ProgressBillingView({ user, company = {}, onClose }) {
+export default function ProgressBillingView({ user, company = {}, profile, onShowPricing, onClose }) {
   const [jobs,     setJobs]     = useState([]);
   const [jobId,    setJobId]    = useState("");
   const [draws,    setDraws]    = useState([]);
@@ -33,6 +34,11 @@ export default function ProgressBillingView({ user, company = {}, onClose }) {
   const [showGen,  setShowGen]  = useState(false);
   const [newDraw,  setNewDraw]  = useState({ label: "", amount: "", retainage_pct: 10, due_date: "" });
   const [copied,   setCopied]   = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const isProUser  = canCollectPayments(profile);
+  const stripeReady = !!profile?.stripe_charges_enabled;
+  const payUrl = jobId ? `${window.location.origin}/pay/${jobId}` : "";
 
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 2500); };
   const job = jobs.find((j) => j.id === jobId) || null;
@@ -143,6 +149,30 @@ export default function ProgressBillingView({ user, company = {}, onClose }) {
               ))}
             </div>
 
+            {/* Collect online — tap-to-pay link (Money-Rails) */}
+            {draws.length > 0 && (
+              <div style={{ marginBottom: 14, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.18)", borderRadius: 10, padding: "12px 14px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#818cf8" }}>Get paid online</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
+                      {!isProUser ? "Collecting online payments is a Pro feature."
+                        : !stripeReady ? "Connect Stripe in Company Settings to accept payments."
+                        : "Send the homeowner a link to pay each draw — money goes straight to you."}
+                    </div>
+                  </div>
+                  {!isProUser ? (
+                    <button onClick={() => onShowPricing && onShowPricing()} style={{ flexShrink: 0, padding: "8px 13px", borderRadius: 8, border: "1px solid rgba(var(--accent-rgb),0.4)", background: "rgba(var(--accent-rgb),0.1)", color: "var(--accent)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Upgrade ⚡</button>
+                  ) : stripeReady ? (
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => { navigator.clipboard.writeText(payUrl); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); }} style={{ padding: "8px 13px", borderRadius: 8, border: "1px solid rgba(99,102,241,0.4)", background: "rgba(99,102,241,0.12)", color: "#818cf8", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{linkCopied ? "✓ Copied" : "Copy pay link"}</button>
+                      <button onClick={() => window.open(payUrl, "_blank")} style={{ padding: "8px 11px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Preview</button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )}
+
             {/* Generate template */}
             <button onClick={() => setShowGen((v) => !v)} style={{ width: "100%", padding: "9px", borderRadius: 8, background: "rgba(126,184,232,0.07)", border: "1px solid rgba(126,184,232,0.25)", color: BLUE, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: showGen ? 8 : 14 }}>
               {showGen ? "Hide template" : draws.length ? "Generate a fresh schedule" : "Generate schedule from contract"}
@@ -180,7 +210,7 @@ export default function ProgressBillingView({ user, company = {}, onClose }) {
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 14, fontWeight: 700, color: "#fff" }}>{fmt2(drawNet(d))}</div>
-                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>net</div>
+                      <div style={{ fontSize: 9, color: d.payment_amount ? "#818cf8" : "rgba(255,255,255,0.3)" }}>{d.payment_amount ? "paid online" : "net"}</div>
                     </div>
                     <button onClick={() => cycle(d)} title="Tap to advance status" style={{ flexShrink: 0, padding: "4px 9px", borderRadius: 6, border: `1px solid ${st.c}40`, background: `${st.c}14`, color: st.c, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", minWidth: 64 }}>{st.label}</button>
                     <button onClick={() => copyInvoice(d)} title="Copy draw invoice" style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: copied === d.id ? GREEN : "rgba(255,255,255,0.4)", fontSize: 11, cursor: "pointer" }}>{copied === d.id ? "✓" : "⧉"}</button>

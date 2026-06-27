@@ -1485,7 +1485,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           {showTime && <TimeTrackingView user={user} onClose={() => setShowTime(false)} />}
 
           {/* ════════════ PROGRESS BILLING + RETAINAGE ════════════ */}
-          {showBilling && <ProgressBillingView user={user} company={company} onClose={() => setShowBilling(false)} />}
+          {showBilling && <ProgressBillingView user={user} company={company} profile={profile} onShowPricing={onShowPricing} onClose={() => setShowBilling(false)} />}
 
           {/* ════════════ GET-PAID-FASTER A/R ════════════ */}
           {showAR && <ReceivablesView user={user} profile={profile} company={company} onClose={() => setShowAR(false)} />}

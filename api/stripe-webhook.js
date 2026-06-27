@@ -85,10 +85,34 @@ module.exports = async function handler(req, res) {
           .eq("stripe_account_id", acct.id);
         break;
       }
-      // ── CONNECT: a client paid a job invoice — mark THAT quote paid (matched by unique id) ──
+      // ── CONNECT: a client paid a job invoice or a progress-billing draw ──
       case "checkout.session.completed": {
         const session = event.data.object;
         if (session.mode !== "payment") break;
+
+        // Progress-billing draw payment (Money-Rails) — mark the draw paid and
+        // recompute jobs.collected so Job Costing actual margin stays live.
+        const drawId = session.metadata?.draw_id;
+        if (drawId) {
+          const { data: draw } = await supabase
+            .from("job_draws").select("id, job_id, stripe_session_id").eq("id", drawId).single();
+          if (!draw) break;
+          if (draw.stripe_session_id === session.id) break; // already processed (retry) — idempotent
+          const amountPaid = (session.amount_total || 0) / 100;
+          const upd = await supabase.from("job_draws")
+            .update({ status: "paid", paid_at: new Date().toISOString(), payment_amount: amountPaid, stripe_session_id: session.id })
+            .eq("id", drawId);
+          if (upd.error) throw upd.error;
+          // jobs.collected = sum of NET (gross − retainage) across paid draws
+          const { data: paid } = await supabase
+            .from("job_draws").select("amount, retainage_pct").eq("job_id", draw.job_id).eq("status", "paid");
+          const collected = (paid || []).reduce(
+            (s, d) => s + (Number(d.amount) || 0) * (1 - (Number(d.retainage_pct) || 0) / 100), 0);
+          await supabase.from("jobs")
+            .update({ collected: Math.round(collected * 100) / 100 }).eq("id", draw.job_id);
+          break;
+        }
+
         const quoteId = session.metadata?.quote_id;
         if (!quoteId) break; // older/unrelated sessions without our id — skip
         const amountPaid = (session.amount_total || 0) / 100;
