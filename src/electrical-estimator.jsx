@@ -27,6 +27,8 @@ import ReceivablesView from "./ReceivablesView";
 import MoneyDashboardView from "./MoneyDashboardView";
 import ROIView from "./ROIView";
 import ROIBadge from "./components/ROIBadge";
+import InsightsView from "./InsightsView";
+import QuoteInsightBanner from "./components/QuoteInsightBanner";
 import LoadAdvisor from "./LoadAdvisor";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
@@ -120,6 +122,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showAR,         setShowAR]         = useState(false);
   const [showMoney,      setShowMoney]      = useState(false);
   const [showROI,        setShowROI]        = useState(false);
+  const [showInsights,   setShowInsights]   = useState(false);
   const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
@@ -907,6 +910,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                   {[
                     { label:"📊 Money",        action:() => setShowMoney(true)       },
                     { label:"📈 ROI",          action:() => setShowROI(true)         },
+                    { label:"🧠 Insights",     action:() => setShowInsights(true)    },
                     { label:"💰 Job Costing",  action:() => setShowJobCosting(true)  },
                     { label:"📸 Snap Receipt", action:() => setShowReceipt(true)     },
                     { label:"👷 Subs / 1099",  action:() => setShowSubs(true)        },
@@ -989,6 +993,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 </div>
               ) : (
                 <>
+                  <QuoteInsightBanner user={user} estCost={totMat + totLab} estMaterial={totMat} jobName={jobName} />
                   {/* ── STAT CARDS ── */}
                   <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }} className="no-print">
                     <StatCard label="Total Estimate"      value={`$${total.toLocaleString()}`}           color="var(--accent)" />
@@ -1500,6 +1505,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
           {/* ════════════ ROI METER ════════════ */}
           {showROI && <ROIView user={user} onClose={() => setShowROI(false)} />}
+
+          {/* ════════════ COMPOUNDING INSIGHTS ════════════ */}
+          {showInsights && <InsightsView user={user} onClose={() => setShowInsights(false)} />}
 
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
