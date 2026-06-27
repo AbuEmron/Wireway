@@ -3,6 +3,7 @@
 // (Danger Zone / account deletion is added alongside this in a later commit.)
 import { useState, useEffect, useCallback } from "react";
 import { listFactors, enrollTotp, verifyCode, unenroll } from "./lib/mfa";
+import { supabase, signOut } from "./lib/supabase";
 
 const GREEN = "#7dcea0", RED = "#e87e7e", GOLD = "#f0a818";
 
@@ -13,6 +14,9 @@ export default function SecuritySettingsView({ user, onClose }) {
   const [enroll, setEnroll] = useState(null); // { factorId, qr, secret }
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [delConfirm, setDelConfirm] = useState(false);
+  const [delText, setDelText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 3000); };
 
@@ -47,6 +51,27 @@ export default function SecuritySettingsView({ user, onClose }) {
   const cancelEnroll = async () => {
     if (enroll?.factorId) { try { await unenroll(enroll.factorId); } catch { /* ignore */ } }
     setEnroll(null); setCode("");
+  };
+
+  const deleteAccount = async () => {
+    if (delText.trim().toUpperCase() !== "DELETE") return;
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({}),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { setDeleting(false); flash(d.error || "Could not delete account."); return; }
+      // Gone — clear the session and return to the landing page.
+      await signOut().catch(() => {});
+      window.location.href = "/";
+    } catch {
+      setDeleting(false);
+      flash("Could not delete account. Try again or contact support.");
+    }
   };
 
   const removeFactor = async (id) => {
@@ -138,6 +163,35 @@ export default function SecuritySettingsView({ user, onClose }) {
 
         <div style={{ textAlign: "center", marginTop: 16, fontSize: 10, color: "rgba(255,255,255,0.2)", lineHeight: 1.6 }}>
           Two-factor protects your account and your linked financial data even if your password is compromised.
+        </div>
+
+        {/* ── Danger Zone — irreversible account deletion ── */}
+        <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid rgba(232,126,126,0.18)" }}>
+          <div style={{ fontSize: 10, color: RED, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, marginBottom: 8 }}>Danger zone</div>
+          {!delConfirm ? (
+            <button onClick={() => { setDelConfirm(true); setDelText(""); }}
+              style={{ width: "100%", padding: "11px", borderRadius: 10, border: "1px solid rgba(232,126,126,0.3)", background: "rgba(232,126,126,0.06)", color: RED, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              Delete my account
+            </button>
+          ) : (
+            <div style={{ background: "rgba(232,126,126,0.05)", border: "1px solid rgba(232,126,126,0.22)", borderRadius: 12, padding: "14px" }}>
+              <div style={{ fontSize: 12.5, color: "#fff", fontWeight: 700, marginBottom: 6 }}>This is permanent.</div>
+              <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.6, marginBottom: 12 }}>
+                Deleting your account immediately and irreversibly removes <strong style={{ color: "#fff" }}>all your data</strong> — quotes, jobs, clients, expenses, mileage, subcontractors, time entries, billing, and financial records. Any linked bank connections are revoked with Plaid and their access tokens destroyed. This cannot be undone.
+              </div>
+              <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>Type <strong style={{ color: RED }}>DELETE</strong> to confirm</div>
+              <input value={delText} onChange={(e) => setDelText(e.target.value)} placeholder="DELETE"
+                style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 9, padding: "10px 12px", fontSize: 13, color: "#fff", fontFamily: "'DM Mono',monospace", letterSpacing: "0.15em", outline: "none", marginBottom: 12 }} />
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => { setDelConfirm(false); setDelText(""); }} disabled={deleting}
+                  style={{ padding: "11px 16px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                <button onClick={deleteAccount} disabled={deleting || delText.trim().toUpperCase() !== "DELETE"}
+                  style={{ flex: 1, padding: "11px", borderRadius: 9, border: "1px solid rgba(232,126,126,0.5)", background: delText.trim().toUpperCase() === "DELETE" ? "rgba(232,126,126,0.18)" : "rgba(232,126,126,0.06)", color: RED, fontSize: 13, fontWeight: 700, cursor: deleting || delText.trim().toUpperCase() !== "DELETE" ? "default" : "pointer", fontFamily: "inherit" }}>
+                  {deleting ? "Deleting…" : "Permanently delete"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
