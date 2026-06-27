@@ -136,6 +136,7 @@ export function MoreSheet({ onGo, onClose, onSignOut, isElite = false }) {
 
         <Group title="Account">
           <Row icon="🏢" label="Business info & logo" onClick={() => onGo("company")} />
+          <Row icon="🔒" label="Security & two-factor" hint="Protect your account & bank data" onClick={() => onGo("security")} />
           <Row icon="⚙️" label="Settings & plan" onClick={() => onGo("settings")} />
           {onSignOut && <Row icon="↩" label="Sign out" danger onClick={onSignOut} />}
         </Group>

@@ -12,8 +12,10 @@ import SubscriptionPage from "./SubscriptionPage";
 import QuotePublicPage from "./QuotePublicPage";
 import AppointmentPublicPage from "./AppointmentPublicPage";
 import PayDrawsPublicPage from "./PayDrawsPublicPage";
+import MfaChallenge from "./MfaChallenge";
 import Wireway from "./electrical-estimator";
 import { logReferral } from "./lib/referral";
+import { mfaRequired as checkMfaRequired } from "./lib/mfa";
 export default function App() {
   const [session,       setSession]       = useState(undefined);
   const [profile,       setProfile]       = useState(null);
@@ -21,6 +23,7 @@ export default function App() {
   const [showPricing,   setShowPricing]   = useState(false);
   const [authMode,      setAuthMode]      = useState(null); // null | "signin" | "signup"
   const [paymentBanner, setPaymentBanner] = useState("");
+  const [mfaGate,       setMfaGate]       = useState("unknown"); // unknown | required | ok
   // Check if this is a public quote link: /quote/[id]
   const path = window.location.pathname;
   const quoteMatch = path.match(/^\/quote\/([a-f0-9-]{36})$/i);
@@ -71,16 +74,16 @@ export default function App() {
       setPaymentBanner("paid");
       window.history.replaceState({}, "", "/");
     }
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      if (session?.user) loadProfile(session.user.id);
+      if (session?.user) { setMfaGate(await checkMfaRequired() ? "required" : "ok"); loadProfile(session.user.id); }
       else setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
-        if (session?.user) await loadProfile(session.user.id);
-        else { setProfile(null); setLoading(false); }
+        if (session?.user) { setMfaGate(await checkMfaRequired() ? "required" : "ok"); await loadProfile(session.user.id); }
+        else { setProfile(null); setMfaGate("unknown"); setLoading(false); }
       }
     );
     return () => subscription.unsubscribe();
@@ -130,6 +133,24 @@ export default function App() {
         onSignIn={() => setAuthMode("signin")}
         onSignUp={() => setAuthMode("signup")}
       />
+    );
+  }
+  // Two-factor gate — a signed-in user with a verified factor must complete the
+  // challenge before the app (and Plaid Link) is reachable. "unknown" briefly
+  // shows the splash to avoid flashing the app before the AAL check resolves.
+  if (session && mfaGate !== "ok") {
+    if (mfaGate === "required") return (
+      <GyroBackdrop variant="circuit" reskin={false}>
+        <MfaChallenge onVerified={() => { setMfaGate("ok"); if (session?.user) loadProfile(session.user.id); }} />
+      </GyroBackdrop>
+    );
+    return (
+      <GyroBackdrop variant="circuit" reskin={false}>
+        <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"transparent", flexDirection:"column", gap:16 }}>
+          <img src="/logo192.png" alt="Wireway" style={{ height:56, width:56, borderRadius:12, objectFit:"cover" }} />
+          <div style={{ fontSize:12, color:"rgba(255,255,255,0.3)", fontFamily:"sans-serif", letterSpacing:"0.05em" }}>Loading Wireway...</div>
+        </div>
+      </GyroBackdrop>
     );
   }
   // Pricing page (original colors + field)

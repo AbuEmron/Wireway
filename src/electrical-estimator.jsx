@@ -33,6 +33,7 @@ import QuoteInsightBanner from "./components/QuoteInsightBanner";
 import ComplianceView from "./ComplianceView";
 import ReferralView from "./ReferralView";
 import MarketIntelView from "./MarketIntelView";
+import SecuritySettingsView from "./SecuritySettingsView";
 import LoadAdvisor from "./LoadAdvisor";
 import { DEFAULT_BILLABLE_RATE, getUnbilledTrips, markTripsBilled, unmarkTripsBilled } from "./lib/financeApi";
 // ── SESSION RESTORE ──────────────────────────────────────────────
@@ -142,6 +143,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showCompliance, setShowCompliance] = useState(false);
   const [showReferral,   setShowReferral]   = useState(false);
   const [showMarket,     setShowMarket]     = useState(false);
+  const [showSecurity,   setShowSecurity]   = useState(false);
   const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
@@ -186,6 +188,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
       case "advisor":   setShowDashboard(false); setTimeout(() => setShowLoadAdvisor(true), 0); break;
       case "elite":     setShowDashboard(true); setTimeout(() => setShowElite(true), 0); break;
       case "settings":  setShowAccount(true); break;
+      case "security":  setShowAccount(false); setTimeout(() => setShowSecurity(true), 0); break;
       case "company":   setShowDashboard(false); setTimeout(() => { setCompanyDraft(company); setLogoDataUrl(company.logoDataUrl || ""); setEditingCompany(true); }, 0); break;
       case "nec":       setShowDashboard(false); setTab("nec"); break;
       case "wirecalc":  setShowDashboard(false); setTimeout(() => setWireCalcOpen(true), 0); break;
@@ -888,6 +891,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               )}
             </div>
             </details>
+            <button onClick={() => { setShowAccount(false); setTimeout(() => setShowSecurity(true), 120); }} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"12px 14px", marginBottom:8, borderRadius:10, border:"1px solid var(--line)", background:"var(--card)", color:"#fff", cursor:"pointer", fontFamily:"inherit", textAlign:"left" }}>
+              <span style={{ fontSize:16 }}>🔒</span><span style={{ fontSize:13, fontWeight:600 }}>Security &amp; two-factor</span>
+            </button>
             <button onClick={async () => { await signOut(); window.location.reload(); }} style={{ width:"100%", padding:"12px", background:"rgba(232,126,126,0.06)", border:"1px solid rgba(232,126,126,0.2)", borderRadius:10, color:"#e87e7e", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Sign Out</button>
           </div>
           </div>
@@ -1779,6 +1785,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           {/* ════════════ LOCAL MARKET INTELLIGENCE ════════════ */}
           {showMarket && <MarketIntelView user={user} profile={profile} onProfileUpdate={onProfileUpdate} onClose={() => setShowMarket(false)} />}
 
+          {/* ════════════ SECURITY & 2FA ════════════ */}
+          {showSecurity && <SecuritySettingsView user={user} onClose={() => setShowSecurity(false)} />}
+
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
 
@@ -1893,6 +1902,11 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               )}
             </div>
             </details>
+            {/* Security & 2FA */}
+            <button onClick={() => { setShowAccount(false); setShowSecurity(true); }} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"12px 14px", marginBottom:8, borderRadius:10, border:"1px solid var(--line)", background:"var(--card)", color:"#fff", cursor:"pointer", fontFamily:"inherit", textAlign:"left" }}>
+              <span style={{ fontSize:16 }}>🔒</span><span style={{ fontSize:13, fontWeight:600 }}>Security &amp; two-factor</span>
+            </button>
+
             {/* Sign out */}
             <button onClick={async () => {
               await signOut();
