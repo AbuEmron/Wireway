@@ -31,6 +31,7 @@ import InsightsView from "./InsightsView";
 import QuoteInsightBanner from "./components/QuoteInsightBanner";
 import ComplianceView from "./ComplianceView";
 import ReferralView from "./ReferralView";
+import MarketIntelView from "./MarketIntelView";
 import LoadAdvisor from "./LoadAdvisor";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
@@ -127,6 +128,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showInsights,   setShowInsights]   = useState(false);
   const [showCompliance, setShowCompliance] = useState(false);
   const [showReferral,   setShowReferral]   = useState(false);
+  const [showMarket,     setShowMarket]     = useState(false);
   const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
@@ -915,6 +917,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     { label:"📊 Money",        action:() => setShowMoney(true)       },
                     { label:"📈 ROI",          action:() => setShowROI(true)         },
                     { label:"🧠 Insights",     action:() => setShowInsights(true)    },
+                    { label:"🌎 Market",       action:() => setShowMarket(true)      },
                     { label:"💰 Job Costing",  action:() => setShowJobCosting(true)  },
                     { label:"📸 Snap Receipt", action:() => setShowReceipt(true)     },
                     { label:"👷 Subs / 1099",  action:() => setShowSubs(true)        },
@@ -1520,6 +1523,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
           {/* ════════════ REFERRAL FLYWHEEL ════════════ */}
           {showReferral && <ReferralView user={user} onClose={() => setShowReferral(false)} />}
+
+          {/* ════════════ LOCAL MARKET INTELLIGENCE ════════════ */}
+          {showMarket && <MarketIntelView user={user} profile={profile} onProfileUpdate={onProfileUpdate} onClose={() => setShowMarket(false)} />}
 
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
