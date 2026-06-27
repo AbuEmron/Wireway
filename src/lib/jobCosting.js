@@ -8,16 +8,17 @@ import { supabase } from "./supabase";
 import { irsRate } from "./financeApi";
 
 // ── DERIVED MATH ───────────────────────────────────────────────────────────────
-// agg = { bank, mileage, labor, count } rolled up from the job's cost rows.
-function decorate(job, agg = { bank: 0, mileage: 0, labor: 0, count: 0 }) {
+// agg = { bank, mileage, subs, labor, count } rolled up from the job's cost rows.
+function decorate(job, agg = { bank: 0, mileage: 0, subs: 0, labor: 0, count: 0 }) {
   const bid       = Number(job.bid_amount) || 0;
   const estCost   = Number(job.est_cost) || 0;
   const collected = Number(job.collected) || 0;
-  const spend     = (agg.bank || 0) + (agg.mileage || 0) + (agg.labor || 0);
+  const spend     = (agg.bank || 0) + (agg.mileage || 0) + (agg.subs || 0) + (agg.labor || 0);
   return {
     ...job,
     actual_bank:     agg.bank || 0,     // supplies / materials from bank feed + manual expenses
     actual_mileage:  agg.mileage || 0,  // miles × IRS rate
+    actual_subs:     agg.subs || 0,     // subcontractor payments (Feature 3)
     actual_labor:    agg.labor || 0,    // reserved for time-to-job (Feature 4)
     actual_spend:    spend,
     cost_count:      agg.count || 0,
@@ -37,22 +38,24 @@ const mileageCost = (t) =>
 // One query per cost source (only assigned rows), aggregated in memory. Cheap and
 // avoids N+1. Returns every job decorated with live bid-vs-actual figures.
 export async function getJobsCosting(userId) {
-  const [jobsRes, expRes, tripRes, txnRes] = await Promise.all([
+  const [jobsRes, expRes, tripRes, txnRes, subRes] = await Promise.all([
     supabase.from("jobs").select("*").eq("user_id", userId)
       .order("scheduled_date", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
     supabase.from("expenses").select("id,amount,job_id").eq("user_id", userId).not("job_id", "is", null),
     supabase.from("trips").select("id,miles,trip_date,job_id").eq("user_id", userId).not("job_id", "is", null),
     supabase.from("plaid_transactions").select("id,amount,job_id").eq("user_id", userId).not("job_id", "is", null),
+    supabase.from("sub_payments").select("id,amount,job_id").eq("user_id", userId).not("job_id", "is", null),
   ]);
 
   const jobs = jobsRes.data || [];
   const agg = {};
-  for (const j of jobs) agg[j.id] = { bank: 0, mileage: 0, labor: 0, count: 0 };
+  for (const j of jobs) agg[j.id] = { bank: 0, mileage: 0, subs: 0, labor: 0, count: 0 };
 
   for (const e of (expRes.data || []))  { const a = agg[e.job_id]; if (a) { a.bank    += Number(e.amount) || 0; a.count++; } }
   for (const t of (txnRes.data || []))  { const a = agg[t.job_id]; if (a) { a.bank    += Number(t.amount) || 0; a.count++; } }
   for (const t of (tripRes.data || [])) { const a = agg[t.job_id]; if (a) { a.mileage += mileageCost(t);        a.count++; } }
+  for (const p of (subRes.data || []))  { const a = agg[p.job_id]; if (a) { a.subs    += Number(p.amount) || 0; a.count++; } }
 
   return { data: jobs.map((j) => decorate(j, agg[j.id])), error: jobsRes.error };
 }
