@@ -53,7 +53,7 @@
 <ul>
 <li><strong>Privileged keys</strong> — service-role and other privileged database keys are used only in server-side code; they are never exposed in the client application or browser bundle.</li>
 <li><strong>Multi-factor authentication</strong> — MFA is enforced on the core operational accounts that can change the Service or its data, including GitHub (source code), Vercel (hosting/deployment), and Supabase (authentication, database, and storage).</li>
-<li><strong>End-user authentication</strong> — end users sign in with email and password managed by our authentication provider. Consumer-facing multi-factor authentication is on the product roadmap.</li>
+<li><strong>End-user authentication</strong> — end users sign in with email and password managed by our authentication provider. Optional two-factor authentication (TOTP via an authenticator app) is offered to end users; once a user enrolls a factor, completing the second-factor challenge is required at login before the application — and Plaid Link — is reachable.</li>
 </ul>
 
 <h2>4. Data Protection and Encryption</h2>
