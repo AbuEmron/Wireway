@@ -18,6 +18,7 @@ import WiremModals from "./WiremModals";
 import MileageView from "./MileageView";
 import ExpensesView from "./ExpensesView";
 import PlaidView from "./PlaidView";
+import JobCostingView from "./JobCostingView";
 import LoadAdvisor from "./LoadAdvisor";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
@@ -103,6 +104,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showMileage,    setShowMileage]    = useState(false);
   const [showExpenses,   setShowExpenses]   = useState(false);
   const [showPlaid,      setShowPlaid]      = useState(false);
+  const [showJobCosting, setShowJobCosting] = useState(false);
   const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
@@ -887,6 +889,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               {showTools && (
                 <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:10, animation:"fadeUp 0.25s ease both" }}>
                   {[
+                    { label:"💰 Job Costing",  action:() => setShowJobCosting(true)  },
                     { label:"📅 Calendar",     action:() => setShowCalendar(true)    },
                     { label:"Wire Calc",       action:() => setWireCalcOpen(true)    },
                     { label:"Load Calc",       action:() => setLoadCalcOpen(true)    },
@@ -1450,6 +1453,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
           {/* ════════════ PLAID BANK IMPORT ════════════ */}
           {showPlaid && <PlaidView user={user} onClose={() => setShowPlaid(false)} />}
+
+          {/* ════════════ JOB COSTING — BID vs ACTUAL ════════════ */}
+          {showJobCosting && <JobCostingView user={user} onClose={() => setShowJobCosting(false)} />}
 
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
