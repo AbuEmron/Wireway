@@ -38,7 +38,7 @@ const mileageCost = (t) =>
 // One query per cost source (only assigned rows), aggregated in memory. Cheap and
 // avoids N+1. Returns every job decorated with live bid-vs-actual figures.
 export async function getJobsCosting(userId) {
-  const [jobsRes, expRes, tripRes, txnRes, subRes] = await Promise.all([
+  const [jobsRes, expRes, tripRes, txnRes, subRes, timeRes] = await Promise.all([
     supabase.from("jobs").select("*").eq("user_id", userId)
       .order("scheduled_date", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
@@ -46,6 +46,7 @@ export async function getJobsCosting(userId) {
     supabase.from("trips").select("id,miles,trip_date,job_id").eq("user_id", userId).not("job_id", "is", null),
     supabase.from("plaid_transactions").select("id,amount,job_id").eq("user_id", userId).not("job_id", "is", null),
     supabase.from("sub_payments").select("id,amount,job_id").eq("user_id", userId).not("job_id", "is", null),
+    supabase.from("time_entries").select("hours,rate,job_id").eq("user_id", userId).eq("is_running", false).not("job_id", "is", null),
   ]);
 
   const jobs = jobsRes.data || [];
@@ -56,6 +57,7 @@ export async function getJobsCosting(userId) {
   for (const t of (txnRes.data || []))  { const a = agg[t.job_id]; if (a) { a.bank    += Number(t.amount) || 0; a.count++; } }
   for (const t of (tripRes.data || [])) { const a = agg[t.job_id]; if (a) { a.mileage += mileageCost(t);        a.count++; } }
   for (const p of (subRes.data || []))  { const a = agg[p.job_id]; if (a) { a.subs    += Number(p.amount) || 0; a.count++; } }
+  for (const t of (timeRes.data || [])) { const a = agg[t.job_id]; if (a) { a.labor   += (Number(t.hours) || 0) * (Number(t.rate) || 0); a.count++; } }
 
   return { data: jobs.map((j) => decorate(j, agg[j.id])), error: jobsRes.error };
 }

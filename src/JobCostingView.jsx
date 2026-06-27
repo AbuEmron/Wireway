@@ -319,6 +319,7 @@ export default function JobCostingView({ user, onClose }) {
                 <Stat label="Spent — supplies & bank" value={fmt(selected.actual_bank)} color="#e8b87e" />
                 <Stat label="Spent — mileage" value={fmt(selected.actual_mileage)} color="#a8e87e" />
                 {selected.actual_subs > 0 && <Stat label="Spent — subcontractors" value={fmt(selected.actual_subs)} color="#7ee8b8" />}
+                {selected.actual_labor > 0 && <Stat label="Spent — labor" value={fmt(selected.actual_labor)} color="#b87ee8" />}
                 <Stat label="Total actual spend" value={fmt(selected.actual_spend)} color="#fff" sub={`${selected.cost_count} cost${selected.cost_count !== 1 ? "s" : ""} tagged`} />
               </div>
             </div>
