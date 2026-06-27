@@ -25,6 +25,8 @@ import TimeTrackingView from "./TimeTrackingView";
 import ProgressBillingView from "./ProgressBillingView";
 import ReceivablesView from "./ReceivablesView";
 import MoneyDashboardView from "./MoneyDashboardView";
+import ROIView from "./ROIView";
+import ROIBadge from "./components/ROIBadge";
 import LoadAdvisor from "./LoadAdvisor";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
@@ -117,6 +119,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showBilling,    setShowBilling]    = useState(false);
   const [showAR,         setShowAR]         = useState(false);
   const [showMoney,      setShowMoney]      = useState(false);
+  const [showROI,        setShowROI]        = useState(false);
   const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
@@ -752,6 +755,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
               <span className="hide-xs" style={{ fontSize:10, fontWeight:700, color:"rgba(var(--accent-rgb),0.6)", background:"rgba(var(--accent-rgb),0.07)", border:"1px solid rgba(var(--accent-rgb),0.16)", padding:"1px 5px", borderRadius:3, letterSpacing:"0.08em", textTransform:"uppercase" }}>NEC 2023</span>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <ROIBadge user={user} onOpen={() => setShowROI(true)} />
               {hasItems && (
                 <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, fontWeight:600, color:"var(--accent)", letterSpacing:"-0.02em" }}>
                   ${total.toLocaleString()}
@@ -902,6 +906,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                 <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:10, animation:"fadeUp 0.25s ease both" }}>
                   {[
                     { label:"📊 Money",        action:() => setShowMoney(true)       },
+                    { label:"📈 ROI",          action:() => setShowROI(true)         },
                     { label:"💰 Job Costing",  action:() => setShowJobCosting(true)  },
                     { label:"📸 Snap Receipt", action:() => setShowReceipt(true)     },
                     { label:"👷 Subs / 1099",  action:() => setShowSubs(true)        },
@@ -1492,6 +1497,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
           {/* ════════════ MONEY DASHBOARD ════════════ */}
           {showMoney && <MoneyDashboardView user={user} onClose={() => setShowMoney(false)} />}
+
+          {/* ════════════ ROI METER ════════════ */}
+          {showROI && <ROIView user={user} onClose={() => setShowROI(false)} />}
 
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
