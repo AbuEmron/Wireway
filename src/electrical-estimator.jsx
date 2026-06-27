@@ -22,6 +22,7 @@ import JobCostingView from "./JobCostingView";
 import ReceiptCaptureView from "./ReceiptCaptureView";
 import SubcontractorsView from "./SubcontractorsView";
 import TimeTrackingView from "./TimeTrackingView";
+import ProgressBillingView from "./ProgressBillingView";
 import LoadAdvisor from "./LoadAdvisor";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
@@ -111,6 +112,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showReceipt,    setShowReceipt]    = useState(false);
   const [showSubs,       setShowSubs]       = useState(false);
   const [showTime,       setShowTime]       = useState(false);
+  const [showBilling,    setShowBilling]    = useState(false);
   const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
@@ -899,6 +901,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     { label:"📸 Snap Receipt", action:() => setShowReceipt(true)     },
                     { label:"👷 Subs / 1099",  action:() => setShowSubs(true)        },
                     { label:"⏱️ Time",         action:() => setShowTime(true)        },
+                    { label:"🧾 Billing",      action:() => setShowBilling(true)     },
                     { label:"📅 Calendar",     action:() => setShowCalendar(true)    },
                     { label:"Wire Calc",       action:() => setWireCalcOpen(true)    },
                     { label:"Load Calc",       action:() => setLoadCalcOpen(true)    },
@@ -1474,6 +1477,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
           {/* ════════════ TIME-TO-JOB LABOR ════════════ */}
           {showTime && <TimeTrackingView user={user} onClose={() => setShowTime(false)} />}
+
+          {/* ════════════ PROGRESS BILLING + RETAINAGE ════════════ */}
+          {showBilling && <ProgressBillingView user={user} company={company} onClose={() => setShowBilling(false)} />}
 
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
