@@ -23,6 +23,7 @@ import ReceiptCaptureView from "./ReceiptCaptureView";
 import SubcontractorsView from "./SubcontractorsView";
 import TimeTrackingView from "./TimeTrackingView";
 import ProgressBillingView from "./ProgressBillingView";
+import ReceivablesView from "./ReceivablesView";
 import LoadAdvisor from "./LoadAdvisor";
 // ── SESSION RESTORE ──────────────────────────────────────────────
 // Mobile browsers evict the page when you switch apps or follow a link.
@@ -113,6 +114,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
   const [showSubs,       setShowSubs]       = useState(false);
   const [showTime,       setShowTime]       = useState(false);
   const [showBilling,    setShowBilling]    = useState(false);
+  const [showAR,         setShowAR]         = useState(false);
   const [ahaUpgrade,     setAhaUpgrade]     = useState(null); // {count,total} on first applied AI estimate
   const [showLoadAdvisor, setShowLoadAdvisor] = useState(false);
   const [showElite,      setShowElite]      = useState(false);
@@ -902,6 +904,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                     { label:"👷 Subs / 1099",  action:() => setShowSubs(true)        },
                     { label:"⏱️ Time",         action:() => setShowTime(true)        },
                     { label:"🧾 Billing",      action:() => setShowBilling(true)     },
+                    { label:"💵 Get Paid",     action:() => setShowAR(true)          },
                     { label:"📅 Calendar",     action:() => setShowCalendar(true)    },
                     { label:"Wire Calc",       action:() => setWireCalcOpen(true)    },
                     { label:"Load Calc",       action:() => setLoadCalcOpen(true)    },
@@ -1480,6 +1483,9 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
           {/* ════════════ PROGRESS BILLING + RETAINAGE ════════════ */}
           {showBilling && <ProgressBillingView user={user} company={company} onClose={() => setShowBilling(false)} />}
+
+          {/* ════════════ GET-PAID-FASTER A/R ════════════ */}
+          {showAR && <ReceivablesView user={user} profile={profile} company={company} onClose={() => setShowAR(false)} />}
 
           {/* ════════════ NEC REFERENCE TAB ════════════ */}
           {tab === "nec" && <NECReference />}
