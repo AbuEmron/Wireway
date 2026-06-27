@@ -2,13 +2,15 @@
 // src/MoneyDashboardView.jsx — Contractor money dashboard + accountant CSV  ·  Feature 7
 import { useState, useEffect, useCallback } from "react";
 import { getMoneySnapshot, buildAccountantCsv } from "./lib/dashboard";
+import { canPremiumExport } from "./lib/entitlements";
+import { exportAllData } from "./lib/dataExport";
 
 const fmt = (n) => (n < 0 ? "-$" : "$") + Math.abs(Math.round(Number(n) || 0)).toLocaleString("en-US");
 const BLUE = "#7eb8e8", GREEN = "#7dcea0", GOLD = "#e8c97a", RED = "#e87e7e", PURPLE = "#b87ee8";
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const profitColor = (n) => (n >= 0 ? GREEN : RED);
 
-export default function MoneyDashboardView({ user, onClose }) {
+export default function MoneyDashboardView({ user, profile, onShowPricing, onClose }) {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth());
   const [year,  setYear]  = useState(now.getFullYear());
@@ -29,6 +31,11 @@ export default function MoneyDashboardView({ user, onClose }) {
   useEffect(() => { load(); }, [load]);
 
   const exportCsv = async () => {
+    if (!canPremiumExport(profile)) {
+      flash("Accountant CSV is a Pro feature — upgrade to export.");
+      if (onShowPricing) setTimeout(onShowPricing, 600);
+      return;
+    }
     setExporting(true);
     const { csv, count } = await buildAccountantCsv(user.id, year);
     setExporting(false);
@@ -87,8 +94,12 @@ export default function MoneyDashboardView({ user, onClose }) {
           <button onClick={nextMonth} style={{ padding: "4px 11px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 15, cursor: "pointer" }}>›</button>
           <button onClick={() => { setMonth(now.getMonth()); setYear(now.getFullYear()); }} style={{ padding: "4px 10px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>This month</button>
           <div style={{ flex: 1 }} />
+          <button onClick={async () => { const { count } = await exportAllData(user.id); flash(`Exported ${count} records (free).`); }} title="Export everything you've entered — free, anytime"
+            style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            ⬇ My data
+          </button>
           <button onClick={exportCsv} disabled={exporting} style={{ padding: "7px 13px", borderRadius: 8, border: "1px solid rgba(40,180,100,0.3)", background: "rgba(40,180,100,0.08)", color: "#4ade80", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-            {exporting ? "Exporting…" : `⬇ Accountant CSV (${year})`}
+            {exporting ? "Exporting…" : `${canPremiumExport(profile) ? "" : "🔒 "}⬇ Accountant CSV (${year})`}
           </button>
         </div>
 

@@ -1486,13 +1486,13 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           {showMileage && <MileageView user={user} onClose={() => setShowMileage(false)} />}
 
           {/* ════════════ EXPENSES TRACKER ════════════ */}
-          {showExpenses && <ExpensesView user={user} onClose={() => setShowExpenses(false)} onOpenPlaid={() => { setShowExpenses(false); setShowPlaid(true); }} />}
+          {showExpenses && <ExpensesView user={user} profile={profile} onShowPricing={onShowPricing} onClose={() => setShowExpenses(false)} onOpenPlaid={() => { setShowExpenses(false); setShowPlaid(true); }} />}
 
           {/* ════════════ PLAID BANK IMPORT ════════════ */}
           {showPlaid && <PlaidView user={user} onClose={() => setShowPlaid(false)} />}
 
           {/* ════════════ JOB COSTING — BID vs ACTUAL ════════════ */}
-          {showJobCosting && <JobCostingView user={user} onClose={() => setShowJobCosting(false)} />}
+          {showJobCosting && <JobCostingView user={user} profile={profile} onShowPricing={onShowPricing} onClose={() => setShowJobCosting(false)} />}
 
           {/* ════════════ SNAP A RECEIPT ════════════ */}
           {showReceipt && <ReceiptCaptureView user={user} onClose={() => setShowReceipt(false)} />}
@@ -1510,7 +1510,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           {showAR && <ReceivablesView user={user} profile={profile} company={company} onClose={() => setShowAR(false)} />}
 
           {/* ════════════ MONEY DASHBOARD ════════════ */}
-          {showMoney && <MoneyDashboardView user={user} onClose={() => setShowMoney(false)} />}
+          {showMoney && <MoneyDashboardView user={user} profile={profile} onShowPricing={onShowPricing} onClose={() => setShowMoney(false)} />}
 
           {/* ════════════ ROI METER ════════════ */}
           {showROI && <ROIView user={user} onClose={() => setShowROI(false)} />}

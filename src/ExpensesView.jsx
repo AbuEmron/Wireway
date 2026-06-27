@@ -5,6 +5,7 @@ import {
   getTrips, getPlaidTransactions, buildScheduleCText,
   EXPENSE_CATEGORIES, categoryById, IRS_RATES,
 } from "./lib/financeApi";
+import { canPremiumExport } from "./lib/entitlements";
 
 const IS = {
   background: "rgba(255,255,255,0.04)",
@@ -173,7 +174,7 @@ function TaxExportModal({ year, expenses, onClose, userId }) {
 }
 
 // ── MAIN EXPENSES VIEW ────────────────────────────────────────────────────────
-export default function ExpensesView({ user, onClose, onOpenPlaid }) {
+export default function ExpensesView({ user, onClose, onOpenPlaid, profile, onShowPricing }) {
   const [year,       setYear]       = useState(CURRENT_YEAR);
   const [expenses,   setExpenses]   = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -270,9 +271,12 @@ export default function ExpensesView({ user, onClose, onOpenPlaid }) {
                 style={{ ...IS, width: "auto", fontSize: 12, padding: "5px 10px", colorScheme: "dark" }}>
                 {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
               </select>
-              <button onClick={() => setShowExport(true)}
+              <button onClick={() => {
+                  if (!canPremiumExport(profile)) { flash("Tax export is a Pro feature — upgrade to unlock."); if (onShowPricing) setTimeout(onShowPricing, 600); return; }
+                  setShowExport(true);
+                }}
                 style={{ padding: "5px 12px", borderRadius: 7, border: "1px solid rgba(232,201,122,0.35)", background: "rgba(232,201,122,0.08)", color: "#e8c97a", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                Tax Export
+                {canPremiumExport(profile) ? "" : "🔒 "}Tax Export
               </button>
               <button onClick={onClose} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 22, cursor: "pointer" }}>✕</button>
             </div>

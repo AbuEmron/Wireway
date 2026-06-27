@@ -9,6 +9,7 @@ import {
   normalizeCost, setCostJob, suggestJobForCost,
   updateJobCosting, createJobFromQuote, linkJobToQuote,
 } from "./lib/jobCosting";
+import { atActiveJobLimit, activeJobLimit, countActiveJobs } from "./lib/entitlements";
 
 const fmt = (n) =>
   "$" + Math.round(Number(n) || 0).toLocaleString("en-US");
@@ -126,7 +127,7 @@ function CostRow({ cost, suggested, onAssign, onRemove }) {
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────────
-export default function JobCostingView({ user, onClose }) {
+export default function JobCostingView({ user, profile, onShowPricing, onClose }) {
   const [jobs,       setJobs]       = useState([]);
   const [quotes,     setQuotes]     = useState([]);
   const [unassigned, setUnassigned] = useState({ expenses: [], trips: [], plaidTxns: [] });
@@ -227,6 +228,12 @@ export default function JobCostingView({ user, onClose }) {
   };
 
   const makeJobFromQuote = async (quoteId) => {
+    if (atActiveJobLimit(profile, jobs)) {
+      setShowNew(false);
+      flash(`Free plan tracks ${activeJobLimit(profile)} active jobs — upgrade for unlimited.`);
+      if (onShowPricing) setTimeout(onShowPricing, 600);
+      return;
+    }
     setBusy(true);
     const { data, error } = await createJobFromQuote(user.id, quoteId);
     setBusy(false);
@@ -414,6 +421,13 @@ export default function JobCostingView({ user, onClose }) {
             + New job from a quote
           </button>
         </div>
+
+        {Number.isFinite(activeJobLimit(profile)) && (
+          <div style={{ marginBottom: 12, fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "'DM Mono',monospace" }}>
+            {countActiveJobs(jobs)}/{activeJobLimit(profile)} active jobs (free plan)
+            {onShowPricing && <button onClick={onShowPricing} style={{ marginLeft: 8, padding: "2px 8px", borderRadius: 5, border: "1px solid rgba(var(--accent-rgb),0.35)", background: "rgba(var(--accent-rgb),0.1)", color: "var(--accent)", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Go unlimited</button>}
+          </div>
+        )}
 
         {showNew && (
           <div style={{ marginBottom: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "14px" }}>
