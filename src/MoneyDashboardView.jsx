@@ -87,18 +87,18 @@ export default function MoneyDashboardView({ user, profile, onShowPricing, onClo
 
         {msg && <div style={{ marginBottom: 12, fontSize: 11, color: GREEN, background: "rgba(125,206,160,0.08)", border: "1px solid rgba(125,206,160,0.2)", borderRadius: 7, padding: "7px 11px" }}>{msg}</div>}
 
-        {/* Month nav */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <button onClick={prevMonth} style={{ padding: "4px 11px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 15, cursor: "pointer" }}>‹</button>
-          <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 15, fontWeight: 700, color: "#fff", minWidth: 150, textAlign: "center" }}>{MONTHS[month]} {year}</div>
-          <button onClick={nextMonth} style={{ padding: "4px 11px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 15, cursor: "pointer" }}>›</button>
-          <button onClick={() => { setMonth(now.getMonth()); setYear(now.getFullYear()); }} style={{ padding: "4px 10px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>This month</button>
-          <div style={{ flex: 1 }} />
+        {/* Month nav + exports — wraps so nothing clips on a phone */}
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+          <button onClick={prevMonth} style={{ padding: "4px 11px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 15, cursor: "pointer", flexShrink: 0 }}>‹</button>
+          <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 15, fontWeight: 700, color: "#fff", minWidth: 120, textAlign: "center", whiteSpace: "nowrap" }}>{MONTHS[month]} {year}</div>
+          <button onClick={nextMonth} style={{ padding: "4px 11px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 15, cursor: "pointer", flexShrink: 0 }}>›</button>
+          <button onClick={() => { setMonth(now.getMonth()); setYear(now.getFullYear()); }} style={{ padding: "4px 10px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>This month</button>
+          <div style={{ flex: 1, minWidth: 0 }} />
           <button onClick={async () => { const { count } = await exportAllData(user.id); flash(`Exported ${count} records (free).`); }} title="Export everything you've entered — free, anytime"
-            style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
             ⬇ My data
           </button>
-          <button onClick={exportCsv} disabled={exporting} style={{ padding: "7px 13px", borderRadius: 8, border: "1px solid rgba(40,180,100,0.3)", background: "rgba(40,180,100,0.08)", color: "#4ade80", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+          <button onClick={exportCsv} disabled={exporting} style={{ padding: "7px 13px", borderRadius: 8, border: "1px solid rgba(40,180,100,0.3)", background: "rgba(40,180,100,0.08)", color: "#4ade80", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
             {exporting ? "Exporting…" : `${canPremiumExport(profile) ? "" : "🔒 "}⬇ Accountant CSV (${year})`}
           </button>
         </div>
