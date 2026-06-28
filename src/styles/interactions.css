@@ -39,6 +39,13 @@ a:focus-visible,
 /* Branded text selection */
 ::selection { background: rgba(224, 144, 74, 0.28); color: #fff; }
 
+/* Dense finance form rows: collapse to a single stacked column on very narrow
+   phones so no input or button is clipped. The wider-screen column layout stays
+   defined inline on each row; this only overrides it below ~380px. */
+@media (max-width: 380px) {
+  .ww-form-row { grid-template-columns: 1fr !important; }
+}
+
 /* Respect reduced-motion: still, calm version for anyone who asks for it */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

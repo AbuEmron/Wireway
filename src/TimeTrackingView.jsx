@@ -126,7 +126,7 @@ export default function TimeTrackingView({ user, onClose }) {
         {/* Clock in */}
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "14px", marginBottom: 12 }}>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Clock in</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 110px", gap: 7, marginBottom: 7 }}>
+          <div className="ww-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 110px", gap: 7, marginBottom: 7 }}>
             <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={{ ...IS, colorScheme: "dark" }}>
               <option value="">No job</option>
               {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}{j.client_name ? ` · ${j.client_name}` : ""}</option>)}
@@ -144,7 +144,7 @@ export default function TimeTrackingView({ user, onClose }) {
 
           {showManual && (
             <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 110px 90px", gap: 7, marginBottom: 7 }}>
+              <div className="ww-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 110px 90px", gap: 7, marginBottom: 7 }}>
                 <select value={manual.job_id} onChange={(e) => setManual((m) => ({ ...m, job_id: e.target.value }))} style={{ ...IS, colorScheme: "dark" }}>
                   <option value="">No job</option>
                   {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}

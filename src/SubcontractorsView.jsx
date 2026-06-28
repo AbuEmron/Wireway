@@ -162,7 +162,7 @@ export default function SubcontractorsView({ user, company = {}, onClose }) {
                 <input placeholder="Phone" value={subForm.phone} onChange={(e) => setSubForm((p) => ({ ...p, phone: e.target.value }))} style={IS} onFocus={focusGold} onBlur={blurGray} />
               </div>
               <input placeholder="Address (for 1099)" value={subForm.address} onChange={(e) => setSubForm((p) => ({ ...p, address: e.target.value }))} style={{ ...IS, marginBottom: 7 }} onFocus={focusGold} onBlur={blurGray} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 110px", gap: 7, marginBottom: 7 }}>
+              <div className="ww-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 110px", gap: 7, marginBottom: 7 }}>
                 <input placeholder="Tax ID (EIN/SSN)" value={subForm.tax_id} onChange={(e) => setSubForm((p) => ({ ...p, tax_id: e.target.value }))} style={IS} onFocus={focusGold} onBlur={blurGray} />
                 <select value={subForm.tax_id_type} onChange={(e) => setSubForm((p) => ({ ...p, tax_id_type: e.target.value }))} style={{ ...IS, colorScheme: "dark" }}>
                   <option value="ein">EIN</option><option value="ssn">SSN</option>
@@ -178,7 +178,7 @@ export default function SubcontractorsView({ user, company = {}, onClose }) {
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 110px 130px", gap: 7, marginBottom: 7 }}>
+          <div className="ww-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 110px 130px", gap: 7, marginBottom: 7 }}>
             <select value={pay.subcontractor_id} onChange={(e) => setPay((p) => ({ ...p, subcontractor_id: e.target.value }))} style={{ ...IS, colorScheme: "dark" }}>
               <option value="">Subcontractor…</option>
               {ledger.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -186,7 +186,7 @@ export default function SubcontractorsView({ user, company = {}, onClose }) {
             <input type="number" min="0.01" step="0.01" placeholder="Amount" value={pay.amount} onChange={(e) => setPay((p) => ({ ...p, amount: e.target.value }))} style={{ ...IS, fontFamily: "'DM Mono',monospace" }} onFocus={focusGold} onBlur={blurGray} />
             <input type="date" value={pay.payment_date} onChange={(e) => setPay((p) => ({ ...p, payment_date: e.target.value }))} style={{ ...IS, colorScheme: "dark" }} onFocus={focusGold} onBlur={blurGray} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "110px 1fr 1fr", gap: 7, marginBottom: 10 }}>
+          <div className="ww-form-row" style={{ display: "grid", gridTemplateColumns: "110px 1fr 1fr", gap: 7, marginBottom: 10 }}>
             <select value={pay.method} onChange={(e) => setPay((p) => ({ ...p, method: e.target.value }))} style={{ ...IS, colorScheme: "dark", textTransform: "capitalize" }}>
               {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>

@@ -224,7 +224,7 @@ export default function ProgressBillingView({ user, company = {}, profile, onSho
             {/* Add draw */}
             <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "12px" }}>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Add a draw</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 110px 90px", gap: 7, marginBottom: 7 }}>
+              <div className="ww-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 110px 90px", gap: 7, marginBottom: 7 }}>
                 <input placeholder="Label (e.g. Rough-in)" value={newDraw.label} onChange={(e) => setNewDraw((p) => ({ ...p, label: e.target.value }))} style={IS} onFocus={focusGold} onBlur={blurGray} />
                 <input type="number" min="0" placeholder="Amount" value={newDraw.amount} onChange={(e) => setNewDraw((p) => ({ ...p, amount: e.target.value }))} style={{ ...IS, fontFamily: "'DM Mono',monospace" }} onFocus={focusGold} onBlur={blurGray} />
                 <input type="number" min="0" max="100" placeholder="Ret %" value={newDraw.retainage_pct} onChange={(e) => setNewDraw((p) => ({ ...p, retainage_pct: e.target.value }))} style={{ ...IS, fontFamily: "'DM Mono',monospace" }} onFocus={focusGold} onBlur={blurGray} />

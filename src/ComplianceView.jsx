@@ -138,7 +138,7 @@ export default function ComplianceView({ user, onClose }) {
 
             {showForm && (
               <div style={{ background: "rgba(126,184,232,0.04)", border: "1px solid rgba(126,184,232,0.14)", borderRadius: 10, padding: "12px", marginBottom: 12 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 7, marginBottom: 7 }}>
+                <div className="ww-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 7, marginBottom: 7 }}>
                   <input placeholder="Name (e.g. Master Electrician License) *" value={form.label} onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))} style={IS} onFocus={focusGold} onBlur={blurGray} />
                   <select value={form.kind} onChange={(e) => setForm((p) => ({ ...p, kind: e.target.value }))} style={{ ...IS, colorScheme: "dark", textTransform: "capitalize" }}>{KINDS.map((k) => <option key={k} value={k}>{k}</option>)}</select>
                 </div>
@@ -146,7 +146,7 @@ export default function ComplianceView({ user, onClose }) {
                   <input placeholder="Number / ID" value={form.identifier} onChange={(e) => setForm((p) => ({ ...p, identifier: e.target.value }))} style={IS} onFocus={focusGold} onBlur={blurGray} />
                   <input placeholder="Issuer (state board, city…)" value={form.issuer} onChange={(e) => setForm((p) => ({ ...p, issuer: e.target.value }))} style={IS} onFocus={focusGold} onBlur={blurGray} />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 140px", gap: 7, marginBottom: 10 }}>
+                <div className="ww-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 140px", gap: 7, marginBottom: 10 }}>
                   <div><div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 3 }}>Expires</div><input type="date" value={form.expires_on} onChange={(e) => setForm((p) => ({ ...p, expires_on: e.target.value }))} style={{ ...IS, colorScheme: "dark" }} onFocus={focusGold} onBlur={blurGray} /></div>
                   <div><div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 3 }}>Remind (days before)</div><input type="number" min="1" value={form.reminder_days} onChange={(e) => setForm((p) => ({ ...p, reminder_days: e.target.value }))} style={{ ...IS, fontFamily: "'DM Mono',monospace" }} onFocus={focusGold} onBlur={blurGray} /></div>
                 </div>
