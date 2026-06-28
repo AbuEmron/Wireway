@@ -910,7 +910,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         @media(max-width:480px){.hide-xs{display:none!important}}
         @keyframes modalIn{from{opacity:0;transform:scale(0.96) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
-        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px}
+        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:360;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px))}
         .modal-box{background:linear-gradient(var(--surface,#15151b),var(--surface,#15151b)),#0d0d11;border:1px solid var(--line-strong);border-radius:18px;width:100%;max-width:600px;animation:modalIn 0.25s ease both;margin:auto}
         @media print{.no-print{display:none!important}.print-quote{background:#fff!important;color:#000!important;padding:32px!important}}
       `}</style>
@@ -1728,7 +1728,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
 
           {/* ════════════ CALENDAR VIEW ════════════ */}
           {showCalendar && (
-            <div style={{ position:"fixed", inset:0, zIndex:150, overflowY:"auto" }}>
+            <div style={{ position:"fixed", inset:0, zIndex:150, overflowY:"auto", background:"#0a0a0c" }}>
               <JobCalendar user={user} onClose={() => setShowCalendar(false)} />
             </div>
             )}

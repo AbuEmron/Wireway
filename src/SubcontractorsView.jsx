@@ -33,7 +33,7 @@ function Form1099Modal({ sub, year, company, threshold, onClose }) {
     URL.revokeObjectURL(url);
   };
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 420, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
       <div style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, width: "100%", maxWidth: 560, padding: "24px", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexShrink: 0 }}>
           <div>
@@ -109,7 +109,7 @@ export default function SubcontractorsView({ user, company = {}, onClose }) {
 
   const startEdit = (s) => { setEditingSub(s.id); setSubForm({ name: s.name || "", business_name: s.business_name || "", email: s.email || "", phone: s.phone || "", address: s.address || "", tax_id: s.tax_id || "", tax_id_type: s.tax_id_type || "ein", w9_received: !!s.w9_received }); setShowSubForm(true); };
 
-  const wrap = { position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.82)", backdropFilter: "blur(8px)", overflowY: "auto", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "24px 16px" };
+  const wrap = { position: "fixed", inset: 0, zIndex: 360, background: "rgba(0,0,0,0.82)", backdropFilter: "blur(8px)", overflowY: "auto", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "24px 16px" };
   const panel = { background: "#111115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, width: "100%", maxWidth: 760, padding: "24px" };
   const YEARS = [CURRENT_YEAR + 1, CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2];
 

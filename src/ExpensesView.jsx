@@ -62,7 +62,7 @@ function CsvImportModal({ onImport, onClose }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 420, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
       <div style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, width: "100%", maxWidth: 520, padding: "24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
           <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 15, fontWeight: 800, color: "#fff" }}>Import CSV</div>
@@ -144,7 +144,7 @@ function TaxExportModal({ year, expenses, onClose, userId }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 420, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
       <div style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, width: "100%", maxWidth: 580, padding: "24px", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexShrink: 0 }}>
           <div>
@@ -257,7 +257,7 @@ export default function ExpensesView({ user, onClose, onOpenPlaid, profile, onSh
 
   return (
     <>
-      <div style={{ position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)", overflowY: "auto", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "24px 16px" }}>
+      <div style={{ position: "fixed", inset: 0, zIndex: 360, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)", overflowY: "auto", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "24px 16px" }}>
         <div style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, width: "100%", maxWidth: 720, padding: "24px" }}>
 
           {/* Header */}

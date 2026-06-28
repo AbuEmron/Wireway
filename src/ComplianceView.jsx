@@ -61,7 +61,7 @@ export default function ComplianceView({ user, onClose }) {
   for (const r of renewals.filter(renewalDue)) alerts.push({ level: r.days_left < 0 ? "high" : "med", text: r.days_left < 0 ? `${r.label} EXPIRED ${Math.abs(r.days_left)}d ago.` : `${r.label} expires in ${r.days_left}d.` });
   if (salesTax?.collected > 0) alerts.push({ level: "med", text: `${fmt(salesTax.collected)} sales tax collected in ${year} — set aside to remit.` });
 
-  const wrap = { position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.82)", backdropFilter: "blur(8px)", overflowY: "auto", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "24px 16px" };
+  const wrap = { position: "fixed", inset: 0, zIndex: 360, background: "rgba(0,0,0,0.82)", backdropFilter: "blur(8px)", overflowY: "auto", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "24px 16px" };
   const panel = { background: "#111115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, width: "100%", maxWidth: 720, padding: "24px" };
   const YEARS = [CURRENT_YEAR + 1, CURRENT_YEAR, CURRENT_YEAR - 1];
 

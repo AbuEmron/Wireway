@@ -102,7 +102,7 @@ export function JobCalendar({ user, onClose }) {
     <>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg0)}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-      <div style={{ minHeight:"100vh", background:"var(--bg0)", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:60 }}>
+      <div style={{ minHeight:"100vh", background:"#0a0a0c", fontFamily:"'DM Sans',sans-serif", color:"#fff", paddingBottom:"calc(96px + env(safe-area-inset-bottom,0px))" }}>
 
         {/* Header */}
         <div style={{ borderBottom:"1px solid var(--line)", background:"rgba(10,10,12,0.9)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", position:"sticky", top:0, zIndex:100, padding:"0 20px" }}>
@@ -252,7 +252,7 @@ export function JobCalendar({ user, onClose }) {
 
       {/* ── Job modal ── */}
       {modal && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", zIndex:200, display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"24px 16px" }}
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", zIndex:360, display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"24px 16px" }}
           onClick={e => e.target===e.currentTarget && setModal(null)}>
           <div style={{ background:"var(--surface)", border:"1px solid var(--line-strong)", borderRadius:18, width:"100%", maxWidth:520, animation:"fadeUp 0.2s ease both", margin:"auto", padding:"24px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
@@ -421,7 +421,7 @@ export function PhotoAttachments({ user, quoteId, quoteName }) {
 
       {/* Lightbox */}
       {lightbox && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.92)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={() => setLightbox(null)}>
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.92)", zIndex:420, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={() => setLightbox(null)}>
           <img src={lightbox.url} alt="" style={{ maxWidth:"90vw", maxHeight:"90vh", borderRadius:8, objectFit:"contain" }} />
           <button onClick={() => setLightbox(null)} style={{ position:"fixed", top:20, right:20, background:"rgba(255,255,255,0.1)", border:"none", color:"#fff", fontSize:24, cursor:"pointer", width:40, height:40, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
         </div>

@@ -258,7 +258,7 @@ export default function JobCostingView({ user, profile, onShowPricing, onClose }
   const linkedQuoteIds = new Set(jobs.map((j) => j.quote_id).filter(Boolean));
   const availableQuotes = quotes.filter((q) => !linkedQuoteIds.has(q.id));
 
-  const wrap = { position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.82)", backdropFilter: "blur(8px)", overflowY: "auto", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "24px 16px" };
+  const wrap = { position: "fixed", inset: 0, zIndex: 360, background: "rgba(0,0,0,0.82)", backdropFilter: "blur(8px)", overflowY: "auto", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "24px 16px" };
   const panel = { background: "#111115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, width: "100%", maxWidth: 760, padding: "24px" };
 
   // ── DETAIL VIEW ──

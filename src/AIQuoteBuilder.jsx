@@ -282,7 +282,7 @@ export default function AIQuoteBuilder({ onApplyEstimate, onClose, initialPrompt
         .qty-btn:hover{background:rgba(var(--accent-rgb),0.12);color:var(--accent);border-color:rgba(var(--accent-rgb),0.4)}
       `}</style>
 
-      <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.82)", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", zIndex:200, display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"20px 16px 40px" }}>
+      <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.82)", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", zIndex:360, display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"20px 16px calc(40px + env(safe-area-inset-bottom,0px))" }}>
         <div style={{ width:"100%", maxWidth:640, animation:"fadeUp 0.25s ease both" }}>
 
           {/* Header */}
