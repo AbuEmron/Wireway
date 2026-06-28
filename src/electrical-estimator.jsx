@@ -779,13 +779,6 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
           </div>
           <div style={{ maxWidth:680, margin:"0 auto", padding:"20px 20px 96px" }}>
             {showElite && <EliteMode profile={profile} onClose={() => setShowElite(false)} />}
-            {isElite(profile) && (
-              <button onClick={() => setShowElite(true)} style={{ width:"100%", marginBottom:16, padding:"13px 16px", borderRadius:12, background:"linear-gradient(135deg, rgba(240,168,24,0.14), rgba(240,168,24,0.04))", border:"1px solid rgba(240,168,24,0.45)", color:"#f0a818", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"inherit", letterSpacing:"0.04em", textAlign:"left", display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontSize:16 }}>⚙</span>
-                <span style={{ flex:1 }}>WIREWAY ELITE — Industrial Estimator</span>
-                <span style={{ fontSize:14 }}>→</span>
-              </button>
-            )}
             {savedQuotes.length === 0 && !onboard.heroDone && (
               <WelcomeHero
                 onStartAI={() => {
