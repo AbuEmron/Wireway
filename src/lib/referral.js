@@ -1,8 +1,9 @@
 // src/lib/referral.js — referral link + attribution  ·  Phase 2 · Feature 5
 import { supabase } from "./supabase";
+import { PUBLIC_ORIGIN } from "./nativeBridge";
 
 export const myRefLink = (userId, source = "link") =>
-  `${window.location.origin}/?ref=${userId}&src=${source}`;
+  `${PUBLIC_ORIGIN}/?ref=${userId}&src=${source}`;
 
 // Public log (used from public pages + the landing capture in App).
 export async function logReferral({ ref, kind = "visit", source = "link" }) {

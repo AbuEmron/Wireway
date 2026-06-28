@@ -5,3 +5,8 @@ build/
 .env.production
 .DS_Store
 *.log
+
+# Android signing secrets — never commit
+android/keystore.properties
+*.jks
+*.keystore

@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { getJobs, upsertJob, deleteJob, updateJobStatus, updateJob, getPhotos, uploadPhoto, deletePhoto } from "./lib/supabase";
+import { PUBLIC_ORIGIN } from "./lib/nativeBridge";
 
 // ─── SHARED STYLES ────────────────────────────────────────────────────────────
 const card = { background:"rgba(255,255,255,0.022)", border:"1px solid var(--line)", borderRadius:12 };
@@ -352,7 +353,7 @@ export function sendReviewRequest(job, companyName = "", reviewUrl = "") {
 // ─── SEND APPOINTMENT LINK HELPER ────────────────────────────────────────────
 export function sendApptLink(job, companyName = "") {
   if (!job?.id) return;
-  const url  = `${window.location.origin}/appt/${job.id}`;
+  const url  = `${PUBLIC_ORIGIN}/appt/${job.id}`;
   const when = job.scheduled_date
     ? `${job.scheduled_date}${job.scheduled_time ? " at " + job.scheduled_time.slice(0,5) : ""}`
     : "the scheduled time";

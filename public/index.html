@@ -93,7 +93,9 @@
       @media (min-width: 1600px) { body { font-size: 16.5px; } }
     </style>
     <script>
-      if ("serviceWorker" in navigator) {
+      // Skip the PWA service worker inside the Capacitor native shell (origin is
+      // https://localhost) so a cached shell never shadows updated APK assets.
+      if (location.hostname !== "localhost" && "serviceWorker" in navigator) {
         window.addEventListener("load", function () {
           navigator.serviceWorker.register("/sw.js").catch(function () {});
         });

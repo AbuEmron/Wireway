@@ -5,6 +5,7 @@
 // about fully-automated scheduled reminders needing Vercel Cron + a provider.)
 import { supabase } from "./supabase";
 import { drawNet } from "./billing";
+import { PUBLIC_ORIGIN } from "./nativeBridge";
 
 const DAY = 86400000;
 const todayStr = () => new Date().toISOString().split("T")[0];
@@ -17,7 +18,7 @@ export const daysOverdue = (dueDate) => {
 };
 
 const payUrl = (quoteId) =>
-  quoteId ? `${window.location.origin}/quote/${quoteId}` : "";
+  quoteId ? `${PUBLIC_ORIGIN}/quote/${quoteId}` : "";
 
 // ── Gather receivables ───────────────────────────────────────────────────────
 export async function getReceivables(userId) {
