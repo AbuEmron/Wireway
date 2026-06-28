@@ -1,0 +1,41 @@
+package com.wirewaypro.app.ui.util
+
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.text.NumberFormat
+import java.util.Locale
+
+/** Small, dependency-free formatting helpers shared across screens. */
+object Format {
+
+    private val currency: NumberFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    private val dateOut = DateTimeFormatter.ofPattern("MMM d, yyyy")
+    private val timeOut = DateTimeFormatter.ofPattern("h:mm a")
+
+    /** "$1,234.56", or an em-dash when null. */
+    fun money(value: Double?): String =
+        value?.let { currency.format(it) } ?: "—"
+
+    /** Accepts "yyyy-MM-dd" or a full ISO timestamp; returns "Jun 28, 2026". */
+    fun date(iso: String?): String {
+        if (iso.isNullOrBlank()) return "—"
+        return runCatching {
+            LocalDate.parse(iso.take(10)).format(dateOut)
+        }.getOrDefault(iso)
+    }
+
+    /** Accepts "HH:mm[:ss]"; returns "3:00 PM". Blank input yields null. */
+    fun time(value: String?): String? {
+        if (value.isNullOrBlank()) return null
+        return runCatching {
+            LocalTime.parse(value.take(8).removeSuffix(":")).format(timeOut)
+        }.getOrNull()
+    }
+
+    /** Title-cases a snake/lower status, e.g. "in_progress" -> "In progress". */
+    fun status(value: String?): String {
+        if (value.isNullOrBlank()) return "—"
+        return value.replace('_', ' ').replaceFirstChar { it.uppercase() }
+    }
+}

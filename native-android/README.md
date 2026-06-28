@@ -50,17 +50,27 @@ native-android/
             ├── MainActivity.kt         # single Activity, hosts Compose
             ├── di/                     # SupabaseModule, RepositoryModule
             ├── data/                   # repository impls + DTOs (Supabase-facing)
-            │   ├── auth/AuthRepositoryImpl.kt
-            │   └── profile/ProfileRepositoryImpl.kt, ProfileDto.kt
+            │   ├── auth/    AuthRepositoryImpl.kt
+            │   ├── profile/ ProfileRepositoryImpl.kt, ProfileDto.kt
+            │   ├── jobs/    JobRepositoryImpl.kt, JobDto.kt (+ JobDrawDto)
+            │   ├── quotes/  QuoteRepositoryImpl.kt, QuoteDto.kt (JSON line items)
+            │   └── clients/ ClientRepositoryImpl.kt, ClientDto.kt
             ├── domain/                 # SDK-agnostic models + repository interfaces
-            │   ├── model/AuthState.kt, UserProfile.kt
-            │   └── repository/AuthRepository.kt, ProfileRepository.kt
+            │   ├── model/      AuthState, UserProfile, Job, JobDraw, Quote*, Client
+            │   └── repository/ Auth, Profile, Job, Quote, Client repositories
             └── ui/
                 ├── theme/              # Color, Type, Shape, Theme (brand palette)
-                ├── navigation/         # Routes + bottom-nav tabs
-                ├── components/         # WirewayWordmark
+                ├── navigation/         # Routes + bottom-nav tabs + DashDest
+                ├── common/             # ListUiState
+                ├── util/               # Format (money / date / status)
+                ├── components/         # Wordmark, RefreshableList, ListCard,
+                │                       #   DetailScaffold, SectionCard, StatusChip…
                 ├── auth/               # LoginScreen + LoginViewModel
-                └── dashboard/          # DashboardScreen + HomeContent + ViewModel
+                ├── dashboard/          # DashboardScreen (nested NavHost) + HomeScreen
+                ├── jobs/               # JobsScreen, JobDetailScreen + ViewModels
+                ├── quotes/             # Estimates/Invoices/QuoteDetail + ViewModels
+                ├── clients/            # ClientsScreen + ViewModel
+                └── settings/           # SettingsScreen + ViewModel
 ```
 
 ### Architecture in one breath
@@ -71,15 +81,37 @@ The **data** layer implements those interfaces against supabase-kt and is the
 (`RepositoryModule`), so screens never see the SDK. This keeps the SDK swappable
 and the UI unit-testable with fakes.
 
-Flow of the two working screens:
+Flow:
 
 1. **Login** → `LoginViewModel.signIn()` → `AuthRepository.signIn()` →
    gotrue email/password. The session is persisted by the SDK.
 2. `SessionViewModel` mirrors gotrue's session into `AuthState`; `WirewayApp`
    observes it and routes to the dashboard (and back to login on sign-out).
-3. **Dashboard** → `DashboardViewModel.loadHome()` → `ProfileRepository` reads
-   the user's `profiles` row and an exact **count of their `jobs`** from
-   Postgrest — proving the data layer end-to-end against the live backend.
+3. **Dashboard** hosts a nested `NavHost`: four bottom-nav tabs (Home /
+   Estimates / Invoices / Settings) plus Jobs & Clients lists (reached from Home)
+   and list→detail screens, all single-Activity. Each list has its own
+   ViewModel + `StateFlow` with loading / error / empty states and
+   Material 3 pull-to-refresh.
+
+### Read-only data screens (Phase 2)
+
+All read against the live shared backend; RLS scopes rows to the user.
+
+| Screen | Source | Notes |
+| ------ | ------ | ----- |
+| Home | `profiles` + `jobs` count | greeting + quick links |
+| Estimates (tab) | `quotes` where `invoice_mode` ≠ true | list → detail |
+| Invoices (tab) | `quotes` where `invoice_mode` = true | list → detail, surfaces paid/due |
+| Jobs | `jobs` | list → detail |
+| Job detail | `jobs` + `job_draws` | draws shown as progress-billing line items |
+| Estimate / Invoice detail | `quotes` (+ JSON `entries` / `custom_items`) | line items + totals breakdown |
+| Clients | `clients` | name, contact, job count, total billed |
+| Settings | session | account email, sign out, app version |
+
+> **There is no `invoices` table** — an invoice is a `quotes` row with
+> `invoice_mode = true`. Quote **line items are not a related table**; they live
+> in the JSON `entries` (catalog items, keyed by id) and `custom_items` (array)
+> columns, flattened by `QuoteDto.parseLineItems`.
 
 ---
 
@@ -160,8 +192,8 @@ order, each phase building on the last:
 | Phase | Theme | Highlights |
 | ----- | ----- | ---------- |
 | **1 ✅** | Foundation | Auth, session, DI, theme, dashboard shell, one live read |
-| **2** | Read-only core | Quotes/estimates list + detail, clients, jobs calendar (read), real fonts, pull-to-refresh, error/empty states |
-| **3** | Estimating | The quote/estimate **builder** — line items, labor/material, markup, tax; offline-safe save queue (mirror the web app's quote queue) |
+| **2 ✅** | Read-only core | Estimates / Invoices / Jobs / Clients lists + Job & Quote detail screens, pull-to-refresh, loading/error/empty states, nested navigation, Settings |
+| **3** | Estimating | The quote/estimate **builder** — line items, labor/material, markup, tax; offline-safe save queue (mirror the web app's quote queue). Real brand fonts (Space Grotesk / Inter) |
 | **4** | Job costing & scheduling | Jobs CRUD, calendar scheduling, status flow, client assignment |
 | **5** | Bookkeeping & invoicing | Invoices, payment status, money dashboard, Stripe/Plaid-backed flows via the existing `/api` endpoints |
 | **6** | Receipts & camera | CameraX capture, photo upload to Supabase Storage, receipt attach to jobs/expenses |

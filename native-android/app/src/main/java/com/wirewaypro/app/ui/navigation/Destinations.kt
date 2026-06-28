@@ -24,3 +24,22 @@ enum class HomeTab(
     INVOICES("invoices", "Invoices", Icons.Outlined.Receipt),
     SETTINGS("settings", "Settings", Icons.Outlined.Settings),
 }
+
+/**
+ * Routes inside the dashboard's nested nav graph that are NOT bottom-nav tabs:
+ * the Jobs/Clients lists reachable from Home, and the list→detail screens.
+ */
+object DashDest {
+    const val JOBS = "jobs"
+    const val CLIENTS = "clients"
+
+    const val JOB_DETAIL = "job/{id}"
+    const val ESTIMATE_DETAIL = "estimate/{id}"
+    const val INVOICE_DETAIL = "invoice/{id}"
+
+    const val ARG_ID = "id"
+
+    fun jobDetail(id: String) = "job/$id"
+    fun estimateDetail(id: String) = "estimate/$id"
+    fun invoiceDetail(id: String) = "invoice/$id"
+}

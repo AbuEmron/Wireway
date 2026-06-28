@@ -1,0 +1,63 @@
+package com.wirewaypro.app.ui.quotes
+
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wirewaypro.app.domain.model.QuoteSummary
+import com.wirewaypro.app.ui.components.ListCard
+import com.wirewaypro.app.ui.components.RefreshableList
+import com.wirewaypro.app.ui.components.TabTopBar
+import com.wirewaypro.app.ui.util.Format
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EstimatesScreen(
+    onOpenEstimate: (String) -> Unit,
+    viewModel: EstimatesViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    Scaffold(topBar = { TabTopBar("Estimates") }) { padding ->
+        RefreshableList(
+            isLoading = state.isLoading,
+            isRefreshing = state.isRefreshing,
+            error = state.error,
+            isEmpty = state.isEmpty,
+            emptyMessage = "No estimates yet.",
+            onRefresh = viewModel::refresh,
+            modifier = Modifier.padding(padding),
+        ) {
+            items(state.items, key = { it.id }) { quote ->
+                QuoteRow(quote = quote, onClick = { onOpenEstimate(quote.id) })
+            }
+        }
+    }
+}
+
+@Composable
+internal fun QuoteRow(quote: QuoteSummary, onClick: () -> Unit) {
+    val number = quote.quoteNumber?.let { "#$it" }
+    val title = quote.jobName?.takeIf { it.isNotBlank() }
+        ?: quote.clientName?.takeIf { it.isNotBlank() }
+        ?: number
+        ?: "Untitled"
+    val subtitle = listOfNotNull(quote.clientName, number)
+        .distinct()
+        .joinToString("  ·  ")
+        .ifBlank { null }
+
+    ListCard(
+        title = title,
+        onClick = onClick,
+        trailing = Format.money(quote.total),
+        subtitle = subtitle,
+        footerStart = Format.date(quote.createdAt),
+        status = quote.status,
+    )
+}
