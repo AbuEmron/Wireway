@@ -1,7 +1,7 @@
 package com.wirewaypro.app.data.quotes
 
-import com.wirewaypro.app.domain.model.MoneyMath
 import com.wirewaypro.app.domain.model.QuoteCalculator
+import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.QuoteCustomItem
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteInput
@@ -13,7 +13,6 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Count
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
@@ -56,39 +55,21 @@ class QuoteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveQuote(userId: String, input: QuoteInput): Result<QuoteDetail> = runCatching {
-        // On edit, re-read the existing row so we can preserve its catalog
-        // `entries` and freeze their money contribution (native edits only the
-        // custom items, so entries' value must not be dropped from the totals).
-        var entriesJson: JsonElement = JsonObject(emptyMap())
-        var carried = QuoteCalculator.Carried()
-        if (input.id != null) {
-            quotes().select { filter { eq("id", input.id) } }
-                .decodeSingleOrNull<QuoteDto>()
-                ?.let { existing ->
-                    existing.entries?.let { entriesJson = it }
-                    val existingDetail = existing.toDetail()
-                    val custMat = existingDetail.customItems.sumOf { it.materialCost * it.qty }
-                    val custLab = existingDetail.customItems.sumOf { it.laborCost * it.qty }
-                    val custHrs = existingDetail.customItems.sumOf { it.laborHours * it.qty }
-                    carried = QuoteCalculator.Carried(
-                        material = MoneyMath.round2((existing.totalMaterial ?: 0.0) - custMat).coerceAtLeast(0.0),
-                        labor = MoneyMath.round2((existing.totalLabor ?: 0.0) - custLab).coerceAtLeast(0.0),
-                        hours = MoneyMath.round2((existing.totalHours ?: 0.0) - custHrs).coerceAtLeast(0.0),
-                    )
-                }
-        }
-
+        // Catalog entries are fully editable now — compute everything from the
+        // input; no need to re-read or "freeze" anything.
         val totals = QuoteCalculator.compute(
+            catalogEntries = input.catalogEntries,
             customItems = input.customItems,
             markup = input.markup,
             taxEnabled = input.taxEnabled,
             taxRate = input.taxRate,
-            carried = carried,
+            hourlyRate = input.hourlyRate,
         )
 
         val quoteNumber = input.quoteNumber?.takeIf { it.isNotBlank() }
             ?: generateQuoteNumber(userId)
 
+        val entriesJson = entriesToJson(input.catalogEntries)
         val customItemsJson = customItemsToJson(input.customItems)
 
         val payload = buildJsonObject {
@@ -173,6 +154,21 @@ class QuoteRepositoryImpl @Inject constructor(
             .countOrNull() ?: 0L
         val seq = (count + 1).toString().padStart(3, '0')
         return "WW-${Year.now().value}-$seq"
+    }
+
+    private fun entriesToJson(entries: List<QuoteCatalogEntry>): JsonObject = buildJsonObject {
+        entries.forEach { e ->
+            if (e.qty > 0.0) {
+                put(
+                    e.serviceId,
+                    buildJsonObject {
+                        put("qty", e.qty)
+                        put("variantIdx", e.variantIdx)
+                        put("clientBuys", e.clientBuys)
+                    },
+                )
+            }
+        }
     }
 
     private fun customItemsToJson(items: List<QuoteCustomItem>): JsonArray {

@@ -3,12 +3,16 @@ package com.wirewaypro.app.di
 import com.wirewaypro.app.BuildConfig
 import com.wirewaypro.app.data.auth.AuthRepositoryImpl
 import com.wirewaypro.app.data.clients.ClientRepositoryImpl
+import com.wirewaypro.app.data.expenses.ExpenseRepositoryImpl
 import com.wirewaypro.app.data.jobs.JobRepositoryImpl
+import com.wirewaypro.app.data.money.MoneyRepositoryImpl
 import com.wirewaypro.app.data.profile.ProfileRepositoryImpl
 import com.wirewaypro.app.data.quotes.QuoteRepositoryImpl
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ClientRepository
+import com.wirewaypro.app.domain.repository.ExpenseRepository
 import com.wirewaypro.app.domain.repository.JobRepository
+import com.wirewaypro.app.domain.repository.MoneyRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
 import dagger.Binds
@@ -21,6 +25,7 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.serializer.KotlinXSerializer
+import io.github.jan.supabase.storage.Storage
 import kotlinx.serialization.json.Json
 import javax.inject.Singleton
 
@@ -55,6 +60,7 @@ object SupabaseModule {
             // on Android it stores the session via androidx.startup-provided context.
             install(Auth)
             install(Postgrest)
+            install(Storage)
         }
 }
 
@@ -85,4 +91,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindClientRepository(impl: ClientRepositoryImpl): ClientRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindExpenseRepository(impl: ExpenseRepositoryImpl): ExpenseRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMoneyRepository(impl: MoneyRepositoryImpl): MoneyRepository
 }

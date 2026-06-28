@@ -23,10 +23,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wirewaypro.app.ui.components.DateField
 import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.SaveTopBar
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.StatusSelector
+import com.wirewaypro.app.ui.components.TimeField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,8 +79,8 @@ fun JobEditScreen(
 
             SectionCard(title = "Schedule") {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    FormField(state.scheduledDate, viewModel::setScheduledDate, "Date (YYYY-MM-DD)", Modifier.weight(1f))
-                    FormField(state.scheduledTime, viewModel::setScheduledTime, "Time (HH:MM)", Modifier.weight(1f))
+                    DateField("Date", state.scheduledDate, viewModel::setScheduledDate, Modifier.weight(1f))
+                    TimeField("Time", state.scheduledTime, viewModel::setScheduledTime, Modifier.weight(1f))
                 }
                 Spacer(Modifier.padding(top = 10.dp))
                 FormField(state.durationHours, viewModel::setDurationHours, "Duration (hours)", keyboardType = KeyboardType.Number)

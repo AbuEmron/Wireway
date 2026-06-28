@@ -218,7 +218,8 @@ order, each phase building on the last:
 | **1 ✅** | Foundation | Auth, session, DI, theme, dashboard shell, one live read |
 | **2 ✅** | Read-only core | Estimates / Invoices / Jobs / Clients lists + Job & Quote detail screens, pull-to-refresh, loading/error/empty states, nested navigation, Settings |
 | **3 ✅** | Write flows | Quote/estimate **builder** (custom line items, markup, tax, totals matching the web math; estimate↔invoice; auto quote number), Jobs create/edit + delete + `job_draws` CRUD, invoice mark-paid / due-date, Clients create/edit/delete. FABs + edit/delete wired into lists & detail |
-| **4** | Scheduling & bookkeeping polish | Date/time pickers, native catalog line items, calendar view, money dashboard, offline save queue (mirror the web's quote queue), real brand fonts (Space Grotesk / Inter) |
+| **4 ✅** | Catalog, pickers, receipts, money | Full NEC catalog ported + **editable catalog line items** in the builder (totals match the web exactly, incl. hourly-rate-scaled labor); Material 3 date/time pickers; **receipts + camera** (capture/gallery → `receipts` bucket → expense row) with an expenses list; read-only **money dashboard** (collected / spent / profit) |
+| **5** | Remaining polish | Brand fonts (Space Grotesk / Inter), in-app CameraX preview + receipt OCR, calendar view, offline save queue, AR aging / per-job P&L / CSV export |
 | **5** | Bookkeeping & invoicing | Invoices, payment status, money dashboard, Stripe/Plaid-backed flows via the existing `/api` endpoints |
 | **6** | Receipts & camera | CameraX capture, photo upload to Supabase Storage, receipt attach to jobs/expenses |
 | **7** | Offline-first | Room cache + WorkManager sync; make estimates/jobs fully usable with no signal |

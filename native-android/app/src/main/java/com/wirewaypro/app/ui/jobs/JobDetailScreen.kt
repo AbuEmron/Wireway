@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.model.Job
 import com.wirewaypro.app.domain.model.JobDraw
 import com.wirewaypro.app.ui.components.ConfirmDialog
+import com.wirewaypro.app.ui.components.DateField
 import com.wirewaypro.app.ui.components.DetailScaffold
 import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.InfoRow
@@ -219,7 +220,7 @@ private fun DrawEditorDialog(
                     FormField(draft.amount, { v -> onChange { it.copy(amount = v) } }, "Amount $", Modifier.weight(1f), KeyboardType.Number)
                     FormField(draft.retainagePct, { v -> onChange { it.copy(retainagePct = v) } }, "Retainage %", Modifier.weight(1f), KeyboardType.Number)
                 }
-                FormField(draft.dueDate, { v -> onChange { it.copy(dueDate = v) } }, "Due date (YYYY-MM-DD)")
+                DateField("Due date", draft.dueDate, { v -> onChange { it.copy(dueDate = v) } })
                 StatusSelector(DrawDraft.STATUSES, draft.status, { v -> onChange { it.copy(status = v) } })
             }
         },

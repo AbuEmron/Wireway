@@ -21,6 +21,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.wirewaypro.app.ui.clients.ClientEditScreen
 import com.wirewaypro.app.ui.clients.ClientsScreen
+import com.wirewaypro.app.ui.expenses.AddExpenseScreen
+import com.wirewaypro.app.ui.expenses.ExpensesScreen
 import com.wirewaypro.app.ui.jobs.JobDetailScreen
 import com.wirewaypro.app.ui.jobs.JobEditScreen
 import com.wirewaypro.app.ui.jobs.JobsScreen
@@ -28,6 +30,7 @@ import com.wirewaypro.app.ui.navigation.DashDest
 import com.wirewaypro.app.ui.navigation.HomeTab
 import com.wirewaypro.app.ui.quotes.EstimatesScreen
 import com.wirewaypro.app.ui.quotes.InvoicesScreen
+import com.wirewaypro.app.ui.money.MoneyScreen
 import com.wirewaypro.app.ui.quotes.QuoteBuilderScreen
 import com.wirewaypro.app.ui.quotes.QuoteDetailScreen
 import com.wirewaypro.app.ui.settings.SettingsScreen
@@ -75,6 +78,8 @@ fun DashboardScreen() {
                 HomeScreen(
                     onOpenJobs = { navController.navigate(DashDest.JOBS) },
                     onOpenClients = { navController.navigate(DashDest.CLIENTS) },
+                    onOpenExpenses = { navController.navigate(DashDest.EXPENSES) },
+                    onOpenMoney = { navController.navigate(DashDest.MONEY) },
                 )
             }
             composable(HomeTab.ESTIMATES.route) {
@@ -106,6 +111,18 @@ fun DashboardScreen() {
                     onOpenClient = { id -> navController.navigate(DashDest.clientEdit(id)) },
                     onAdd = { navController.navigate(DashDest.clientEdit()) },
                 )
+            }
+            composable(DashDest.EXPENSES) {
+                ExpensesScreen(
+                    onBack = { navController.popBackStack() },
+                    onAdd = { navController.navigate(DashDest.ADD_EXPENSE) },
+                )
+            }
+            composable(DashDest.ADD_EXPENSE) {
+                AddExpenseScreen(onClose = { navController.popBackStack() })
+            }
+            composable(DashDest.MONEY) {
+                MoneyScreen(onBack = { navController.popBackStack() })
             }
 
             val idArg = listOf(navArgument(DashDest.ARG_ID) { type = NavType.StringType })

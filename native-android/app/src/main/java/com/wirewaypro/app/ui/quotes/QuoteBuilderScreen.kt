@@ -1,5 +1,6 @@
 package com.wirewaypro.app.ui.quotes
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,7 +27,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +39,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wirewaypro.app.domain.catalog.Catalog
+import com.wirewaypro.app.domain.model.QuoteCalculator
+import com.wirewaypro.app.domain.model.QuoteCatalogEntry
+import com.wirewaypro.app.ui.components.DateField
 import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.SaveTopBar
 import com.wirewaypro.app.ui.components.SectionCard
@@ -45,14 +55,22 @@ fun QuoteBuilderScreen(
     viewModel: QuoteBuilderViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showCatalog by remember { mutableStateOf(false) }
 
-    // Leave the screen once the save succeeds.
-    androidx.compose.runtime.LaunchedEffect(state.saved) {
-        if (state.saved) onClose()
+    LaunchedEffect(state.saved) { if (state.saved) onClose() }
+
+    if (showCatalog) {
+        CatalogPicker(
+            selectedIds = state.catalogItems.map { it.serviceId }.toSet(),
+            onAdd = viewModel::addCatalogEntry,
+            onClose = { showCatalog = false },
+        )
+        return
     }
 
     val kind = if (state.isInvoice) "Invoice" else "Estimate"
     val titleVerb = if (state.isEdit) "Edit" else "New"
+    val hourlyRate = state.hourlyRate.trim().toDoubleOrNull()?.takeIf { it > 0 } ?: 85.0
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -84,11 +102,7 @@ fun QuoteBuilderScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             state.quoteNumber?.let {
-                Text(
-                    text = "#$it",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                Text("#$it", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
 
             SectionCard(title = "Client") {
@@ -101,11 +115,36 @@ fun QuoteBuilderScreen(
                 FormField(state.clientPhone, viewModel::setClientPhone, "Phone", keyboardType = KeyboardType.Phone)
             }
 
-            SectionCard(title = "Line items") {
+            SectionCard(title = "Catalog items") {
+                if (state.catalogItems.isEmpty()) {
+                    Text(
+                        "No catalog items. Browse the NEC service catalog to add priced work.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    state.catalogItems.forEachIndexed { index, item ->
+                        CatalogItemEditor(
+                            item = item,
+                            hourlyRate = hourlyRate,
+                            onChange = { viewModel.updateCatalogEntry(index, it) },
+                            onRemove = { viewModel.removeCatalogEntry(index) },
+                        )
+                        Spacer(Modifier.padding(top = 8.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Spacer(Modifier.padding(top = 8.dp))
+                    }
+                }
+                OutlinedButton(onClick = { showCatalog = true }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Add catalog item")
+                }
+            }
+
+            SectionCard(title = "Custom items") {
                 state.items.forEachIndexed { index, item ->
                     LineItemEditor(
                         item = item,
-                        canRemove = state.items.size > 1,
                         onChange = { viewModel.updateItem(index, it) },
                         onRemove = { viewModel.removeItem(index) },
                     )
@@ -115,7 +154,7 @@ fun QuoteBuilderScreen(
                 }
                 OutlinedButton(onClick = viewModel::addItem, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                    Text("Add line item")
+                    Text("Add custom item")
                 }
             }
 
@@ -136,7 +175,7 @@ fun QuoteBuilderScreen(
                 SwitchRow("Save as invoice", state.isInvoice, viewModel::setInvoiceMode)
                 if (state.isInvoice) {
                     Spacer(Modifier.padding(top = 10.dp))
-                    FormField(state.invoiceDueDate, viewModel::setInvoiceDueDate, "Due date (YYYY-MM-DD)")
+                    DateField("Due date", state.invoiceDueDate, viewModel::setInvoiceDueDate)
                     Spacer(Modifier.padding(top = 10.dp))
                     SwitchRow("Paid", state.invoicePaid, viewModel::setInvoicePaid)
                 }
@@ -164,33 +203,73 @@ fun QuoteBuilderScreen(
             }
 
             if (state.error != null) {
-                Text(
-                    text = state.error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Text(state.error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
 }
 
 @Composable
+private fun CatalogItemEditor(
+    item: CatalogEntryUi,
+    hourlyRate: Double,
+    onChange: ((CatalogEntryUi) -> CatalogEntryUi) -> Unit,
+    onRemove: () -> Unit,
+) {
+    val service = Catalog.service(item.serviceId)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            service?.label ?: item.serviceId,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = onRemove) {
+            Icon(Icons.Outlined.Delete, contentDescription = "Remove", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+    if (service != null && service.variants.size > 1) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            service.variants.forEachIndexed { idx, variant ->
+                FilterChip(
+                    selected = idx == item.variantIdx,
+                    onClick = { onChange { it.copy(variantIdx = idx) } },
+                    label = { Text(variant.label) },
+                )
+            }
+        }
+    }
+    Spacer(Modifier.padding(top = 6.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        FormField(item.qty, { v -> onChange { it.copy(qty = v) } }, "Qty", Modifier.weight(1f), KeyboardType.Number)
+        Spacer(Modifier.width(12.dp))
+        val amount = QuoteCalculator.catalogLineAmount(
+            QuoteCatalogEntry(item.serviceId, item.qty.trim().toDoubleOrNull() ?: 0.0, item.variantIdx, item.clientBuys),
+            hourlyRate,
+        )
+        Text(
+            Format.money(amount),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+@Composable
 private fun LineItemEditor(
     item: CustomItemUi,
-    canRemove: Boolean,
     onChange: ((CustomItemUi) -> CustomItemUi) -> Unit,
     onRemove: () -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         FormField(item.label, { v -> onChange { it.copy(label = v) } }, "Description", Modifier.weight(1f))
-        if (canRemove) {
-            IconButton(onClick = onRemove) {
-                Icon(
-                    Icons.Outlined.Delete,
-                    contentDescription = "Remove line",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        IconButton(onClick = onRemove) {
+            Icon(Icons.Outlined.Delete, contentDescription = "Remove line", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
     Spacer(Modifier.padding(top = 8.dp))

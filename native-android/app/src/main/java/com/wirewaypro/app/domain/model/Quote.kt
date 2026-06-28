@@ -50,6 +50,19 @@ data class QuoteDetail(
     val lineItems: List<QuoteLineItem>,
     // The editable custom items only (parsed from `custom_items`), for the builder.
     val customItems: List<QuoteCustomItem>,
+    // The editable catalog selections (parsed from `entries`), for the builder.
+    val catalogEntries: List<QuoteCatalogEntry>,
+)
+
+/**
+ * A selected catalog service — the `entries` JSON shape the web app writes,
+ * keyed by catalog id: { [serviceId]: { qty, variantIdx, clientBuys } }.
+ */
+data class QuoteCatalogEntry(
+    val serviceId: String,
+    val qty: Double = 1.0,
+    val variantIdx: Int = 0,
+    val clientBuys: Boolean = false,
 )
 
 /**
@@ -67,9 +80,9 @@ data class QuoteCustomItem(
 )
 
 /**
- * Everything the quote builder can write. Catalog `entries` are NOT here — they
- * are preserved untouched by the repository on edit (no native catalog picker
- * this phase); the builder only edits [customItems] plus the header/money flags.
+ * Everything the quote builder can write — both catalog [catalogEntries] and
+ * [customItems] are fully editable; the repository computes totals and writes the
+ * `entries` + `custom_items` JSON from these.
  */
 data class QuoteInput(
     val id: String?,            // null = create
@@ -87,6 +100,7 @@ data class QuoteInput(
     val invoiceDueDate: String?,
     val invoicePaid: Boolean,
     val showMaterials: Boolean,
+    val catalogEntries: List<QuoteCatalogEntry>,
     val customItems: List<QuoteCustomItem>,
 )
 

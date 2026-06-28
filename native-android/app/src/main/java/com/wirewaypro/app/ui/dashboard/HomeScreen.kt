@@ -15,6 +15,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,6 +45,8 @@ import com.wirewaypro.app.ui.components.WirewayWordmark
 fun HomeScreen(
     onOpenJobs: () -> Unit,
     onOpenClients: () -> Unit,
+    onOpenExpenses: () -> Unit,
+    onOpenMoney: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.home.collectAsStateWithLifecycle()
@@ -101,6 +105,8 @@ fun HomeScreen(
         )
         QuickLink(icon = Icons.Outlined.Work, label = "Jobs", onClick = onOpenJobs)
         QuickLink(icon = Icons.Outlined.Groups, label = "Clients", onClick = onOpenClients)
+        QuickLink(icon = Icons.Outlined.ReceiptLong, label = "Expenses & receipts", onClick = onOpenExpenses)
+        QuickLink(icon = Icons.Outlined.Payments, label = "Money", onClick = onOpenMoney)
 
         Spacer(Modifier.height(4.dp))
         Text(

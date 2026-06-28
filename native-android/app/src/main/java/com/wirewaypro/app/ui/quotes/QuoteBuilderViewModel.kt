@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.domain.model.QuoteCalculator
+import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.QuoteCustomItem
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteInput
@@ -17,6 +18,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+/** A selected catalog service being edited (numeric qty as text). */
+data class CatalogEntryUi(
+    val serviceId: String,
+    val qty: String = "1",
+    val variantIdx: Int = 0,
+    val clientBuys: Boolean = false,
+)
 
 /** A custom line item being edited; numeric fields are text for smooth input. */
 data class CustomItemUi(
@@ -46,7 +55,8 @@ data class QuoteBuilderUiState(
     val taxRatePct: String = "8",
     val invoiceDueDate: String = "",
     val invoicePaid: Boolean = false,
-    val items: List<CustomItemUi> = listOf(CustomItemUi()),
+    val catalogItems: List<CatalogEntryUi> = emptyList(),
+    val items: List<CustomItemUi> = emptyList(),
     val error: String? = null,
     val saved: Boolean = false,
 )
@@ -63,8 +73,6 @@ class QuoteBuilderViewModel @Inject constructor(
     private val quoteId: String? =
         savedStateHandle.get<String>(ARG_ID)?.takeIf { it.isNotBlank() }
 
-    private var carried = QuoteCalculator.Carried()
-
     private val _state = MutableStateFlow(
         QuoteBuilderUiState(
             isEdit = quoteId != null,
@@ -78,15 +86,23 @@ class QuoteBuilderViewModel @Inject constructor(
         if (quoteId != null) loadExisting(quoteId)
     }
 
-    /** Live totals preview using the same calculator the repository saves with. */
+    /** Live totals preview, computed with the same calculator the repository saves with. */
     val previewTotals: QuoteTotals
         get() = QuoteCalculator.compute(
+            catalogEntries = currentCatalogEntries(),
             customItems = currentItems(),
             markup = _state.value.markupPct.toD() / 100.0,
             taxEnabled = _state.value.taxEnabled,
             taxRate = _state.value.taxRatePct.toD() / 100.0,
-            carried = carried,
+            hourlyRate = currentHourlyRate(),
         )
+
+    private fun currentHourlyRate(): Double = _state.value.hourlyRate.toD().takeIf { it > 0 } ?: 85.0
+
+    private fun currentCatalogEntries(): List<QuoteCatalogEntry> =
+        _state.value.catalogItems.map {
+            QuoteCatalogEntry(it.serviceId, it.qty.toD(), it.variantIdx, it.clientBuys)
+        }
 
     private fun currentItems(): List<QuoteCustomItem> =
         _state.value.items.map {
@@ -110,15 +126,6 @@ class QuoteBuilderViewModel @Inject constructor(
     }
 
     private fun applyLoaded(q: QuoteDetail) {
-        // Freeze the catalog entries' money contribution = stored totals − custom items.
-        val custMat = q.customItems.sumOf { it.materialCost * it.qty }
-        val custLab = q.customItems.sumOf { it.laborCost * it.qty }
-        val custHrs = q.customItems.sumOf { it.laborHours * it.qty }
-        carried = QuoteCalculator.Carried(
-            material = ((q.totalMaterial ?: 0.0) - custMat).coerceAtLeast(0.0),
-            labor = ((q.totalLabor ?: 0.0) - custLab).coerceAtLeast(0.0),
-            hours = ((q.totalHours ?: 0.0) - custHrs).coerceAtLeast(0.0),
-        )
         _state.update {
             it.copy(
                 isLoading = false,
@@ -135,17 +142,12 @@ class QuoteBuilderViewModel @Inject constructor(
                 taxRatePct = pctText(q.taxRate ?: 0.08),
                 invoiceDueDate = q.invoiceDueDate.orEmpty(),
                 invoicePaid = q.invoicePaid,
+                catalogItems = q.catalogEntries.map { e ->
+                    CatalogEntryUi(e.serviceId, numText(e.qty), e.variantIdx, e.clientBuys)
+                },
                 items = q.customItems.map { ci ->
-                    CustomItemUi(
-                        id = ci.id,
-                        label = ci.label,
-                        qty = numText(ci.qty),
-                        materialCost = numText(ci.materialCost),
-                        laborCost = numText(ci.laborCost),
-                        laborHours = numText(ci.laborHours),
-                        kind = ci.kind,
-                    )
-                }.ifEmpty { listOf(CustomItemUi()) },
+                    CustomItemUi(ci.id, ci.label, numText(ci.qty), numText(ci.materialCost), numText(ci.laborCost), numText(ci.laborHours), ci.kind)
+                },
             )
         }
     }
@@ -164,7 +166,21 @@ class QuoteBuilderViewModel @Inject constructor(
     fun setInvoiceDueDate(v: String) = _state.update { it.copy(invoiceDueDate = v) }
     fun setInvoicePaid(v: Boolean) = _state.update { it.copy(invoicePaid = v) }
 
-    // ── Line items ──────────────────────────────────────────────────────────────
+    // ── Catalog entries ─────────────────────────────────────────────────────────
+    fun addCatalogEntry(serviceId: String) = _state.update { s ->
+        if (s.catalogItems.any { it.serviceId == serviceId }) s
+        else s.copy(catalogItems = s.catalogItems + CatalogEntryUi(serviceId), error = null)
+    }
+
+    fun updateCatalogEntry(index: Int, transform: (CatalogEntryUi) -> CatalogEntryUi) = _state.update { s ->
+        s.copy(catalogItems = s.catalogItems.mapIndexed { i, e -> if (i == index) transform(e) else e })
+    }
+
+    fun removeCatalogEntry(index: Int) = _state.update {
+        it.copy(catalogItems = it.catalogItems.filterIndexed { i, _ -> i != index })
+    }
+
+    // ── Custom items ──────────────────────────────────────────────────────────────
     fun addItem() = _state.update { it.copy(items = it.items + CustomItemUi(), error = null) }
 
     fun removeItem(index: Int) = _state.update {
@@ -181,9 +197,10 @@ class QuoteBuilderViewModel @Inject constructor(
             _state.update { it.copy(error = "Session expired.") }
             return
         }
+        val catalog = currentCatalogEntries().filter { it.qty > 0.0 }
         val items = currentItems().filter { it.label.isNotBlank() }
-        if (items.isEmpty()) {
-            _state.update { it.copy(error = "Add at least one line item with a name.") }
+        if (catalog.isEmpty() && items.isEmpty()) {
+            _state.update { it.copy(error = "Add at least one catalog or custom line item.") }
             return
         }
 
@@ -197,13 +214,14 @@ class QuoteBuilderViewModel @Inject constructor(
             jobName = s.jobName.ifBlank { null },
             notes = s.notes.ifBlank { null },
             markup = s.markupPct.toD() / 100.0,
-            hourlyRate = s.hourlyRate.toD().takeIf { it > 0 } ?: 85.0,
+            hourlyRate = currentHourlyRate(),
             taxEnabled = s.taxEnabled,
             taxRate = s.taxRatePct.toD() / 100.0,
             invoiceMode = s.isInvoice,
             invoiceDueDate = s.invoiceDueDate.ifBlank { null },
             invoicePaid = s.invoicePaid,
             showMaterials = true,
+            catalogEntries = catalog,
             customItems = items,
         )
 
@@ -219,7 +237,6 @@ class QuoteBuilderViewModel @Inject constructor(
         const val ARG_ID = "id"
         const val ARG_INVOICE = "invoice"
 
-        /** "30" for 0.30. Trims a trailing ".0". */
         private fun pctText(fraction: Double): String = numText(fraction * 100.0)
 
         private fun numText(value: Double): String =

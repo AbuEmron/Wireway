@@ -1,5 +1,8 @@
 package com.wirewaypro.app.data.quotes
 
+import com.wirewaypro.app.domain.catalog.Catalog
+import com.wirewaypro.app.domain.model.QuoteCalculator
+import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.QuoteCustomItem
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteLineItem
@@ -9,6 +12,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -90,8 +94,9 @@ data class QuoteDto(
         markup = markup,
         hourlyRate = hourlyRate,
         taxRate = taxRate,
-        lineItems = parseLineItems(entries, customItems),
+        lineItems = parseLineItems(entries, customItems, hourlyRate ?: 85.0),
         customItems = parseCustomItems(customItems),
+        catalogEntries = parseCatalogEntries(entries),
     )
 }
 
@@ -118,19 +123,23 @@ private fun JsonElement.stringOrNull(key: String): String? =
 private fun parseLineItems(
     entries: JsonElement?,
     customItems: JsonElement?,
+    hourlyRate: Double,
 ): List<QuoteLineItem> {
     val items = mutableListOf<QuoteLineItem>()
 
-    (entries as? JsonObject)?.forEach { (id, value) ->
-        val qty = value.numberOrNull("qty") ?: 0.0
-        if (qty > 0.0) {
-            items += QuoteLineItem(
-                label = id.replace('_', ' '),
-                quantity = qty,
-                amount = null,
-                kind = null,
-            )
+    parseCatalogEntries(entries).forEach { entry ->
+        val service = Catalog.service(entry.serviceId)
+        val variantLabel = service?.variants?.getOrNull(entry.variantIdx)?.label
+        val label = buildString {
+            append(service?.label ?: entry.serviceId.replace('_', ' '))
+            if (variantLabel != null && (service?.variants?.size ?: 0) > 1) append(" · $variantLabel")
         }
+        items += QuoteLineItem(
+            label = label,
+            quantity = entry.qty,
+            amount = QuoteCalculator.catalogLineAmount(entry, hourlyRate),
+            kind = null,
+        )
     }
 
     (customItems as? JsonArray)?.forEach { element ->
@@ -149,6 +158,19 @@ private fun parseLineItems(
 
     return items
 }
+
+/** Parses the `entries` object into editable [QuoteCatalogEntry]s (qty > 0 only). */
+private fun parseCatalogEntries(entries: JsonElement?): List<QuoteCatalogEntry> =
+    (entries as? JsonObject)?.mapNotNull { (id, value) ->
+        val qty = value.numberOrNull("qty") ?: 0.0
+        if (qty <= 0.0) return@mapNotNull null
+        QuoteCatalogEntry(
+            serviceId = id,
+            qty = qty,
+            variantIdx = value.numberOrNull("variantIdx")?.toInt() ?: 0,
+            clientBuys = (value as? JsonObject)?.get("clientBuys")?.jsonPrimitive?.booleanOrNull ?: false,
+        )
+    }.orEmpty()
 
 /** Parses `custom_items` into editable [QuoteCustomItem]s (keeps blanks out). */
 private fun parseCustomItems(customItems: JsonElement?): List<QuoteCustomItem> =
