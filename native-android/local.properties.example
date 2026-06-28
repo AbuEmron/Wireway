@@ -1,0 +1,15 @@
+# Copy this file to `local.properties` and fill in the real values.
+# `local.properties` is git-ignored — keys never get committed.
+#
+# Android Studio also writes `sdk.dir` here automatically; leave that line in
+# place if it adds one.
+
+# Path to your Android SDK (Android Studio fills this in for you).
+# sdk.dir=C\:\\Users\\you\\AppData\\Local\\Android\\Sdk
+
+# ── Supabase (PUBLIC values — the SAME ones the web app uses) ──────────────────
+# These mirror the web app's REACT_APP_SUPABASE_URL / REACT_APP_SUPABASE_ANON_KEY
+# (set in Vercel for the web build). The anon key is a public, RLS-protected key
+# and is safe to ship in a client app. NEVER put the service-role key here.
+REACT_APP_SUPABASE_URL=https://YOUR-PROJECT-ref.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=your-public-anon-key

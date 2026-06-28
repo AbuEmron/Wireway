@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ backup/transfer rules. Keep auth tokens out of both. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="wireway_auth.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="wireway_auth.xml" />
+    </device-transfer>
+</data-extraction-rules>
