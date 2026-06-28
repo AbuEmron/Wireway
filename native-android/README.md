@@ -113,6 +113,30 @@ All read against the live shared backend; RLS scopes rows to the user.
 > in the JSON `entries` (catalog items, keyed by id) and `custom_items` (array)
 > columns, flattened by `QuoteDto.parseLineItems`.
 
+### Write flows (Phase 3)
+
+All writes go through Postgrest (`insert`/`update`/`delete`) in the data layer;
+RLS scopes ownership and `user_id` is set on inserts.
+
+| Flow | Where | Notes |
+| ---- | ----- | ----- |
+| Quote builder (create/edit) | `QuoteBuilderScreen` | Totals computed by `QuoteCalculator` — identical formula to `electrical-estimator.jsx`. Estimate↔invoice toggle. Auto quote number `WW-YYYY-NNN`. |
+| Quote/invoice delete | detail screen | confirm dialog |
+| Invoice paid / due date | invoice detail | sets `invoice_paid` + `paid_at` + `status`; `invoice_due_date` |
+| Job create/edit/delete | `JobEditScreen`, job detail | status chips; delete confirm (draws cascade) |
+| Job draws CRUD | job detail dialog | label, amount, retainage %, status, due date — mirrors `lib/billing.js` |
+| Client create/edit/delete | `ClientEditScreen` | |
+
+**Matching the web math (exactly).** `QuoteCalculator.compute` reproduces
+`electrical-estimator.jsx`: per custom item `mat = materialCost·qty`,
+`lab = laborCost·qty`, `hrs = laborHours·qty`; then `subtotal = totMat + totLab`,
+`markupAmt = subtotal·markup`, `taxAmt = taxEnabled ? totMat·taxRate : 0` (tax on
+materials only), `total = subtotal + markupAmt + taxAmt`, rounded with the web's
+`round2`. The builder edits **custom items only**; any catalog `entries` on an
+edited quote are preserved untouched and their money contribution is frozen
+(`stored totals − custom items`) so totals never drift. Quote number matches
+`genQuoteNum()`: `WW-{year}-{(quoteCount+1) padded to 3}`.
+
 ---
 
 ## Supabase keys — where they come from
@@ -193,8 +217,8 @@ order, each phase building on the last:
 | ----- | ----- | ---------- |
 | **1 ✅** | Foundation | Auth, session, DI, theme, dashboard shell, one live read |
 | **2 ✅** | Read-only core | Estimates / Invoices / Jobs / Clients lists + Job & Quote detail screens, pull-to-refresh, loading/error/empty states, nested navigation, Settings |
-| **3** | Estimating | The quote/estimate **builder** — line items, labor/material, markup, tax; offline-safe save queue (mirror the web app's quote queue). Real brand fonts (Space Grotesk / Inter) |
-| **4** | Job costing & scheduling | Jobs CRUD, calendar scheduling, status flow, client assignment |
+| **3 ✅** | Write flows | Quote/estimate **builder** (custom line items, markup, tax, totals matching the web math; estimate↔invoice; auto quote number), Jobs create/edit + delete + `job_draws` CRUD, invoice mark-paid / due-date, Clients create/edit/delete. FABs + edit/delete wired into lists & detail |
+| **4** | Scheduling & bookkeeping polish | Date/time pickers, native catalog line items, calendar view, money dashboard, offline save queue (mirror the web's quote queue), real brand fonts (Space Grotesk / Inter) |
 | **5** | Bookkeeping & invoicing | Invoices, payment status, money dashboard, Stripe/Plaid-backed flows via the existing `/api` endpoints |
 | **6** | Receipts & camera | CameraX capture, photo upload to Supabase Storage, receipt attach to jobs/expenses |
 | **7** | Offline-first | Room cache + WorkManager sync; make estimates/jobs fully usable with no signal |

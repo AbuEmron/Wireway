@@ -14,3 +14,11 @@ data class Client(
     val totalBilled: Double?,
     val createdAt: String?,
 )
+
+/** Editable client fields (name + optional contact). */
+data class ClientInput(
+    val id: String?,    // null = create
+    val name: String,
+    val email: String?,
+    val phone: String?,
+)

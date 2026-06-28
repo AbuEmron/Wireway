@@ -1,5 +1,6 @@
 package com.wirewaypro.app.data.quotes
 
+import com.wirewaypro.app.domain.model.QuoteCustomItem
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteLineItem
 import com.wirewaypro.app.domain.model.QuoteSummary
@@ -9,6 +10,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
@@ -37,6 +39,9 @@ data class QuoteDto(
     @SerialName("paid_at") val paidAt: String? = null,
     @SerialName("show_materials") val showMaterials: Boolean? = null,
     @SerialName("tax_enabled") val taxEnabled: Boolean? = null,
+    @SerialName("tax_rate") val taxRate: Double? = null,
+    val markup: Double? = null,
+    @SerialName("hourly_rate") val hourlyRate: Double? = null,
     @SerialName("total_material") val totalMaterial: Double? = null,
     @SerialName("total_labor") val totalLabor: Double? = null,
     @SerialName("total_hours") val totalHours: Double? = null,
@@ -82,7 +87,11 @@ data class QuoteDto(
         taxEnabled = taxEnabled == true,
         totalTax = totalTax,
         total = total,
+        markup = markup,
+        hourlyRate = hourlyRate,
+        taxRate = taxRate,
         lineItems = parseLineItems(entries, customItems),
+        customItems = parseCustomItems(customItems),
     )
 }
 
@@ -140,3 +149,18 @@ private fun parseLineItems(
 
     return items
 }
+
+/** Parses `custom_items` into editable [QuoteCustomItem]s (keeps blanks out). */
+private fun parseCustomItems(customItems: JsonElement?): List<QuoteCustomItem> =
+    (customItems as? JsonArray)?.mapNotNull { element ->
+        if (element !is JsonObject) return@mapNotNull null
+        QuoteCustomItem(
+            id = element["id"]?.jsonPrimitive?.longOrNull,
+            label = element.stringOrNull("label").orEmpty(),
+            qty = element.numberOrNull("qty") ?: 1.0,
+            materialCost = element.numberOrNull("materialCost") ?: 0.0,
+            laborCost = element.numberOrNull("laborCost") ?: 0.0,
+            laborHours = element.numberOrNull("laborHours") ?: 0.0,
+            kind = element.stringOrNull("kind"),
+        )
+    }.orEmpty()

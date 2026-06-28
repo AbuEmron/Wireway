@@ -2,7 +2,11 @@ package com.wirewaypro.app.ui.quotes
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,11 +23,20 @@ import com.wirewaypro.app.ui.util.Format
 @Composable
 fun InvoicesScreen(
     onOpenInvoice: (String) -> Unit,
+    onAdd: () -> Unit,
     viewModel: InvoicesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::refresh)
 
-    Scaffold(topBar = { TabTopBar("Invoices") }) { padding ->
+    Scaffold(
+        topBar = { TabTopBar("Invoices") },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAdd) {
+                Icon(Icons.Filled.Add, contentDescription = "New invoice")
+            }
+        },
+    ) { padding ->
         RefreshableList(
             isLoading = state.isLoading,
             isRefreshing = state.isRefreshing,

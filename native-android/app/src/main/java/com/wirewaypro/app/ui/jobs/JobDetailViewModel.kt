@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.domain.model.Job
 import com.wirewaypro.app.domain.model.JobDraw
+import com.wirewaypro.app.domain.model.JobDrawInput
+import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.JobRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,15 +16,33 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** Editable draw fields (numeric values as text). id == null → a new draw. */
+data class DrawDraft(
+    val id: String? = null,
+    val label: String = "",
+    val amount: String = "0",
+    val retainagePct: String = "0",
+    val status: String = "pending",
+    val dueDate: String = "",
+    val sortOrder: Int = 0,
+) {
+    companion object {
+        val STATUSES = listOf("pending", "invoiced", "paid")
+    }
+}
+
 data class JobDetailUiState(
     val isLoading: Boolean = true,
     val job: Job? = null,
     val draws: List<JobDraw> = emptyList(),
     val error: String? = null,
+    val editingDraw: DrawDraft? = null,
+    val deleted: Boolean = false,
 )
 
 @HiltViewModel
 class JobDetailViewModel @Inject constructor(
+    private val auth: AuthRepository,
     private val jobRepository: JobRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -39,19 +59,101 @@ class JobDetailViewModel @Inject constructor(
     fun load() {
         _state.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
-            val jobResult = jobRepository.getJob(jobId)
-            val job = jobResult.getOrNull()
+            val job = jobRepository.getJob(jobId).getOrNull()
             if (job == null) {
                 _state.update { it.copy(isLoading = false, error = "Couldn't load this job.") }
                 return@launch
             }
-            // Draws are supplementary — a failure here shouldn't blank the screen.
             val draws = jobRepository.getJobDraws(jobId).getOrDefault(emptyList())
-            _state.update { JobDetailUiState(isLoading = false, job = job, draws = draws, error = null) }
+            _state.update { it.copy(isLoading = false, job = job, draws = draws, error = null) }
+        }
+    }
+
+    private suspend fun reloadDraws() {
+        val draws = jobRepository.getJobDraws(jobId).getOrDefault(emptyList())
+        _state.update { it.copy(draws = draws) }
+    }
+
+    // ── Draw editor ─────────────────────────────────────────────────────────────
+    fun addDraw() = _state.update {
+        it.copy(editingDraw = DrawDraft(sortOrder = it.draws.size))
+    }
+
+    fun editDraw(draw: JobDraw) = _state.update {
+        it.copy(
+            editingDraw = DrawDraft(
+                id = draw.id,
+                label = draw.label,
+                amount = numText(draw.amount),
+                retainagePct = numText(draw.retainagePct),
+                status = draw.status,
+                dueDate = draw.dueDate.orEmpty(),
+                sortOrder = draw.sortOrder,
+            )
+        )
+    }
+
+    fun updateDrawDraft(transform: (DrawDraft) -> DrawDraft) = _state.update {
+        it.copy(editingDraw = it.editingDraw?.let(transform))
+    }
+
+    fun closeDrawEditor() = _state.update { it.copy(editingDraw = null) }
+
+    fun saveDraw() {
+        val userId = auth.currentUserId() ?: return
+        val draft = _state.value.editingDraw ?: return
+        if (draft.label.isBlank()) {
+            _state.update { it.copy(editingDraw = draft.copy(label = draft.label)) } // no-op; keep open
+            return
+        }
+        val input = JobDrawInput(
+            id = draft.id,
+            jobId = jobId,
+            label = draft.label.trim(),
+            amount = draft.amount.trim().toDoubleOrNull() ?: 0.0,
+            retainagePct = draft.retainagePct.trim().toDoubleOrNull() ?: 0.0,
+            status = draft.status,
+            dueDate = draft.dueDate.ifBlank { null },
+            sortOrder = draft.sortOrder,
+        )
+        viewModelScope.launch {
+            jobRepository.saveDraw(userId, input)
+            _state.update { it.copy(editingDraw = null) }
+            reloadDraws()
+        }
+    }
+
+    fun deleteDraw(drawId: String) {
+        val userId = auth.currentUserId() ?: return
+        viewModelScope.launch {
+            jobRepository.deleteDraw(userId, drawId)
+            reloadDraws()
+        }
+    }
+
+    fun cycleDrawStatus(draw: JobDraw) {
+        val userId = auth.currentUserId() ?: return
+        val order = DrawDraft.STATUSES
+        val next = order[(order.indexOf(draw.status).coerceAtLeast(0) + 1) % order.size]
+        viewModelScope.launch {
+            jobRepository.setDrawStatus(userId, draw.id, next)
+            reloadDraws()
+        }
+    }
+
+    fun deleteJob() {
+        val userId = auth.currentUserId() ?: return
+        viewModelScope.launch {
+            jobRepository.deleteJob(userId, jobId)
+                .onSuccess { _state.update { it.copy(deleted = true) } }
+                .onFailure { _state.update { it.copy(error = "Couldn't delete this job.") } }
         }
     }
 
     companion object {
         const val ARG_ID = "id"
+
+        private fun numText(value: Double): String =
+            if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
     }
 }

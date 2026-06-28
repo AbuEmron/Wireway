@@ -9,11 +9,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -22,24 +35,34 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteLineItem
+import com.wirewaypro.app.ui.components.ConfirmDialog
 import com.wirewaypro.app.ui.components.DetailScaffold
+import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.InfoRow
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.StatusChip
 import com.wirewaypro.app.ui.util.Format
 
 /**
- * Read-only detail for a `quotes` row. Used for BOTH estimates and invoices;
- * [QuoteDetail.isInvoice] only changes the framing (title + payment line).
+ * Read + light-write detail for a `quotes` row. Used for BOTH estimates and
+ * invoices; [QuoteDetail.isInvoice] changes the framing and, for invoices, shows
+ * paid/due controls. Editing the body opens the quote builder.
  */
 @Composable
 fun QuoteDetailScreen(
     onBack: () -> Unit,
+    onEdit: (String) -> Unit,
     viewModel: QuoteDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val isInvoice = state.quote?.isInvoice == true
     val kind = if (isInvoice) "Invoice" else "Estimate"
+
+    var confirmDelete by remember { mutableStateOf(false) }
+    var editDueDate by remember { mutableStateOf(false) }
+
+    com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::load)
+    LaunchedEffect(state.deleted) { if (state.deleted) onBack() }
 
     DetailScaffold(
         title = state.quote?.quoteNumber?.let { "$kind #$it" } ?: kind,
@@ -47,6 +70,16 @@ fun QuoteDetailScreen(
         isLoading = state.isLoading,
         error = state.error,
         onRetry = viewModel::load,
+        actions = {
+            if (state.quote != null) {
+                IconButton(onClick = { onEdit(state.quote!!.id) }) {
+                    Icon(Icons.Outlined.Edit, contentDescription = "Edit")
+                }
+                IconButton(onClick = { confirmDelete = true }) {
+                    Icon(Icons.Outlined.Delete, contentDescription = "Delete")
+                }
+            }
+        },
     ) { padding ->
         val quote = state.quote ?: return@DetailScaffold
         Column(
@@ -58,6 +91,30 @@ fun QuoteDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Header(quote = quote, kind = kind)
+
+            if (quote.isInvoice) {
+                SectionCard(title = "Invoice") {
+                    InfoRow("Status", if (quote.invoicePaid) "Paid" else "Unpaid")
+                    InfoRow("Due", quote.invoiceDueDate?.let { Format.date(it) } ?: "—")
+                    Spacer(Modifier.padding(top = 10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(
+                            onClick = viewModel::togglePaid,
+                            enabled = !state.busy,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(if (quote.invoicePaid) "Mark unpaid" else "Mark paid")
+                        }
+                        OutlinedButton(
+                            onClick = { editDueDate = true },
+                            enabled = !state.busy,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("Due date")
+                        }
+                    }
+                }
+            }
 
             if (quote.clientName != null || quote.clientEmail != null || quote.clientPhone != null) {
                 SectionCard(title = "Client") {
@@ -76,26 +133,17 @@ fun QuoteDetailScreen(
 
             SectionCard(title = "Totals") {
                 if (quote.showMaterials) MoneyRow("Materials", quote.totalMaterial)
-                val laborLabel = quote.totalHours
-                    ?.let { "Labor (${trimNum(it)} hrs)" } ?: "Labor"
+                val laborLabel = quote.totalHours?.let { "Labor (${trimNum(it)} hrs)" } ?: "Labor"
                 MoneyRow(laborLabel, quote.totalLabor)
                 MoneyRow("Markup", quote.totalMarkup)
                 if (quote.taxEnabled) MoneyRow("Tax", quote.totalTax)
                 Spacer(Modifier.padding(top = 6.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(Modifier.padding(top = 6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = "Total",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = Format.money(quote.total),
+                        Format.money(quote.total),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -105,15 +153,40 @@ fun QuoteDetailScreen(
 
             quote.notes?.takeIf { it.isNotBlank() }?.let { notes ->
                 SectionCard(title = "Notes") {
-                    Text(
-                        text = notes,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
+                    Text(notes, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
     }
+
+    if (confirmDelete) {
+        ConfirmDialog(
+            title = "Delete $kind?",
+            message = "This permanently deletes this record.",
+            onConfirm = { confirmDelete = false; viewModel.delete() },
+            onDismiss = { confirmDelete = false },
+        )
+    }
+
+    if (editDueDate) {
+        DueDateDialog(
+            initial = state.quote?.invoiceDueDate.orEmpty(),
+            onConfirm = { editDueDate = false; viewModel.setDueDate(it) },
+            onDismiss = { editDueDate = false },
+        )
+    }
+}
+
+@Composable
+private fun DueDateDialog(initial: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var text by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Due date") },
+        text = { FormField(text, { text = it }, "Due date (YYYY-MM-DD)") },
+        confirmButton = { TextButton(onClick = { onConfirm(text) }) { Text("Save") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
@@ -137,23 +210,13 @@ private fun Header(quote: QuoteDetail, kind: String) {
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        if (quote.isInvoice && quote.invoiceDueDate != null) {
-            Spacer(Modifier.padding(top = 6.dp))
-            Text(
-                text = "Due ${Format.date(quote.invoiceDueDate)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
 @Composable
 private fun LineItemRow(item: QuoteLineItem) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 5.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
         verticalAlignment = Alignment.Top,
     ) {
         val prefix = if (item.kind == "mileage") "🚗 " else ""
@@ -175,7 +238,6 @@ private fun LineItemRow(item: QuoteLineItem) {
     }
 }
 
-/** Totals line that hides itself when the value is null. */
 @Composable
 private fun MoneyRow(label: String, value: Double?) {
     if (value == null) return

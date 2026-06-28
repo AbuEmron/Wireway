@@ -43,8 +43,51 @@ data class QuoteDetail(
     val taxEnabled: Boolean,
     val totalTax: Double?,
     val total: Double?,
-    // Line items live in the JSON `entries` / `custom_items` columns.
+    val markup: Double?,
+    val hourlyRate: Double?,
+    val taxRate: Double?,
+    // Display merge of catalog `entries` + `custom_items` (read-only screens).
     val lineItems: List<QuoteLineItem>,
+    // The editable custom items only (parsed from `custom_items`), for the builder.
+    val customItems: List<QuoteCustomItem>,
+)
+
+/**
+ * An editable custom line item — the `custom_items` JSON shape the web app writes:
+ * { id, label, qty, materialCost, laborCost, laborHours, kind? }.
+ */
+data class QuoteCustomItem(
+    val id: Long? = null,
+    val label: String,
+    val qty: Double = 1.0,
+    val materialCost: Double = 0.0,
+    val laborCost: Double = 0.0,
+    val laborHours: Double = 0.0,
+    val kind: String? = null,
+)
+
+/**
+ * Everything the quote builder can write. Catalog `entries` are NOT here — they
+ * are preserved untouched by the repository on edit (no native catalog picker
+ * this phase); the builder only edits [customItems] plus the header/money flags.
+ */
+data class QuoteInput(
+    val id: String?,            // null = create
+    val quoteNumber: String?,   // null = generate WW-YYYY-NNN
+    val clientName: String?,
+    val clientEmail: String?,
+    val clientPhone: String?,
+    val jobName: String?,
+    val notes: String?,
+    val markup: Double,         // fraction, e.g. 0.30 = 30%
+    val hourlyRate: Double,
+    val taxEnabled: Boolean,
+    val taxRate: Double,        // fraction, e.g. 0.08
+    val invoiceMode: Boolean,   // true = invoice, false = estimate
+    val invoiceDueDate: String?,
+    val invoicePaid: Boolean,
+    val showMaterials: Boolean,
+    val customItems: List<QuoteCustomItem>,
 )
 
 /**

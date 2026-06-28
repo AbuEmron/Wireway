@@ -2,9 +2,12 @@ package com.wirewaypro.app.ui.jobs
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -21,11 +24,20 @@ import com.wirewaypro.app.ui.util.Format
 fun JobsScreen(
     onBack: () -> Unit,
     onOpenJob: (String) -> Unit,
+    onAdd: () -> Unit,
     viewModel: JobsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::refresh)
 
-    Scaffold(topBar = { BackTopBar(title = "Jobs", onBack = onBack) }) { padding ->
+    Scaffold(
+        topBar = { BackTopBar(title = "Jobs", onBack = onBack) },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAdd) {
+                Icon(Icons.Filled.Add, contentDescription = "New job")
+            }
+        },
+    ) { padding ->
         RefreshableList(
             isLoading = state.isLoading,
             isRefreshing = state.isRefreshing,

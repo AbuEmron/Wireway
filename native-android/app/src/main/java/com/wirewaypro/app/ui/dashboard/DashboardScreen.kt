@@ -19,13 +19,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.wirewaypro.app.ui.clients.ClientEditScreen
 import com.wirewaypro.app.ui.clients.ClientsScreen
 import com.wirewaypro.app.ui.jobs.JobDetailScreen
+import com.wirewaypro.app.ui.jobs.JobEditScreen
 import com.wirewaypro.app.ui.jobs.JobsScreen
 import com.wirewaypro.app.ui.navigation.DashDest
 import com.wirewaypro.app.ui.navigation.HomeTab
 import com.wirewaypro.app.ui.quotes.EstimatesScreen
 import com.wirewaypro.app.ui.quotes.InvoicesScreen
+import com.wirewaypro.app.ui.quotes.QuoteBuilderScreen
 import com.wirewaypro.app.ui.quotes.QuoteDetailScreen
 import com.wirewaypro.app.ui.settings.SettingsScreen
 
@@ -77,11 +80,13 @@ fun DashboardScreen() {
             composable(HomeTab.ESTIMATES.route) {
                 EstimatesScreen(
                     onOpenEstimate = { id -> navController.navigate(DashDest.estimateDetail(id)) },
+                    onAdd = { navController.navigate(DashDest.quoteBuilder(invoice = false)) },
                 )
             }
             composable(HomeTab.INVOICES.route) {
                 InvoicesScreen(
                     onOpenInvoice = { id -> navController.navigate(DashDest.invoiceDetail(id)) },
+                    onAdd = { navController.navigate(DashDest.quoteBuilder(invoice = true)) },
                 )
             }
             composable(HomeTab.SETTINGS.route) {
@@ -92,21 +97,61 @@ fun DashboardScreen() {
                 JobsScreen(
                     onBack = { navController.popBackStack() },
                     onOpenJob = { id -> navController.navigate(DashDest.jobDetail(id)) },
+                    onAdd = { navController.navigate(DashDest.jobEdit()) },
                 )
             }
             composable(DashDest.CLIENTS) {
-                ClientsScreen(onBack = { navController.popBackStack() })
+                ClientsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenClient = { id -> navController.navigate(DashDest.clientEdit(id)) },
+                    onAdd = { navController.navigate(DashDest.clientEdit()) },
+                )
             }
 
             val idArg = listOf(navArgument(DashDest.ARG_ID) { type = NavType.StringType })
             composable(DashDest.JOB_DETAIL, arguments = idArg) {
-                JobDetailScreen(onBack = { navController.popBackStack() })
+                JobDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onEdit = { id -> navController.navigate(DashDest.jobEdit(id)) },
+                )
             }
             composable(DashDest.ESTIMATE_DETAIL, arguments = idArg) {
-                QuoteDetailScreen(onBack = { navController.popBackStack() })
+                QuoteDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onEdit = { id -> navController.navigate(DashDest.quoteBuilder(id = id)) },
+                )
             }
             composable(DashDest.INVOICE_DETAIL, arguments = idArg) {
-                QuoteDetailScreen(onBack = { navController.popBackStack() })
+                QuoteDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onEdit = { id -> navController.navigate(DashDest.quoteBuilder(id = id)) },
+                )
+            }
+
+            // ── Create / edit screens ───────────────────────────────────────────
+            val optionalId = navArgument(DashDest.ARG_ID) {
+                type = NavType.StringType; defaultValue = ""
+            }
+            composable(
+                DashDest.QUOTE_BUILDER,
+                arguments = listOf(
+                    optionalId,
+                    navArgument(DashDest.ARG_INVOICE) { type = NavType.BoolType; defaultValue = false },
+                ),
+            ) {
+                QuoteBuilderScreen(onClose = { navController.popBackStack() })
+            }
+            composable(
+                DashDest.JOB_EDIT,
+                arguments = listOf(
+                    optionalId,
+                    navArgument(DashDest.ARG_QUOTE_ID) { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) {
+                JobEditScreen(onClose = { navController.popBackStack() })
+            }
+            composable(DashDest.CLIENT_EDIT, arguments = listOf(optionalId)) {
+                ClientEditScreen(onClose = { navController.popBackStack() })
             }
         }
     }
