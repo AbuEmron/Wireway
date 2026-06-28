@@ -114,6 +114,9 @@ export default function AuthScreen({ onAuth, initialMode = "signin", onBack }) {
               <a href="/privacy.html" target="_blank" rel="noreferrer" style={{ color:"rgba(255,255,255,0.62)" }}>Privacy Policy</a>.
               {" "}See also our{" "}
               <a href="/security.html" target="_blank" rel="noreferrer" style={{ color:"rgba(255,255,255,0.62)" }}>Security Policy</a>.
+              {" "}You can{" "}
+              <a href="/delete-account.html" target="_blank" rel="noreferrer" style={{ color:"rgba(255,255,255,0.62)" }}>delete your account</a>
+              {" "}anytime.
             </p>
           )}
 
