@@ -70,7 +70,7 @@ fun QuoteDetailScreen(
         onRetry = viewModel::load,
         actions = {
             if (state.quote != null) {
-                IconButton(onClick = { onEdit(state.quote!!.id) }) {
+                IconButton(onClick = { state.quote?.let { onEdit(it.id) } }) {
                     Icon(Icons.Outlined.Edit, contentDescription = "Edit")
                 }
                 IconButton(onClick = { confirmDelete = true }) {

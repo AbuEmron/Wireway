@@ -27,8 +27,15 @@ class ProfileRepositoryImpl @Inject constructor(
                     filter { eq("id", userId) }
                 }
                 .decodeSingleOrNull<ProfileDto>()
-                ?: error("No profile found for the current user.")
-            dto.toDomain()
+            // A missing profiles row (e.g. a brand-new user) is not an error —
+            // fall back to a minimal profile so Home still renders.
+            dto?.toDomain() ?: UserProfile(
+                id = userId,
+                fullName = null,
+                email = null,
+                plan = null,
+                subscriptionStatus = null,
+            )
         }
 
     override suspend fun getJobCount(userId: String): Result<Long> =

@@ -11,11 +11,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.longOrNull
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Wire shape of a `quotes` row. The table backs both estimates and invoices
@@ -106,13 +107,17 @@ internal val QUOTE_LIST_COLUMNS = listOf(
     "created_at", "paid_at", "invoice_mode", "invoice_due_date", "invoice_paid",
 )
 
+// All extractors use `as? JsonPrimitive` (never `.jsonPrimitive`, which throws on
+// objects/arrays) so a malformed/legacy entries/custom_items blob can't crash a load.
 private fun JsonElement.numberOrNull(key: String): Double? =
-    (this as? JsonObject)?.get(key)?.jsonPrimitive?.doubleOrNull
+    ((this as? JsonObject)?.get(key) as? JsonPrimitive)?.doubleOrNull
 
-private fun JsonElement.stringOrNull(key: String): String? =
-    (this as? JsonObject)?.get(key)?.let {
-        runCatching { it.jsonPrimitive.content }.getOrNull()
-    }
+private fun JsonElement.stringOrNull(key: String): String? {
+    val prim = (this as? JsonObject)?.get(key) as? JsonPrimitive ?: return null
+    if (prim is JsonNull) return null
+    val content = prim.content
+    return if (content == "null") null else content
+}
 
 /**
  * Flattens the two JSON shapes the web app writes:
@@ -168,7 +173,7 @@ private fun parseCatalogEntries(entries: JsonElement?): List<QuoteCatalogEntry> 
             serviceId = id,
             qty = qty,
             variantIdx = value.numberOrNull("variantIdx")?.toInt() ?: 0,
-            clientBuys = (value as? JsonObject)?.get("clientBuys")?.jsonPrimitive?.booleanOrNull ?: false,
+            clientBuys = ((value as? JsonObject)?.get("clientBuys") as? JsonPrimitive)?.booleanOrNull ?: false,
         )
     }.orEmpty()
 
@@ -177,7 +182,7 @@ private fun parseCustomItems(customItems: JsonElement?): List<QuoteCustomItem> =
     (customItems as? JsonArray)?.mapNotNull { element ->
         if (element !is JsonObject) return@mapNotNull null
         QuoteCustomItem(
-            id = element["id"]?.jsonPrimitive?.longOrNull,
+            id = (element["id"] as? JsonPrimitive)?.longOrNull,
             label = element.stringOrNull("label").orEmpty(),
             qty = element.numberOrNull("qty") ?: 1.0,
             materialCost = element.numberOrNull("materialCost") ?: 0.0,

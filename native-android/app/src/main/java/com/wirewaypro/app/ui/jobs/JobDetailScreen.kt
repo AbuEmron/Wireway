@@ -65,7 +65,7 @@ fun JobDetailScreen(
         onRetry = viewModel::load,
         actions = {
             if (state.job != null) {
-                IconButton(onClick = { onEdit(state.job!!.id) }) {
+                IconButton(onClick = { state.job?.let { onEdit(it.id) } }) {
                     Icon(Icons.Outlined.Edit, contentDescription = "Edit job")
                 }
                 IconButton(onClick = { confirmDelete = true }) {
