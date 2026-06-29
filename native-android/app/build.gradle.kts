@@ -136,6 +136,9 @@ dependencies {
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.fragment.ktx)
 
+    // Plaid Link (bank connections)
+    implementation(libs.plaid.link)
+
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

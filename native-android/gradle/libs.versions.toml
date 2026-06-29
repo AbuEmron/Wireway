@@ -33,6 +33,9 @@ camerax = "1.4.1"
 biometric = "1.1.0"
 fragment = "1.8.5"
 
+# Plaid Link (sandbox/dev bank connections)
+plaid = "5.5.1"
+
 # Test
 junit = "4.13.2"
 androidxJunit = "1.2.1"
@@ -85,6 +88,9 @@ androidx-camera-view = { group = "androidx.camera", name = "camera-view", versio
 # Biometric unlock (BiometricPrompt needs a FragmentActivity)
 androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragment" }
+
+# Plaid Link Android SDK
+plaid-link = { group = "com.plaid.link", name = "sdk-core", version.ref = "plaid" }
 
 # --- Test ---
 junit = { group = "junit", name = "junit", version.ref = "junit" }

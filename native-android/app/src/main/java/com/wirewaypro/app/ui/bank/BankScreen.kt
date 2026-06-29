@@ -1,5 +1,7 @@
 package com.wirewaypro.app.ui.bank
 
+import android.app.Application
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,13 +20,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.plaid.link.FastOpenPlaidLink
+import com.plaid.link.Plaid
+import com.plaid.link.configuration.LinkTokenConfiguration
+import com.plaid.link.result.LinkExit
+import com.plaid.link.result.LinkSuccess
 import com.wirewaypro.app.domain.model.PlaidTxn
 import com.wirewaypro.app.ui.components.BackTopBar
 import com.wirewaypro.app.ui.components.ListCard
@@ -39,15 +44,24 @@ fun BankScreen(
     viewModel: BankViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var notice by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
-    // Plaid Link SDK launch is wired in a follow-up; for now, acknowledge the
-    // fetched link token so the backend wiring is verifiable on-device.
-    LaunchedEffect(state.pendingLinkToken) {
-        if (state.pendingLinkToken != null) {
-            notice = "Bank link is ready. The secure Plaid login opens on a real device."
-            viewModel.linkConsumed()
+    // Plaid Link result handler. publicToken is consumed by the server exchange;
+    // institution metadata is omitted here to keep the SDK surface minimal.
+    val plaidLauncher = rememberLauncherForActivityResult(FastOpenPlaidLink()) { result ->
+        when (result) {
+            is LinkSuccess -> viewModel.onLinked(result.publicToken, null, null)
+            is LinkExit -> viewModel.onLinkCancelled()
         }
+    }
+
+    // When a link token is ready, open the secure Plaid Link flow.
+    LaunchedEffect(state.pendingLinkToken) {
+        val token = state.pendingLinkToken ?: return@LaunchedEffect
+        val config = LinkTokenConfiguration.Builder().token(token).build()
+        val handler = Plaid.create(context.applicationContext as Application, config)
+        plaidLauncher.launch(handler)
+        viewModel.linkConsumed()
     }
 
     Scaffold(topBar = { BackTopBar(title = "Bank", onBack = onBack) }) { padding ->
@@ -68,7 +82,7 @@ fun BankScreen(
                         Text("Connect a bank")
                     }
                 }
-                (state.status ?: notice)?.let {
+                state.status?.let {
                     Spacer(Modifier.padding(top = 8.dp))
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                 }
