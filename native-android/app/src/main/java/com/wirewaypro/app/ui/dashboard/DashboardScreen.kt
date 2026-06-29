@@ -35,6 +35,7 @@ import com.wirewaypro.app.ui.money.MoneyScreen
 import com.wirewaypro.app.ui.quotes.QuoteBuilderScreen
 import com.wirewaypro.app.ui.quotes.QuoteDetailScreen
 import com.wirewaypro.app.ui.settings.SettingsScreen
+import com.wirewaypro.app.ui.takeoff.TakeoffScreen
 
 /**
  * The authenticated shell. A nested NavHost drives the four bottom-nav tabs plus
@@ -81,6 +82,7 @@ fun DashboardScreen() {
                     onOpenClients = { navController.navigate(DashDest.CLIENTS) },
                     onOpenExpenses = { navController.navigate(DashDest.EXPENSES) },
                     onOpenMoney = { navController.navigate(DashDest.MONEY) },
+                    onOpenTakeoff = { navController.navigate(DashDest.TAKEOFF) },
                 )
             }
             composable(HomeTab.ESTIMATES.route) {
@@ -131,6 +133,16 @@ fun DashboardScreen() {
             }
             composable(DashDest.MONEY) {
                 MoneyScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.TAKEOFF) {
+                TakeoffScreen(
+                    onBack = { navController.popBackStack() },
+                    onCreateEstimate = {
+                        navController.navigate(DashDest.quoteBuilder(invoice = false)) {
+                            popUpTo(DashDest.TAKEOFF) { inclusive = true }
+                        }
+                    },
+                )
             }
 
             val idArg = listOf(navArgument(DashDest.ARG_ID) { type = NavType.StringType })

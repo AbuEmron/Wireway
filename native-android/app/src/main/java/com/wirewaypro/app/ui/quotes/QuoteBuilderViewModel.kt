@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.ai.AiService
+import com.wirewaypro.app.data.ai.TakeoffHandoff
 import com.wirewaypro.app.domain.catalog.Catalog
 import com.wirewaypro.app.domain.model.QuoteCalculator
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
@@ -71,6 +72,7 @@ class QuoteBuilderViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val quoteRepository: QuoteRepository,
     private val aiService: AiService,
+    takeoffHandoff: TakeoffHandoff,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -87,7 +89,16 @@ class QuoteBuilderViewModel @Inject constructor(
     val state: StateFlow<QuoteBuilderUiState> = _state.asStateFlow()
 
     init {
-        if (quoteId != null) loadExisting(quoteId)
+        if (quoteId != null) {
+            loadExisting(quoteId)
+        } else {
+            // A new quote may have been seeded by the AI takeoff screen.
+            takeoffHandoff.take()?.takeIf { it.isNotEmpty() }?.let { entries ->
+                _state.update { s ->
+                    s.copy(catalogItems = entries.map { CatalogEntryUi(it.serviceId, numText(it.qty), it.variantIdx, it.clientBuys) })
+                }
+            }
+        }
     }
 
     /** Live totals preview, computed with the same calculator the repository saves with. */

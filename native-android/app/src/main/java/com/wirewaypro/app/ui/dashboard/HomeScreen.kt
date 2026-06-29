@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.ReceiptLong
@@ -47,6 +48,7 @@ fun HomeScreen(
     onOpenClients: () -> Unit,
     onOpenExpenses: () -> Unit,
     onOpenMoney: () -> Unit,
+    onOpenTakeoff: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.home.collectAsStateWithLifecycle()
@@ -112,6 +114,7 @@ fun HomeScreen(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        QuickLink(icon = Icons.Outlined.AutoAwesome, label = "AI Takeoff", onClick = onOpenTakeoff)
         QuickLink(icon = Icons.Outlined.Work, label = "Jobs", onClick = onOpenJobs)
         QuickLink(icon = Icons.Outlined.Groups, label = "Clients", onClick = onOpenClients)
         QuickLink(icon = Icons.Outlined.ReceiptLong, label = "Expenses & receipts", onClick = onOpenExpenses)
