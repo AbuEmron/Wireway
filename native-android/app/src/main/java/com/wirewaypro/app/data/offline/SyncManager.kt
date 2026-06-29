@@ -48,8 +48,11 @@ class SyncManager @Inject constructor(
         try {
             for (item in queue.all()) {
                 try {
-                    val body = json.parseToJsonElement(item.payload) as? JsonObject ?: run {
-                        queue.remove(item.id); continue
+                    val body = json.parseToJsonElement(item.payload) as? JsonObject
+                    if (body == null) {
+                        // Unparseable payload — drop it; can't ever succeed.
+                        queue.remove(item.id)
+                        continue
                     }
                     when (item.mode) {
                         "upsert" -> client.postgrest.from(item.table).upsert(body)
