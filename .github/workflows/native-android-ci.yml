@@ -28,11 +28,11 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      - name: Write local.properties (placeholder Supabase keys)
+      - name: Write local.properties (Supabase keys)
         run: |
           cat > native-android/local.properties <<'EOF'
-          REACT_APP_SUPABASE_URL=https://placeholder.supabase.co
-          REACT_APP_SUPABASE_ANON_KEY=placeholder
+          REACT_APP_SUPABASE_URL=${{ secrets.SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          REACT_APP_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY || 'placeholder' }}
           EOF
 
       - name: Ensure Gradle wrapper exists
@@ -45,3 +45,10 @@ jobs:
       - name: Build debug APK
         working-directory: native-android
         run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: wireway-native-debug-apk
+          path: native-android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
