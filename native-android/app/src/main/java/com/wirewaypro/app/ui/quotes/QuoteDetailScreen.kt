@@ -78,7 +78,7 @@ fun QuoteDetailScreen(
         title = state.quote?.quoteNumber?.let { "$kind #$it" } ?: kind,
         onBack = onBack,
         isLoading = state.isLoading,
-        error = state.error,
+        error = state.error?.takeIf { state.quote == null }, // load errors only; action errors show inline
         onRetry = viewModel::load,
         actions = {
             if (state.quote != null) {
@@ -107,6 +107,10 @@ fun QuoteDetailScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            state.error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+
             Header(quote = quote, kind = kind)
 
             if (quote.isInvoice) {

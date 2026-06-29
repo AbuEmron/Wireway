@@ -52,11 +52,17 @@ class QuoteDetailViewModel @Inject constructor(
     }
 
     fun load() {
-        _state.update { it.copy(isLoading = true, error = null) }
+        // Only show the full-screen spinner on the first load; a reload (e.g. after
+        // an edit) keeps the current content visible and swaps it in silently.
+        _state.update { it.copy(isLoading = it.quote == null, error = null) }
         viewModelScope.launch {
             quoteRepository.getQuote(quoteId)
-                .onSuccess { quote -> _state.update { QuoteDetailUiState(isLoading = false, quote = quote) } }
-                .onFailure { _state.update { it.copy(isLoading = false, error = "Couldn't load this record.") } }
+                .onSuccess { quote -> _state.update { it.copy(isLoading = false, quote = quote, error = null) } }
+                .onFailure {
+                    _state.update { st ->
+                        st.copy(isLoading = false, error = if (st.quote == null) "Couldn't load this record." else st.error)
+                    }
+                }
         }
     }
 

@@ -57,11 +57,14 @@ class JobDetailViewModel @Inject constructor(
     }
 
     fun load() {
-        _state.update { it.copy(isLoading = true, error = null) }
+        // Spinner only on first load; a reload keeps the current job on screen.
+        _state.update { it.copy(isLoading = it.job == null, error = null) }
         viewModelScope.launch {
             val job = jobRepository.getJob(jobId).getOrNull()
             if (job == null) {
-                _state.update { it.copy(isLoading = false, error = "Couldn't load this job.") }
+                _state.update { st ->
+                    st.copy(isLoading = false, error = if (st.job == null) "Couldn't load this job." else st.error)
+                }
                 return@launch
             }
             val draws = jobRepository.getJobDraws(jobId).getOrDefault(emptyList())

@@ -61,7 +61,7 @@ fun JobDetailScreen(
         title = state.job?.title ?: "Job",
         onBack = onBack,
         isLoading = state.isLoading,
-        error = state.error,
+        error = state.error?.takeIf { state.job == null }, // load errors only; action errors show inline
         onRetry = viewModel::load,
         actions = {
             if (state.job != null) {
@@ -83,6 +83,10 @@ fun JobDetailScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            state.error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+
             HeaderBlock(title = job.title, status = job.status, total = job.total)
 
             SectionCard(title = "Schedule") {
