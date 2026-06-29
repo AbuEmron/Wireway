@@ -52,9 +52,12 @@ class ExpensesViewModel @Inject constructor(
 
     fun delete(expenseId: String) {
         val userId = auth.currentUserId() ?: return
+        // Optimistic: drop it from the list immediately; restore if the server fails.
+        val previous = _state.value.items
+        _state.update { it.copy(items = it.items.filterNot { e -> e.id == expenseId }) }
         viewModelScope.launch {
             expenseRepository.deleteExpense(userId, expenseId)
-            refresh()
+                .onFailure { _state.update { it.copy(items = previous, error = "Couldn't delete. Try again.") } }
         }
     }
 }
