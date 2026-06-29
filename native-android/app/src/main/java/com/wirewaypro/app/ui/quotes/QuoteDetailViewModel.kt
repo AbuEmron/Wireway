@@ -1,17 +1,23 @@
 package com.wirewaypro.app.ui.quotes
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
+import com.wirewaypro.app.ui.util.QuotePdfGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 data class QuoteDetailUiState(
@@ -20,6 +26,8 @@ data class QuoteDetailUiState(
     val error: String? = null,
     val busy: Boolean = false,
     val deleted: Boolean = false,
+    val exportingPdf: Boolean = false,
+    val pdfToShare: File? = null, // one-shot: non-null when ready for the share sheet
 )
 
 /**
@@ -28,6 +36,7 @@ data class QuoteDetailUiState(
  */
 @HiltViewModel
 class QuoteDetailViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val auth: AuthRepository,
     private val quoteRepository: QuoteRepository,
     savedStateHandle: SavedStateHandle,
@@ -80,6 +89,22 @@ class QuoteDetailViewModel @Inject constructor(
                 .onFailure { _state.update { it.copy(error = "Couldn't delete this record.") } }
         }
     }
+
+    /** Render the quote to a PDF off the main thread, then hand it to the screen. */
+    fun exportPdf() {
+        val quote = _state.value.quote ?: return
+        _state.update { it.copy(exportingPdf = true) }
+        viewModelScope.launch {
+            val file = withContext(Dispatchers.IO) { QuotePdfGenerator.generate(appContext, quote) }
+            if (file == null) {
+                _state.update { it.copy(exportingPdf = false, error = "Couldn't build the PDF.") }
+            } else {
+                _state.update { it.copy(exportingPdf = false, pdfToShare = file) }
+            }
+        }
+    }
+
+    fun pdfConsumed() = _state.update { it.copy(pdfToShare = null) }
 
     companion object {
         const val ARG_ID = "id"
