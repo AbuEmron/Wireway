@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
+import com.wirewaypro.app.domain.model.BusinessInfo
 import com.wirewaypro.app.domain.model.QuoteDetail
 import java.io.File
 import java.io.FileOutputStream
@@ -28,16 +29,25 @@ object QuotePdfGenerator {
     private const val MUTED = 0xFF6B7280.toInt()
     private const val HAIR = 0xFFE5E7EB.toInt()
 
-    fun generate(context: Context, quote: QuoteDetail): File? = runCatching {
+    private const val DEFAULT_TERMS =
+        "This proposal is valid for 30 days from the date above. All work will be performed " +
+            "in accordance with NEC 2023 and applicable local codes. Any changes to the scope " +
+            "of work require a written change order. Permits and inspection fees are included " +
+            "unless otherwise noted. Warranty: one (1) year on workmanship from date of completion."
+
+    fun generate(context: Context, quote: QuoteDetail, business: BusinessInfo? = null): File? = runCatching {
         val doc = PdfDocument()
         val state = PageState(doc)
         state.start()
 
         drawHeader(state, quote)
+        if (business != null) drawBusiness(state, business)
         drawClient(state, quote)
         drawLineItems(state, quote)
         drawTotals(state, quote)
         drawNotes(state, quote)
+        drawTerms(state)
+        drawSignature(state, business)
         drawFooter(state)
 
         doc.finishPage(state.page)
@@ -97,6 +107,66 @@ object QuotePdfGenerator {
         s.y += 44f
         rule(s)
         s.y += 16f
+    }
+
+    private fun drawBusiness(s: PageState, business: BusinessInfo) {
+        val name = business.name?.takeIf { it.isNotBlank() }
+        if (name != null) {
+            s.canvas.drawText(name, MARGIN, s.y + 13f, paint(INK, 13f, bold = true))
+            s.y += 18f
+        }
+        val contact = listOfNotNull(
+            business.address?.takeIf { it.isNotBlank() },
+            business.phone?.takeIf { it.isNotBlank() },
+            business.email?.takeIf { it.isNotBlank() },
+            business.license?.takeIf { it.isNotBlank() }?.let { "License #$it" },
+            business.website?.takeIf { it.isNotBlank() },
+        )
+        contact.forEach { line ->
+            s.canvas.drawText(line, MARGIN, s.y + 11f, paint(MUTED, 10f))
+            s.y += 14f
+        }
+        if (name != null || contact.isNotEmpty()) {
+            s.y += 8f
+            rule(s)
+            s.y += 14f
+        }
+    }
+
+    private fun drawTerms(s: PageState) {
+        s.ensure(60f)
+        s.canvas.drawText("TERMS", MARGIN, s.y + 10f, paint(MUTED, 9f, bold = true))
+        s.y += 18f
+        val p = paint(MUTED, 9f)
+        wrap(DEFAULT_TERMS, p, RIGHT - MARGIN).forEach { line ->
+            s.ensure(13f)
+            s.canvas.drawText(line, MARGIN, s.y + 10f, p)
+            s.y += 13f
+        }
+        s.y += 8f
+    }
+
+    private fun drawSignature(s: PageState, business: BusinessInfo?) {
+        s.ensure(70f)
+        val who = business?.name?.takeIf { it.isNotBlank() } ?: "the contractor"
+        wrap(
+            "By signing below, you authorize $who to proceed with the work described above.",
+            paint(INK, 10f),
+            RIGHT - MARGIN,
+        ).forEach { line ->
+            s.canvas.drawText(line, MARGIN, s.y + 11f, paint(INK, 10f))
+            s.y += 14f
+        }
+        s.y += 28f
+        // Signature + date lines.
+        val sigEnd = MARGIN + 240f
+        val dateStart = sigEnd + 40f
+        s.canvas.drawLine(MARGIN, s.y, sigEnd, s.y, paint(INK, 1f).apply { strokeWidth = 1f })
+        s.canvas.drawLine(dateStart, s.y, RIGHT, s.y, paint(INK, 1f).apply { strokeWidth = 1f })
+        s.y += 12f
+        s.canvas.drawText("Signature", MARGIN, s.y + 9f, paint(MUTED, 9f))
+        s.canvas.drawText("Date", dateStart, s.y + 9f, paint(MUTED, 9f))
+        s.y += 18f
     }
 
     private fun drawClient(s: PageState, q: QuoteDetail) {

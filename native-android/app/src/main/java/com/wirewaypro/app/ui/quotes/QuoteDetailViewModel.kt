@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.repository.AuthRepository
+import com.wirewaypro.app.domain.repository.ProfileRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
 import com.wirewaypro.app.ui.util.QuotePdfGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,6 +40,7 @@ class QuoteDetailViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val auth: AuthRepository,
     private val quoteRepository: QuoteRepository,
+    private val profileRepository: ProfileRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -101,7 +103,11 @@ class QuoteDetailViewModel @Inject constructor(
         val quote = _state.value.quote ?: return
         _state.update { it.copy(exportingPdf = true) }
         viewModelScope.launch {
-            val file = withContext(Dispatchers.IO) { QuotePdfGenerator.generate(appContext, quote) }
+            // Business header comes from the user's profile (best-effort).
+            val business = auth.currentUserId()
+                ?.let { profileRepository.getProfile(it).getOrNull() }
+                ?.businessInfo()
+            val file = withContext(Dispatchers.IO) { QuotePdfGenerator.generate(appContext, quote, business) }
             if (file == null) {
                 _state.update { it.copy(exportingPdf = false, error = "Couldn't build the PDF.") }
             } else {
