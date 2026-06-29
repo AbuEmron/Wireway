@@ -7,4 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.hilt) apply false
+    // On the classpath but NOT applied here; the app module applies it only when
+    // google-services.json is present, so the build stays green without it.
+    alias(libs.plugins.google.services) apply false
 }

@@ -9,6 +9,13 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+// Enable Firebase Cloud Messaging ONLY when a real google-services.json is present.
+// The google-services plugin fails the build if the file is missing, so we apply
+// it conditionally — the app compiles and runs fine without push configured.
+if (project.file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 // ── Supabase credentials ──────────────────────────────────────────────────────
 // Read the SAME public values the web app uses (REACT_APP_SUPABASE_URL /
 // REACT_APP_SUPABASE_ANON_KEY) from local.properties so they never live in
@@ -138,6 +145,11 @@ dependencies {
 
     // Plaid Link (bank connections)
     implementation(libs.plaid.link)
+
+    // Firebase Cloud Messaging (push). Compiles without google-services.json;
+    // runtime calls are guarded so the app is safe until push is configured.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     // Test
     testImplementation(libs.junit)

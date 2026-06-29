@@ -46,6 +46,7 @@ import com.wirewaypro.app.ui.takeoff.TakeoffScreen
  */
 @Composable
 fun DashboardScreen() {
+    com.wirewaypro.app.ui.NotificationsSetup()
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
