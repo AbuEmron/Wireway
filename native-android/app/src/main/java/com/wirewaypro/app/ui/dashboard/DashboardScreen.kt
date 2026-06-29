@@ -35,6 +35,7 @@ import com.wirewaypro.app.ui.quotes.InvoicesScreen
 import com.wirewaypro.app.ui.money.MoneyScreen
 import com.wirewaypro.app.ui.quotes.QuoteBuilderScreen
 import com.wirewaypro.app.ui.quotes.QuoteDetailScreen
+import com.wirewaypro.app.ui.settings.ProfileEditScreen
 import com.wirewaypro.app.ui.settings.SettingsScreen
 import com.wirewaypro.app.ui.subscription.SubscriptionsScreen
 import com.wirewaypro.app.ui.takeoff.TakeoffScreen
@@ -103,7 +104,9 @@ fun DashboardScreen() {
                 )
             }
             composable(HomeTab.SETTINGS.route) {
-                SettingsScreen()
+                SettingsScreen(
+                    onEditProfile = { navController.navigate(DashDest.PROFILE_EDIT) },
+                )
             }
 
             composable(DashDest.JOBS) {
@@ -154,6 +157,9 @@ fun DashboardScreen() {
             }
             composable(DashDest.SUBSCRIPTION) {
                 SubscriptionsScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.PROFILE_EDIT) {
+                ProfileEditScreen(onClose = { navController.popBackStack() })
             }
 
             val idArg = listOf(navArgument(DashDest.ARG_ID) { type = NavType.StringType })

@@ -1,11 +1,14 @@
 package com.wirewaypro.app.data.profile
 
+import com.wirewaypro.app.domain.model.ProfileInput
 import com.wirewaypro.app.domain.model.UserProfile
 import com.wirewaypro.app.domain.repository.ProfileRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Count
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -47,5 +50,25 @@ class ProfileRepositoryImpl @Inject constructor(
                     count(Count.EXACT)
                 }
             result.countOrNull() ?: 0L
+        }
+
+    override suspend fun saveProfile(userId: String, input: ProfileInput): Result<UserProfile> =
+        runCatching {
+            val payload = buildJsonObject {
+                put("full_name", input.fullName)
+                put("company_name", input.companyName)
+                put("company_phone", input.companyPhone)
+                put("company_email", input.companyEmail)
+                put("company_license", input.companyLicense)
+                put("company_address", input.companyAddress)
+                put("company_website", input.companyWebsite)
+            }
+            client.postgrest.from("profiles")
+                .update(payload) {
+                    filter { eq("id", userId) }
+                    select()
+                }
+                .decodeSingle<ProfileDto>()
+                .toDomain()
         }
 }

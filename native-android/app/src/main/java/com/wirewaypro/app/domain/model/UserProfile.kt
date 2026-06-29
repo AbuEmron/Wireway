@@ -44,3 +44,14 @@ data class BusinessInfo(
     val address: String?,
     val website: String?,
 )
+
+/** Editable profile fields (name + business info), written to `profiles`. */
+data class ProfileInput(
+    val fullName: String?,
+    val companyName: String?,
+    val companyPhone: String?,
+    val companyEmail: String?,
+    val companyLicense: String?,
+    val companyAddress: String?,
+    val companyWebsite: String?,
+)

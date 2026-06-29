@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +31,7 @@ import com.wirewaypro.app.ui.components.TabTopBar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    onEditProfile: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val email by viewModel.email.collectAsStateWithLifecycle()
@@ -46,6 +49,18 @@ fun SettingsScreen(
         ) {
             SectionCard(title = "Account") {
                 InfoRow("Email", email ?: "—")
+            }
+
+            Button(
+                onClick = onEditProfile,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    Icons.Outlined.Edit,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                Text("Edit profile & business")
             }
 
             OutlinedButton(
