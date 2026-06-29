@@ -7,6 +7,10 @@ import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.model.QuoteSummary
 import com.wirewaypro.app.domain.repository.QuoteRepository
+import com.wirewaypro.app.data.offline.NetworkMonitor
+import com.wirewaypro.app.data.offline.OfflineQueue
+import com.wirewaypro.app.data.offline.QueuedSave
+import com.wirewaypro.app.data.offline.isConnectivityError
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -20,12 +24,15 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.time.Instant
 import java.time.Year
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class QuoteRepositoryImpl @Inject constructor(
     private val client: SupabaseClient,
+    private val queue: OfflineQueue,
+    private val network: NetworkMonitor,
 ) : QuoteRepository {
 
     private fun quotes() = client.postgrest.from("quotes")
@@ -66,14 +73,22 @@ class QuoteRepositoryImpl @Inject constructor(
             hourlyRate = input.hourlyRate,
         )
 
+        // Stable id up front so an offline upsert is idempotent on retry.
+        val rowId = input.id ?: UUID.randomUUID().toString()
+
         val quoteNumber = input.quoteNumber?.takeIf { it.isNotBlank() }
-            ?: generateQuoteNumber(userId)
+            ?: if (network.isOnline()) {
+                runCatching { generateQuoteNumber(userId) }.getOrElse { localQuoteNumber() }
+            } else {
+                localQuoteNumber()
+            }
 
         val entriesJson = entriesToJson(input.catalogEntries)
         val customItemsJson = customItemsToJson(input.customItems)
 
         val payload = buildJsonObject {
-            if (input.id == null) put("user_id", userId)
+            put("id", rowId)
+            put("user_id", userId)
             put("quote_number", quoteNumber)
             put("client_name", input.clientName)
             put("client_email", input.clientEmail)
@@ -101,16 +116,75 @@ class QuoteRepositoryImpl @Inject constructor(
             put("status", "draft")
         }
 
-        val saved = if (input.id == null) {
-            quotes().insert(payload) { select() }.decodeSingle<QuoteDto>()
-        } else {
-            quotes().update(payload) {
-                filter { eq("id", input.id); eq("user_id", userId) }
-                select()
-            }.decodeSingle<QuoteDto>()
+        if (network.isOnline()) {
+            try {
+                val saved = if (input.id == null) {
+                    quotes().insert(payload) { select() }.decodeSingle<QuoteDto>()
+                } else {
+                    quotes().update(payload) {
+                        filter { eq("id", rowId); eq("user_id", userId) }
+                        select()
+                    }.decodeSingle<QuoteDto>()
+                }
+                return@runCatching saved.toDetail()
+            } catch (e: Exception) {
+                // Genuine error (bad data, auth) → surface it; only a dropped
+                // connection falls through to the offline queue.
+                if (!isConnectivityError(e)) throw e
+            }
         }
-        saved.toDetail()
+
+        // Offline (or the connection dropped mid-save) — hold it and sync later.
+        queue.enqueue(
+            QueuedSave(
+                id = rowId,
+                table = "quotes",
+                mode = "upsert",
+                payload = payload.toString(),
+                userId = userId,
+                createdAt = System.currentTimeMillis(),
+            )
+        )
+        optimisticDetail(input, rowId, quoteNumber, totals)
     }
+
+    private fun localQuoteNumber(): String =
+        "WW-${Year.now().value}-${(System.currentTimeMillis() % 1000).toString().padStart(3, '0')}"
+
+    private fun optimisticDetail(
+        input: QuoteInput,
+        id: String,
+        quoteNumber: String,
+        totals: com.wirewaypro.app.domain.model.QuoteTotals,
+    ): QuoteDetail = QuoteDetail(
+        id = id,
+        quoteNumber = quoteNumber,
+        clientName = input.clientName,
+        clientEmail = input.clientEmail,
+        clientPhone = input.clientPhone,
+        jobName = input.jobName,
+        notes = input.notes,
+        status = "draft",
+        isInvoice = input.invoiceMode,
+        invoiceDueDate = input.invoiceDueDate,
+        invoicePaid = input.invoicePaid,
+        createdAt = null,
+        paidAt = null,
+        showMaterials = input.showMaterials,
+        totalMaterial = totals.totalMaterial,
+        totalLabor = totals.totalLabor,
+        totalHours = totals.totalHours,
+        totalMarkup = totals.markupAmount,
+        taxEnabled = input.taxEnabled,
+        totalTax = totals.taxAmount,
+        total = totals.total,
+        markup = input.markup,
+        hourlyRate = input.hourlyRate,
+        taxRate = input.taxRate,
+        lineItems = emptyList(),
+        customItems = input.customItems,
+        catalogEntries = input.catalogEntries,
+    )
 
     override suspend fun deleteQuote(userId: String, quoteId: String): Result<Unit> = runCatching {
         quotes().delete { filter { eq("id", quoteId); eq("user_id", userId) } }

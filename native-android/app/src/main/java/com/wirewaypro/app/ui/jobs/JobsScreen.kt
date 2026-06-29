@@ -4,9 +4,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,13 +27,24 @@ fun JobsScreen(
     onBack: () -> Unit,
     onOpenJob: (String) -> Unit,
     onAdd: () -> Unit,
+    onOpenCalendar: () -> Unit,
     viewModel: JobsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::refresh)
 
     Scaffold(
-        topBar = { BackTopBar(title = "Jobs", onBack = onBack) },
+        topBar = {
+            BackTopBar(
+                title = "Jobs",
+                onBack = onBack,
+                actions = {
+                    IconButton(onClick = onOpenCalendar) {
+                        Icon(Icons.Outlined.CalendarMonth, contentDescription = "Calendar")
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = onAdd) {
                 Icon(Icons.Filled.Add, contentDescription = "New job")

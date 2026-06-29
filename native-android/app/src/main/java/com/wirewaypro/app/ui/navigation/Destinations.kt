@@ -31,6 +31,7 @@ enum class HomeTab(
  */
 object DashDest {
     const val JOBS = "jobs"
+    const val JOBS_CALENDAR = "jobs_calendar"
     const val CLIENTS = "clients"
     const val EXPENSES = "expenses"
     const val ADD_EXPENSE = "add_expense"

@@ -50,6 +50,7 @@ fun HomeScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.home.collectAsStateWithLifecycle()
+    val pending by viewModel.pendingSync.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -59,6 +60,14 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         WirewayWordmark()
+
+        if (pending > 0) {
+            Text(
+                text = "⏳ ${if (pending == 1) "1 change" else "$pending changes"} waiting to sync",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
 
         when {
             state.isLoading -> Box(

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wirewaypro.app.data.ocr.OcrService
 import com.wirewaypro.app.domain.model.ExpenseInput
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ExpenseRepository
@@ -28,6 +29,8 @@ data class AddExpenseUiState(
     val description: String = "",
     val imageBytes: ByteArray? = null,
     val isSaving: Boolean = false,
+    val isScanning: Boolean = false,
+    val scanNote: String? = null,
     val error: String? = null,
     val saved: Boolean = false,
 )
@@ -37,6 +40,7 @@ class AddExpenseViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val auth: AuthRepository,
     private val expenseRepository: ExpenseRepository,
+    private val ocrService: OcrService,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddExpenseUiState(date = LocalDate.now().toString()))
@@ -49,15 +53,33 @@ class AddExpenseViewModel @Inject constructor(
     fun setDescription(v: String) = _state.update { it.copy(description = v) }
     fun clearImage() = _state.update { it.copy(imageBytes = null) }
 
-    /** Decode + downscale the picked/captured image off the main thread. */
+    /** Decode + downscale the picked/captured image, then OCR it to prefill fields. */
     fun setImageFromUri(uri: Uri) {
         viewModelScope.launch {
             val bytes = withContext(Dispatchers.IO) { ImageUtil.downscaleToJpeg(appContext, uri) }
             if (bytes == null) {
                 _state.update { it.copy(error = "Couldn't read that image.") }
-            } else {
-                _state.update { it.copy(imageBytes = bytes, error = null) }
+                return@launch
             }
+            _state.update { it.copy(imageBytes = bytes, error = null, isScanning = true, scanNote = null) }
+            ocrService.ocr(bytes)
+                .onSuccess { applyOcr(it) }
+                .onFailure { _state.update { it.copy(isScanning = false, scanNote = "Couldn't scan the receipt — enter details manually.") } }
+        }
+    }
+
+    /** Prefill only the fields the user hasn't already typed. */
+    private fun applyOcr(result: com.wirewaypro.app.data.ocr.OcrResult) {
+        _state.update { s ->
+            s.copy(
+                isScanning = false,
+                scanNote = "Scanned — please review before saving.",
+                amount = if (s.amount.isBlank()) result.amount?.let { a -> if (a % 1.0 == 0.0) a.toLong().toString() else a.toString() } ?: s.amount else s.amount,
+                vendor = if (s.vendor.isBlank()) result.vendor ?: s.vendor else s.vendor,
+                date = result.date ?: s.date,
+                category = result.category ?: s.category,
+                description = if (s.description.isBlank()) result.summary ?: s.description else s.description,
+            )
         }
     }
 

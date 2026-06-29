@@ -3,7 +3,9 @@ package com.wirewaypro.app.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 
 // Wireway is a dark-only brand (the web app has no light mode), so we ship a
 // single dark scheme rather than reacting to the system setting.
@@ -28,9 +30,11 @@ private val WirewayColorScheme = darkColorScheme(
 
 @Composable
 fun WirewayTheme(content: @Composable () -> Unit) {
+    val context = LocalContext.current
+    val families = remember { BrandFonts.resolve(context) }
     MaterialTheme(
         colorScheme = WirewayColorScheme,
-        typography = WirewayTypography,
+        typography = wirewayTypography(families.display, families.body),
         shapes = WirewayShapes,
         content = content,
     )

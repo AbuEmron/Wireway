@@ -25,6 +25,7 @@ import com.wirewaypro.app.ui.expenses.AddExpenseScreen
 import com.wirewaypro.app.ui.expenses.ExpensesScreen
 import com.wirewaypro.app.ui.jobs.JobDetailScreen
 import com.wirewaypro.app.ui.jobs.JobEditScreen
+import com.wirewaypro.app.ui.jobs.JobsCalendarScreen
 import com.wirewaypro.app.ui.jobs.JobsScreen
 import com.wirewaypro.app.ui.navigation.DashDest
 import com.wirewaypro.app.ui.navigation.HomeTab
@@ -103,6 +104,13 @@ fun DashboardScreen() {
                     onBack = { navController.popBackStack() },
                     onOpenJob = { id -> navController.navigate(DashDest.jobDetail(id)) },
                     onAdd = { navController.navigate(DashDest.jobEdit()) },
+                    onOpenCalendar = { navController.navigate(DashDest.JOBS_CALENDAR) },
+                )
+            }
+            composable(DashDest.JOBS_CALENDAR) {
+                JobsCalendarScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenJob = { id -> navController.navigate(DashDest.jobDetail(id)) },
                 )
             }
             composable(DashDest.CLIENTS) {
