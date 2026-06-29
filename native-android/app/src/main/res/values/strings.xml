@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Wireway Pro</string>
+
+    <!-- Launcher shortcuts (long-press the app icon) -->
+    <string name="shortcut_new_estimate_short">New estimate</string>
+    <string name="shortcut_new_estimate_long">New estimate</string>
+    <string name="shortcut_snap_receipt_short">Snap receipt</string>
+    <string name="shortcut_snap_receipt_long">Snap a receipt</string>
+    <string name="shortcut_ai_takeoff_short">AI Takeoff</string>
+    <string name="shortcut_ai_takeoff_long">AI Takeoff</string>
 </resources>

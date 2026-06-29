@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.ai.AiTakeoffService
 import com.wirewaypro.app.data.ai.TakeoffHandoff
+import com.wirewaypro.app.data.intent.SharedAttachmentHandoff
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.TakeoffResult
 import com.wirewaypro.app.ui.util.ImageUtil
@@ -36,10 +37,18 @@ class TakeoffViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val takeoffService: AiTakeoffService,
     private val handoff: TakeoffHandoff,
+    sharedAttachmentHandoff: SharedAttachmentHandoff,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TakeoffUiState())
     val state: StateFlow<TakeoffUiState> = _state.asStateFlow()
+
+    init {
+        // A photo/PDF shared into the app via the system share sheet arrives here.
+        sharedAttachmentHandoff.take()?.let { shared ->
+            if (shared.isPdf) setPdfFromUri(shared.uri) else setImageFromUri(shared.uri)
+        }
+    }
 
     fun setPrompt(v: String) = _state.update { it.copy(prompt = v, error = null) }
 

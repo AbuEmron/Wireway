@@ -8,8 +8,11 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -47,7 +50,9 @@ import com.wirewaypro.app.ui.takeoff.TakeoffScreen
  * pushed screens get the full height and their own back-navigating top bar.
  */
 @Composable
-fun DashboardScreen() {
+fun DashboardScreen(
+    intentRouter: IntentRouterViewModel = hiltViewModel(),
+) {
     com.wirewaypro.app.ui.NotificationsSetup()
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -55,6 +60,15 @@ fun DashboardScreen() {
 
     val tabRoutes = HomeTab.entries.map { it.route }.toSet()
     val showBottomBar = currentRoute in tabRoutes
+
+    // Drive the nested NavHost from inbound intents (launcher shortcuts / share).
+    val pendingRoute by intentRouter.pendingRoute.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingRoute) {
+        pendingRoute?.let { route ->
+            navController.navigate(route) { launchSingleTop = true }
+            intentRouter.onRouteHandled()
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
