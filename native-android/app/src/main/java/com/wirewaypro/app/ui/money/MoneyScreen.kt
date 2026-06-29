@@ -1,35 +1,51 @@
 package com.wirewaypro.app.ui.money
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wirewaypro.app.domain.model.AgingReport
+import com.wirewaypro.app.domain.model.JobPnl
+import com.wirewaypro.app.domain.model.JobPnlReport
 import com.wirewaypro.app.domain.model.MoneySnapshot
 import com.wirewaypro.app.ui.components.BackTopBar
 import com.wirewaypro.app.ui.components.InfoRow
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.theme.BrandGreen
 import com.wirewaypro.app.ui.util.Format
+import java.io.File
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
@@ -41,12 +57,36 @@ fun MoneyScreen(
     viewModel: MoneyViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val monthLabel = remember(state.snapshot) {
         val ym = state.snapshot?.let { YearMonth.of(it.year, it.month) } ?: YearMonth.now()
         "${ym.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${ym.year}"
     }
 
-    Scaffold(topBar = { BackTopBar(title = "Money", onBack = onBack) }) { padding ->
+    // Hand a freshly-built CSV to the system share sheet, then clear it.
+    LaunchedEffect(state.csvExport) {
+        val csv = state.csvExport ?: return@LaunchedEffect
+        shareCsv(context, viewModel.year, csv)
+        viewModel.csvConsumed()
+    }
+
+    Scaffold(
+        topBar = {
+            BackTopBar(
+                title = "Money",
+                onBack = onBack,
+                actions = {
+                    if (state.exporting) {
+                        CircularProgressIndicator(Modifier.padding(end = 16.dp).size(22.dp), strokeWidth = 2.dp)
+                    } else {
+                        IconButton(onClick = viewModel::exportCsv) {
+                            Icon(Icons.Outlined.Share, contentDescription = "Export CSV")
+                        }
+                    }
+                },
+            )
+        },
+    ) { padding ->
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
@@ -64,14 +104,19 @@ fun MoneyScreen(
                     Text(state.error!!, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     TextButton(onClick = viewModel::refresh) { Text("Retry") }
                 }
-                state.snapshot != null -> MoneyContent(state.snapshot!!, monthLabel)
+                else -> MoneyContent(state.snapshot, state.aging, state.pnl, monthLabel)
             }
         }
     }
 }
 
 @Composable
-private fun MoneyContent(snap: MoneySnapshot, monthLabel: String) {
+private fun MoneyContent(
+    snap: MoneySnapshot?,
+    aging: AgingReport?,
+    pnl: JobPnlReport?,
+    monthLabel: String,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -81,39 +126,105 @@ private fun MoneyContent(snap: MoneySnapshot, monthLabel: String) {
     ) {
         Text(monthLabel, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-        SectionCard(title = "Real profit") {
+        if (snap != null) {
+            SectionCard(title = "Real profit") {
+                Text(
+                    Format.money(snap.realProfit),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (snap.realProfit >= 0) BrandGreen else MaterialTheme.colorScheme.error,
+                )
+                Spacer(Modifier.padding(top = 4.dp))
+                Text("Collected − spent, this month", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            SectionCard(title = "Money in") {
+                InfoRow("Collected", Format.money(snap.collected))
+                InfoRow("Quoted (bid)", Format.money(snap.bid))
+                InfoRow("Won", Format.money(snap.won))
+            }
+            SectionCard(title = "Money out") {
+                InfoRow("Total spent", Format.money(snap.spent))
+                InfoRow("Materials", Format.money(snap.materials))
+                InfoRow("Mileage", Format.money(snap.mileage))
+                InfoRow("Subcontractors", Format.money(snap.subs))
+                InfoRow("Labor", Format.money(snap.labor))
+            }
+        }
+
+        aging?.let { report ->
+            SectionCard(title = "Accounts receivable") {
+                InfoRow("Total owed", Format.money(report.buckets.total))
+                InfoRow("Current", Format.money(report.buckets.current))
+                InfoRow("1–30 days", Format.money(report.buckets.d1_30))
+                InfoRow("31–60 days", Format.money(report.buckets.d31_60))
+                InfoRow("61–90 days", Format.money(report.buckets.d61_90))
+                InfoRow("90+ days", Format.money(report.buckets.d90))
+                if (report.items.isEmpty()) {
+                    Spacer(Modifier.padding(top = 6.dp))
+                    Text("Nothing outstanding.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        pnl?.let { report ->
+            if (report.winners.isNotEmpty()) {
+                SectionCard(title = "Most profitable jobs") {
+                    report.winners.take(5).forEach { JobPnlRow(it) }
+                }
+            }
+            if (report.losers.isNotEmpty()) {
+                SectionCard(title = "Jobs losing money") {
+                    report.losers.take(5).forEach { JobPnlRow(it) }
+                }
+            }
+        }
+
+        Text(
+            "Export builds an accountant CSV (one row per money movement) and opens the share sheet.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun JobPnlRow(job: JobPnl) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(Modifier.padding(end = 12.dp)) {
+            Text(job.title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(
-                Format.money(snap.realProfit),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = if (snap.realProfit >= 0) BrandGreen else MaterialTheme.colorScheme.error,
-            )
-            Spacer(Modifier.padding(top = 4.dp))
-            Text(
-                "Collected − spent, this month",
+                text = (if (job.settled) "actual · " else "projected · ") + "bid ${Format.money(job.bid)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-
-        SectionCard(title = "Money in") {
-            InfoRow("Collected", Format.money(snap.collected))
-            InfoRow("Quoted (bid)", Format.money(snap.bid))
-            InfoRow("Won", Format.money(snap.won))
-        }
-
-        SectionCard(title = "Money out") {
-            InfoRow("Total spent", Format.money(snap.spent))
-            InfoRow("Materials", Format.money(snap.materials))
-            InfoRow("Mileage", Format.money(snap.mileage))
-            InfoRow("Subcontractors", Format.money(snap.subs))
-            InfoRow("Labor", Format.money(snap.labor))
-        }
-
         Text(
-            "Mirrors the web money dashboard. AR aging, per-job P&L, and CSV export arrive in a later phase.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = Format.money(job.margin),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = if (job.margin >= 0) BrandGreen else MaterialTheme.colorScheme.error,
         )
+    }
+}
+
+/** Writes the CSV to cache/exports and opens the system share sheet. */
+private fun shareCsv(context: Context, year: Int, csv: String) {
+    runCatching {
+        val dir = File(context.cacheDir, "exports").apply { mkdirs() }
+        val file = File(dir, "wireway-$year.csv")
+        file.writeText(csv)
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/csv"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "Wireway $year expenses")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "Export CSV").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
     }
 }

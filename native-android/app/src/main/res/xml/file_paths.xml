@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- Temp receipt photos captured by the system camera live in cache/receipts/. -->
+    <!-- Temp receipt photos captured by the camera live in cache/receipts/. -->
     <cache-path name="receipts" path="receipts/" />
+    <!-- Accountant CSV exports shared via the share sheet live in cache/exports/. -->
+    <cache-path name="exports" path="exports/" />
 </paths>
