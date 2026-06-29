@@ -3,6 +3,8 @@ package com.wirewaypro.app.ui.quotes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wirewaypro.app.data.ai.AiService
+import com.wirewaypro.app.domain.catalog.Catalog
 import com.wirewaypro.app.domain.model.QuoteCalculator
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.QuoteCustomItem
@@ -57,6 +59,7 @@ data class QuoteBuilderUiState(
     val invoicePaid: Boolean = false,
     val catalogItems: List<CatalogEntryUi> = emptyList(),
     val items: List<CustomItemUi> = emptyList(),
+    val draftingNotes: Boolean = false,
     val error: String? = null,
     val saved: Boolean = false,
 )
@@ -67,6 +70,7 @@ private fun String.toD(): Double = trim().toDoubleOrNull() ?: 0.0
 class QuoteBuilderViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val quoteRepository: QuoteRepository,
+    private val aiService: AiService,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -189,6 +193,54 @@ class QuoteBuilderViewModel @Inject constructor(
 
     fun updateItem(index: Int, transform: (CustomItemUi) -> CustomItemUi) = _state.update { s ->
         s.copy(items = s.items.mapIndexed { i, item -> if (i == index) transform(item) else item })
+    }
+
+    /** Drafts a professional notes/description from the current line items via AI. */
+    fun draftNotes() {
+        val s = _state.value
+        val labels = mutableListOf<String>()
+        s.catalogItems.forEach { ci ->
+            val svc = Catalog.service(ci.serviceId) ?: return@forEach
+            val variant = svc.variants.getOrNull(ci.variantIdx)?.label
+            val qty = ci.qty.trim()
+            labels += buildString {
+                append(svc.label)
+                if (variant != null && svc.variants.size > 1) append(" ($variant)")
+                if (qty.isNotBlank() && qty != "1") append(" x$qty")
+            }
+        }
+        s.items.forEach {
+            val label = it.label.trim()
+            if (label.isNotBlank()) {
+                val qty = it.qty.trim()
+                labels += label + if (qty.isNotBlank() && qty != "1") " x$qty" else ""
+            }
+        }
+        if (labels.isEmpty()) {
+            _state.update { it.copy(error = "Add line items first, then draft.") }
+            return
+        }
+
+        val kind = if (s.isInvoice) "invoice" else "estimate"
+        val userText = buildString {
+            append("Write a short, professional project description (2-4 sentences, plain text, ")
+            append("no markdown, no bullet points) for an electrical $kind")
+            s.jobName.ifBlank { null }?.let { append(" for the job \"$it\"") }
+            s.clientName.ifBlank { null }?.let { append(", client $it") }
+            append(". The work includes: ")
+            append(labels.joinToString("; "))
+            append(".")
+        }
+        val system = "You are an assistant for a licensed electrical contractor writing " +
+            "customer-facing estimate/invoice descriptions. Be concise, professional, and " +
+            "specific. Output only the description text, nothing else."
+
+        _state.update { it.copy(draftingNotes = true, error = null) }
+        viewModelScope.launch {
+            aiService.complete(system, userText)
+                .onSuccess { text -> _state.update { it.copy(draftingNotes = false, notes = text) } }
+                .onFailure { _state.update { it.copy(draftingNotes = false, error = "Couldn't draft with AI. Try again.") } }
+        }
     }
 
     fun save() {

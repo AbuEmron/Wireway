@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -181,6 +183,21 @@ fun QuoteBuilderScreen(
                 }
                 Spacer(Modifier.padding(top = 10.dp))
                 FormField(state.notes, viewModel::setNotes, "Notes", singleLine = false)
+                Spacer(Modifier.padding(top = 8.dp))
+                OutlinedButton(
+                    onClick = viewModel::draftNotes,
+                    enabled = !state.draftingNotes,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (state.draftingNotes) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Drafting…")
+                    } else {
+                        Icon(Icons.Outlined.AutoAwesome, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                        Text("Draft notes with AI")
+                    }
+                }
             }
 
             SectionCard(title = "Totals") {
