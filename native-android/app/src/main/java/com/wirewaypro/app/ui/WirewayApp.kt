@@ -58,7 +58,9 @@ fun WirewayApp(
             LoginScreen()
         }
         composable(Routes.DASHBOARD) {
-            DashboardScreen()
+            BiometricGate(onUsePassword = sessionViewModel::signOut) {
+                DashboardScreen()
+            }
         }
     }
 }

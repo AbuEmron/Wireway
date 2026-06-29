@@ -132,6 +132,10 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
 
+    // Biometric unlock
+    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.fragment.ktx)
+
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

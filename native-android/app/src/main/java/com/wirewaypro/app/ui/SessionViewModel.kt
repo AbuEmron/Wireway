@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -16,7 +17,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SessionViewModel @Inject constructor(
-    authRepository: AuthRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     val authState: StateFlow<AuthState> = authRepository.authState
@@ -25,4 +26,9 @@ class SessionViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = AuthState.Loading,
         )
+
+    /** Used by the biometric lock's "use password" fallback. */
+    fun signOut() {
+        viewModelScope.launch { authRepository.signOut() }
+    }
 }
