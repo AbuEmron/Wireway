@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Work
+import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,6 +52,7 @@ fun HomeScreen(
     onOpenMoney: () -> Unit,
     onOpenTakeoff: () -> Unit,
     onOpenBank: () -> Unit,
+    onOpenSubscription: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.home.collectAsStateWithLifecycle()
@@ -122,6 +124,7 @@ fun HomeScreen(
         QuickLink(icon = Icons.Outlined.ReceiptLong, label = "Expenses & receipts", onClick = onOpenExpenses)
         QuickLink(icon = Icons.Outlined.Payments, label = "Money", onClick = onOpenMoney)
         QuickLink(icon = Icons.Outlined.AccountBalance, label = "Bank", onClick = onOpenBank)
+        QuickLink(icon = Icons.Outlined.WorkspacePremium, label = "Subscription", onClick = onOpenSubscription)
 
         Spacer(Modifier.height(4.dp))
         Text(

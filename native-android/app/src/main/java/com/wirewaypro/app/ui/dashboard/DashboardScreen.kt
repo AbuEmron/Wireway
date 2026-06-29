@@ -36,6 +36,7 @@ import com.wirewaypro.app.ui.money.MoneyScreen
 import com.wirewaypro.app.ui.quotes.QuoteBuilderScreen
 import com.wirewaypro.app.ui.quotes.QuoteDetailScreen
 import com.wirewaypro.app.ui.settings.SettingsScreen
+import com.wirewaypro.app.ui.subscription.SubscriptionsScreen
 import com.wirewaypro.app.ui.takeoff.TakeoffScreen
 
 /**
@@ -86,6 +87,7 @@ fun DashboardScreen() {
                     onOpenMoney = { navController.navigate(DashDest.MONEY) },
                     onOpenTakeoff = { navController.navigate(DashDest.TAKEOFF) },
                     onOpenBank = { navController.navigate(DashDest.BANK) },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
                 )
             }
             composable(HomeTab.ESTIMATES.route) {
@@ -149,6 +151,9 @@ fun DashboardScreen() {
             }
             composable(DashDest.BANK) {
                 BankScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.SUBSCRIPTION) {
+                SubscriptionsScreen(onBack = { navController.popBackStack() })
             }
 
             val idArg = listOf(navArgument(DashDest.ARG_ID) { type = NavType.StringType })

@@ -40,6 +40,9 @@ plaid = "5.5.1"
 firebaseBom = "33.7.0"
 googleServices = "4.4.2"
 
+# Google Play Billing (subscriptions)
+billing = "7.1.1"
+
 # Test
 junit = "4.13.2"
 androidxJunit = "1.2.1"
@@ -99,6 +102,9 @@ plaid-link = { group = "com.plaid.link", name = "sdk-core", version.ref = "plaid
 # Firebase Cloud Messaging (main module; KTX removed in BoM 34+)
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+
+# Play Billing (subscriptions) — Kotlin coroutine extensions
+billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
 
 # --- Test ---
 junit = { group = "junit", name = "junit", version.ref = "junit" }
