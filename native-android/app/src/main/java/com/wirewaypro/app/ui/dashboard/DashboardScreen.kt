@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.wirewaypro.app.ui.bank.BankScreen
 import com.wirewaypro.app.ui.clients.ClientEditScreen
 import com.wirewaypro.app.ui.clients.ClientsScreen
 import com.wirewaypro.app.ui.expenses.AddExpenseScreen
@@ -83,6 +84,7 @@ fun DashboardScreen() {
                     onOpenExpenses = { navController.navigate(DashDest.EXPENSES) },
                     onOpenMoney = { navController.navigate(DashDest.MONEY) },
                     onOpenTakeoff = { navController.navigate(DashDest.TAKEOFF) },
+                    onOpenBank = { navController.navigate(DashDest.BANK) },
                 )
             }
             composable(HomeTab.ESTIMATES.route) {
@@ -143,6 +145,9 @@ fun DashboardScreen() {
                         }
                     },
                 )
+            }
+            composable(DashDest.BANK) {
+                BankScreen(onBack = { navController.popBackStack() })
             }
 
             val idArg = listOf(navArgument(DashDest.ARG_ID) { type = NavType.StringType })
