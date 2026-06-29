@@ -133,6 +133,9 @@ dependencies {
     // Offline queue
     implementation(libs.androidx.datastore.preferences)
 
+    // Home-screen widget (Glance)
+    implementation(libs.androidx.glance.appwidget)
+
     // CameraX
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)

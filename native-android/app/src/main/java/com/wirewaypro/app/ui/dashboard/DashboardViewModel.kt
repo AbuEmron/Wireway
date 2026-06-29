@@ -3,6 +3,7 @@ package com.wirewaypro.app.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.offline.SyncManager
+import com.wirewaypro.app.data.widget.WidgetUpdater
 import com.wirewaypro.app.domain.model.UserProfile
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
@@ -27,6 +28,7 @@ data class HomeUiState(
 class DashboardViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val widgetUpdater: WidgetUpdater,
     syncManager: SyncManager,
 ) : ViewModel() {
 
@@ -66,5 +68,8 @@ class DashboardViewModel @Inject constructor(
                 )
             }
         }
+
+        // Refresh the home-screen widget's cached snapshot (best-effort, off the UI path).
+        viewModelScope.launch { widgetUpdater.refresh() }
     }
 }
