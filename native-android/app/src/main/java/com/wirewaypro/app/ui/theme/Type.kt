@@ -7,7 +7,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 // Typography. The web app uses Space Grotesk (display) + Inter (body). When those
-// fonts are present in res/font (see res/font/README) [wirewayTypography] uses
+// fonts are present in res/font (see native-android/FONTS.md) [wirewayTypography] uses
 // them; otherwise it falls back to the platform sans with brand-matched weights
 // and tracking, so the app always renders.
 fun wirewayTypography(

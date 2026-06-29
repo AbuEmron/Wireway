@@ -5,9 +5,13 @@ app. The typography is wired to pick these up automatically — `BrandFonts.reso
 looks them up by resource name at runtime, so the app builds and runs without
 them and upgrades the instant they're present (no code change needed).
 
-Drop the OFL `.ttf` files into **this folder** (`app/src/main/res/font/`) with
-**exactly these lowercase names** (Android font resource names must be
-lowercase, letters/digits/underscore only):
+> Note: this file lives at `native-android/FONTS.md`, **not** under `res/font/` —
+> Android's resource merger only allows `.xml/.ttf/.ttc/.otf` files inside
+> `res/font/`, so the instructions can't live there.
+
+Drop the OFL `.ttf` files into **`app/src/main/res/font/`** with **exactly these
+lowercase names** (Android font resource names must be lowercase, letters/digits/
+underscore only):
 
 | File name | Source (OFL) |
 | --------- | ------------ |

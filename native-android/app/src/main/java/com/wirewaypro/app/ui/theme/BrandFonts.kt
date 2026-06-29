@@ -8,7 +8,7 @@ import androidx.compose.ui.text.font.FontWeight
 /**
  * Resolves the brand fonts (Space Grotesk display + Inter body) from res/font at
  * runtime *if present*, so the app compiles and runs without the .ttf binaries
- * and automatically upgrades the moment they're dropped in (see res/font/README).
+ * and automatically upgrades the moment they're dropped in (see native-android/FONTS.md).
  */
 object BrandFonts {
 
