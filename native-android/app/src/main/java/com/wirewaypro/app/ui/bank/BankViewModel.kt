@@ -49,7 +49,7 @@ class BankViewModel @Inject constructor(
         viewModelScope.launch {
             plaidService.getTransactions(userId)
                 .onSuccess { txns -> _state.update { it.copy(isLoading = false, isRefreshing = false, transactions = txns, error = null) } }
-                .onFailure { _state.update { it.copy(isLoading = false, isRefreshing = false, error = "Couldn't load transactions.") } }
+                .onFailure { e -> _state.update { it.copy(isLoading = false, isRefreshing = false, error = e.message ?: e.toString()) } }
         }
     }
 
@@ -59,7 +59,8 @@ class BankViewModel @Inject constructor(
         viewModelScope.launch {
             plaidService.createLinkToken()
                 .onSuccess { token -> _state.update { it.copy(linking = false, pendingLinkToken = token) } }
-                .onFailure { e -> _state.update { it.copy(linking = false, error = e.message ?: "Couldn't start bank connection.") } }
+                // Always show the REAL reason — never a generic "check your plan" string.
+                .onFailure { e -> _state.update { it.copy(linking = false, error = e.message ?: e.toString()) } }
         }
     }
 
@@ -74,7 +75,7 @@ class BankViewModel @Inject constructor(
         _state.update { it.copy(linking = true, status = "Linking bank…") }
         viewModelScope.launch {
             plaidService.exchangeToken(publicToken, institutionId, institutionName)
-                .onFailure { e -> _state.update { it.copy(linking = false, error = e.message ?: "Couldn't link the bank.") }; return@launch }
+                .onFailure { e -> _state.update { it.copy(linking = false, error = e.message ?: e.toString()) }; return@launch }
             _state.update { it.copy(status = "Syncing transactions…") }
             val synced = plaidService.sync().getOrDefault(0)
             _state.update { it.copy(linking = false, status = "Synced $synced transactions") }
