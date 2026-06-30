@@ -27,7 +27,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class SubProductUi(val id: String, val title: String, val price: String)
+data class SubProductUi(
+    val id: String,
+    val title: String,
+    val price: String,
+    val tier: String, // "Pro" | "Teams" | "Elite"
+)
 
 data class SubsUiState(
     val connecting: Boolean = true,
@@ -47,7 +52,22 @@ class SubscriptionsViewModel @Inject constructor(
     @ApplicationContext context: Context,
 ) : ViewModel() {
 
-    private val productIds = listOf("wireway_pro_monthly", "wireway_pro_yearly")
+    // Three tiers (Pro / Teams / Elite), each with a monthly + yearly product. These
+    // IDs must be created as subscriptions in the Play Console (a merchant account is
+    // required first). Order here also drives display order. Elite unlocks AI Takeoff.
+    private val productIds = listOf(
+        "wireway_pro_monthly", "wireway_pro_yearly",
+        "wireway_teams_monthly", "wireway_teams_yearly",
+        "wireway_elite_monthly", "wireway_elite_yearly",
+    )
+
+    /** Maps a product ID to its tier label for grouping + (future) entitlement sync. */
+    private fun tierOf(productId: String): String = when {
+        productId.startsWith("wireway_elite") -> "Elite"
+        productId.startsWith("wireway_teams") -> "Teams"
+        else -> "Pro"
+    }
+
     private val detailsById = mutableMapOf<String, ProductDetails>()
 
     private val _state = MutableStateFlow(SubsUiState())
@@ -147,8 +167,11 @@ class SubscriptionsViewModel @Inject constructor(
                     id = pd.productId,
                     title = pd.title.ifBlank { pd.productId },
                     price = phase?.formattedPrice.orEmpty(),
+                    tier = tierOf(pd.productId),
                 )
             }
+                // Keep a stable Pro → Teams → Elite (monthly before yearly) order.
+                .sortedBy { productIds.indexOf(it.id) }
             _state.update { it.copy(connecting = false, available = true, products = ui, status = null) }
         }
     }
