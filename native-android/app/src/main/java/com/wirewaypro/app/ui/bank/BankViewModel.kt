@@ -59,18 +59,22 @@ class BankViewModel @Inject constructor(
         viewModelScope.launch {
             plaidService.createLinkToken()
                 .onSuccess { token -> _state.update { it.copy(linking = false, pendingLinkToken = token) } }
-                .onFailure { _state.update { it.copy(linking = false, error = "Couldn't start bank connection. Check your plan/network.") } }
+                .onFailure { e -> _state.update { it.copy(linking = false, error = e.message ?: "Couldn't start bank connection.") } }
         }
     }
 
     fun linkConsumed() = _state.update { it.copy(pendingLinkToken = null) }
+
+    /** The Plaid Link flow exited with an error (not a plain user cancel). */
+    fun onLinkError(message: String) =
+        _state.update { it.copy(linking = false, status = null, error = "Bank link failed: $message") }
 
     /** Called after a successful Plaid Link: exchange the public token + sync. */
     fun onLinked(publicToken: String, institutionId: String?, institutionName: String?) {
         _state.update { it.copy(linking = true, status = "Linking bank…") }
         viewModelScope.launch {
             plaidService.exchangeToken(publicToken, institutionId, institutionName)
-                .onFailure { _state.update { it.copy(linking = false, error = "Couldn't link the bank.") }; return@launch }
+                .onFailure { e -> _state.update { it.copy(linking = false, error = e.message ?: "Couldn't link the bank.") }; return@launch }
             _state.update { it.copy(status = "Syncing transactions…") }
             val synced = plaidService.sync().getOrDefault(0)
             _state.update { it.copy(linking = false, status = "Synced $synced transactions") }

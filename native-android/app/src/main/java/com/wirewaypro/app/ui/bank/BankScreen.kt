@@ -51,7 +51,13 @@ fun BankScreen(
     val plaidLauncher = rememberLauncherForActivityResult(FastOpenPlaidLink()) { result ->
         when (result) {
             is LinkSuccess -> viewModel.onLinked(result.publicToken, null, null)
-            is LinkExit -> viewModel.onLinkCancelled()
+            is LinkExit -> {
+                // An error here (vs. a plain user cancel) is the REAL reason Plaid
+                // Link wouldn't open — e.g. link_token missing android_package_name,
+                // or the package isn't allowlisted in the Plaid dashboard.
+                val err = result.error
+                if (err != null) viewModel.onLinkError(err.toString()) else viewModel.onLinkCancelled()
+            }
         }
     }
 

@@ -38,7 +38,15 @@ class PlaidService @Inject constructor(
     private val http = HttpClient(Android)
 
     suspend fun createLinkToken(): Result<String> = runCatching {
-        val obj = apiPost("/api/plaid-create-link-token", null)
+        // The Plaid Link Android SDK requires the link_token to be created with this
+        // app's android_package_name (and it must be allowlisted in the Plaid
+        // dashboard). We send it so the backend can set it; harmless if ignored.
+        val obj = apiPost(
+            "/api/plaid-create-link-token",
+            buildJsonObject {
+                put("android_package_name", com.wirewaypro.app.BuildConfig.APPLICATION_ID)
+            },
+        )
         (obj["link_token"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
             ?: error("No link token returned")
     }
@@ -88,6 +96,15 @@ class PlaidService @Inject constructor(
             setBody((body ?: buildJsonObject {}).toString())
         }
         val text = response.bodyAsText()
+        // Surface the REAL backend failure (401 sign-in / 503 Plaid-not-configured /
+        // 500 + Plaid detail) instead of letting it fall through as "no link token".
+        if (response.status.value !in 200..299) {
+            val parsed = runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull()
+            val msg = (parsed?.get("error") as? JsonPrimitive)?.content
+            val detail = (parsed?.get("detail") as? JsonPrimitive)?.content
+            val snippet = (msg ?: text.take(200)).ifBlank { "(empty body)" }
+            error("Bank service error ${response.status.value}: $snippet${detail?.let { " — $it" } ?: ""}")
+        }
         return runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull() ?: buildJsonObject {}
     }
 
