@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +53,7 @@ fun JobDetailScreen(
     viewModel: JobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
     var confirmDelete by remember { mutableStateOf(false) }
 
     com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::load)
@@ -117,6 +119,17 @@ fun JobDetailScreen(
                 } else {
                     state.draws.forEach { draw ->
                         DrawRow(draw = draw, onClick = { viewModel.editDraw(draw) })
+                    }
+                }
+                // Any unpaid draw → let the contractor share the client pay page.
+                if (state.draws.any { it.status != "paid" }) {
+                    Spacer(Modifier.padding(top = 10.dp))
+                    androidx.compose.material3.Button(
+                        onClick = { shareDrawPayLink(context, job.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Outlined.Payments, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                        Text("Request payment (share pay page)")
                     }
                 }
                 Spacer(Modifier.padding(top = 10.dp))
@@ -244,3 +257,22 @@ private fun DrawEditorDialog(
 
 private fun trimNum(value: Double): String =
     if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
+
+/**
+ * Opens the share sheet with the client-facing draw pay page — the web's public
+ * /pay/{jobId}, where the client can pay this job's outstanding progress draws by
+ * card or bank. Payment requires the contractor's Stripe Connect (Settings → Get paid).
+ */
+private fun shareDrawPayLink(context: android.content.Context, jobId: String) {
+    runCatching {
+        val url = "https://www.wireway.cc/pay/$jobId"
+        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(android.content.Intent.EXTRA_TEXT, "Pay your progress draws securely here:\n$url")
+        }
+        context.startActivity(
+            android.content.Intent.createChooser(intent, "Share pay page")
+                .apply { addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK) },
+        )
+    }
+}
