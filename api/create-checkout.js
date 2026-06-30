@@ -84,7 +84,12 @@ module.exports = async function handler(req, res) {
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
+      // Card + pay-by-bank (ACH Direct Debit). Still a direct charge on the
+      // contractor's connected account (stripeAccount option below). ACH is async:
+      // the session completes as "processing", so make sure the webhook also
+      // handles checkout.session.async_payment_succeeded/failed before treating
+      // an ACH payment as collected.
+      payment_method_types: ["card", "us_bank_account"],
       line_items: [{
         price_data: {
           currency: "usd",
