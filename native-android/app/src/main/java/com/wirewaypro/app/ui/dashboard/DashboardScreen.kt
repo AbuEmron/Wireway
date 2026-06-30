@@ -40,6 +40,7 @@ import com.wirewaypro.app.ui.jobs.JobsCalendarScreen
 import com.wirewaypro.app.ui.jobs.JobsScreen
 import com.wirewaypro.app.ui.mileage.MileageScreen
 import com.wirewaypro.app.ui.navigation.DashDest
+import com.wirewaypro.app.ui.timetracking.TimeTrackingScreen
 import com.wirewaypro.app.ui.navigation.HomeTab
 import com.wirewaypro.app.ui.quotes.EstimatesScreen
 import com.wirewaypro.app.ui.quotes.InvoicesScreen
@@ -131,6 +132,7 @@ fun DashboardScreen(
                     onOpenClients = { navController.navigate(DashDest.CLIENTS) },
                     onOpenExpenses = { navController.navigate(DashDest.EXPENSES) },
                     onOpenMileage = { navController.navigate(DashDest.MILEAGE) },
+                    onOpenTimeTracking = { navController.navigate(DashDest.TIME_TRACKING) },
                     onOpenMoney = { navController.navigate(DashDest.MONEY) },
                     onOpenTakeoff = { navController.navigate(DashDest.TAKEOFF) },
                     onOpenBank = { navController.navigate(DashDest.BANK) },
@@ -191,6 +193,9 @@ fun DashboardScreen(
             }
             composable(DashDest.MILEAGE) {
                 MileageScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.TIME_TRACKING) {
+                TimeTrackingScreen(onBack = { navController.popBackStack() })
             }
             composable(DashDest.TAKEOFF) {
                 TakeoffScreen(

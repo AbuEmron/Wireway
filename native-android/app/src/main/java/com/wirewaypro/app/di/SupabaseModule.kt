@@ -8,6 +8,7 @@ import com.wirewaypro.app.data.jobs.JobRepositoryImpl
 import com.wirewaypro.app.data.money.MoneyRepositoryImpl
 import com.wirewaypro.app.data.profile.ProfileRepositoryImpl
 import com.wirewaypro.app.data.quotes.QuoteRepositoryImpl
+import com.wirewaypro.app.data.timetracking.TimeEntryRepositoryImpl
 import com.wirewaypro.app.data.trips.TripRepositoryImpl
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ClientRepository
@@ -16,6 +17,7 @@ import com.wirewaypro.app.domain.repository.JobRepository
 import com.wirewaypro.app.domain.repository.MoneyRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
+import com.wirewaypro.app.domain.repository.TimeEntryRepository
 import com.wirewaypro.app.domain.repository.TripRepository
 import dagger.Binds
 import dagger.Module
@@ -105,4 +107,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindTripRepository(impl: TripRepositoryImpl): TripRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTimeEntryRepository(impl: TimeEntryRepositoryImpl): TimeEntryRepository
 }

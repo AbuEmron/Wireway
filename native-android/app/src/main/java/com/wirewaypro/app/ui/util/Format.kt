@@ -22,6 +22,10 @@ object Format {
     fun miles(value: Double?): String =
         value?.let { number1.format(it) } ?: "0"
 
+    /** "2.5" (one decimal), or "0" when null. Used for logged labor hours. */
+    fun hours(value: Double?): String =
+        value?.let { number1.format(it) } ?: "0"
+
     /** Accepts "yyyy-MM-dd" or a full ISO timestamp; returns "Jun 28, 2026". */
     fun date(iso: String?): String {
         if (iso.isNullOrBlank()) return "—"
