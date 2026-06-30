@@ -22,7 +22,9 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -92,8 +94,21 @@ class AiTakeoffService @Inject constructor(
             contentType(ContentType.Application.Json)
             setBody(body.toString())
         }
-        parse(response.bodyAsText()) ?: error("Couldn't read the AI's response. Try again.")
+        // /api/claude returns the full Anthropic envelope; pull the model's text
+        // (content[].text) out first, then extract its JSON object.
+        val raw = response.bodyAsText()
+        val text = extractText(raw).ifBlank { raw }
+        parse(text) ?: error("Couldn't read the AI's response. Try again.")
     }
+
+    /** Joins the Anthropic-style content blocks' text from the /api/claude envelope. */
+    private fun extractText(raw: String): String = runCatching {
+        json.parseToJsonElement(raw).jsonObject["content"]?.jsonArray
+            ?.joinToString("") { block ->
+                runCatching { block.jsonObject["text"]?.jsonPrimitive?.content.orEmpty() }.getOrDefault("")
+            }
+            .orEmpty()
+    }.getOrDefault("")
 
     private fun parse(raw: String): TakeoffResult? {
         val cleaned = raw.replace("```json", "").replace("```", "")
