@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.ReceiptLong
@@ -162,6 +163,9 @@ fun HomeScreen(
         }
 
         // ── Estimate with AI ─────────────────────────────────────────────────
+        // AI Takeoff is an Elite-tier feature; non-Elite users see it as a locked
+        // upsell that routes to the Subscription screen.
+        val isElite = state.profile?.isElite == true
         SectionEyebrow("Estimate with AI", modifier = Modifier.padding(top = 4.dp))
         AiHeroCard(
             icon = Icons.Outlined.AutoAwesome,
@@ -172,8 +176,13 @@ fun HomeScreen(
         AiHeroCard(
             icon = Icons.Outlined.PhotoCamera,
             title = "AI Takeoff",
-            subtitle = "Snap or upload a plan photo/PDF — AI reads it and builds the estimate",
-            onClick = onOpenTakeoff,
+            subtitle = if (isElite) {
+                "Snap or upload a plan photo/PDF — AI reads it and builds the estimate"
+            } else {
+                "Unlock AI plan takeoff from a photo or PDF with Elite"
+            },
+            onClick = if (isElite) onOpenTakeoff else onOpenSubscription,
+            locked = !isElite,
         )
 
         // ── Browse ───────────────────────────────────────────────────────────
@@ -274,7 +283,13 @@ private fun HeroCard(
 
 /** Prominent headline card for the two AI estimating tools. */
 @Composable
-private fun AiHeroCard(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+private fun AiHeroCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    locked: Boolean = false,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -309,12 +324,27 @@ private fun AiHeroCard(icon: ImageVector, title: String, subtitle: String, onCli
             }
             Spacer(Modifier.size(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (locked) {
+                        Spacer(Modifier.size(8.dp))
+                        Text(
+                            text = "ELITE",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .drawBehind { drawRect(brush = BrandGradients.primary) }
+                                .padding(horizontal = 7.dp, vertical = 2.dp),
+                        )
+                    }
+                }
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = subtitle,
@@ -323,7 +353,7 @@ private fun AiHeroCard(icon: ImageVector, title: String, subtitle: String, onCli
                 )
             }
             Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                if (locked) Icons.Outlined.Lock else Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
             )

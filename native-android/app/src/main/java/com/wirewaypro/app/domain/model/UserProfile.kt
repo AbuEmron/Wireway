@@ -17,12 +17,28 @@ data class UserProfile(
     val companyAddress: String? = null,
     val companyWebsite: String? = null,
 ) {
-    /** Mirrors `isPro()` in the web app's src/lib/supabase.js. */
+    /**
+     * Mirrors `isPro()` in the web app's src/lib/supabase.js. Teams and Elite are
+     * higher tiers, so they unlock everything Pro does.
+     */
     val isPro: Boolean
         get() = plan == "pro" ||
             plan == "teams" ||
+            plan == "elite" ||
             subscriptionStatus == "trialing" ||
             subscriptionStatus == "active"
+
+    /**
+     * Top "Elite" tier — unlocks AI Takeoff (and industrial estimating on web).
+     * Mirrors `isElite()` in src/lib/supabase.js, including the pre-launch preview
+     * allowlist so Elite can be exercised before public launch.
+     */
+    val isElite: Boolean
+        get() = plan == "elite" || (email?.lowercase() in ELITE_PREVIEW_ACCOUNTS)
+
+    private companion object {
+        val ELITE_PREVIEW_ACCOUNTS = setOf("elite@wirewaypro.com")
+    }
 
     /** Company/business header used on proposals & PDFs. */
     fun businessInfo(): BusinessInfo = BusinessInfo(
