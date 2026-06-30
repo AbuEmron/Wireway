@@ -9,6 +9,8 @@
 //   customer.subscription.created / updated / deleted
 //   invoice.payment_failed
 //   checkout.session.completed
+//   checkout.session.async_payment_succeeded   (ACH/pay-by-bank cleared)
+//   checkout.session.async_payment_failed      (ACH/pay-by-bank failed)
 //   account.updated
 // IMPORTANT: this endpoint must also LISTEN TO CONNECTED ACCOUNTS so that the
 // account.updated and (direct-charge) checkout.session.completed events arrive here.
@@ -27,6 +29,46 @@ async function getRawBody(req) {
     req.on("error", reject);
   });
 }
+
+// Mark a Connect Checkout session as PAID — a progress-billing draw or a job
+// invoice/quote — recomputing jobs.collected. Idempotent on stripe_session_id.
+// Used for card (checkout.session.completed with payment_status "paid") AND for
+// ACH/delayed payments (checkout.session.async_payment_succeeded, fired when the
+// bank debit actually clears days later).
+async function markSessionPaid(session) {
+  // Progress-billing draw payment (Money-Rails).
+  const drawId = session.metadata?.draw_id;
+  if (drawId) {
+    const { data: draw } = await supabase
+      .from("job_draws").select("id, job_id, stripe_session_id").eq("id", drawId).single();
+    if (!draw) return;
+    if (draw.stripe_session_id === session.id) return; // already processed (retry) — idempotent
+    const amountPaid = (session.amount_total || 0) / 100;
+    const upd = await supabase.from("job_draws")
+      .update({ status: "paid", paid_at: new Date().toISOString(), payment_amount: amountPaid, stripe_session_id: session.id })
+      .eq("id", drawId);
+    if (upd.error) throw upd.error;
+    // jobs.collected = sum of NET (gross − retainage) across paid draws
+    const { data: paid } = await supabase
+      .from("job_draws").select("amount, retainage_pct").eq("job_id", draw.job_id).eq("status", "paid");
+    const collected = (paid || []).reduce(
+      (s, d) => s + (Number(d.amount) || 0) * (1 - (Number(d.retainage_pct) || 0) / 100), 0);
+    await supabase.from("jobs")
+      .update({ collected: Math.round(collected * 100) / 100 }).eq("id", draw.job_id);
+    return;
+  }
+
+  // Job invoice/quote payment.
+  const quoteId = session.metadata?.quote_id;
+  if (!quoteId) return; // older/unrelated sessions without our id — skip
+  const amountPaid = (session.amount_total || 0) / 100;
+  const newStatus  = session.metadata?.depositOnly === "true" ? "deposit_paid" : "paid";
+  const { error } = await supabase.from("quotes")
+    .update({ status: newStatus, paid_at: new Date().toISOString(), payment_amount: amountPaid, stripe_session_id: session.id })
+    .eq("id", quoteId);
+  if (error) throw error; // let Stripe retry if the DB write failed
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   let event;
@@ -89,38 +131,30 @@ module.exports = async function handler(req, res) {
       case "checkout.session.completed": {
         const session = event.data.object;
         if (session.mode !== "payment") break;
+        // Card pays instantly → payment_status "paid" here. ACH/us_bank_account is
+        // a delayed method → "unpaid"/"processing" at this point; it gets marked
+        // paid later in checkout.session.async_payment_succeeded. So only mark
+        // collected now when the money is actually captured.
+        if (session.payment_status !== "paid") break;
+        await markSessionPaid(session);
+        break;
+      }
 
-        // Progress-billing draw payment (Money-Rails) — mark the draw paid and
-        // recompute jobs.collected so Job Costing actual margin stays live.
-        const drawId = session.metadata?.draw_id;
-        if (drawId) {
-          const { data: draw } = await supabase
-            .from("job_draws").select("id, job_id, stripe_session_id").eq("id", drawId).single();
-          if (!draw) break;
-          if (draw.stripe_session_id === session.id) break; // already processed (retry) — idempotent
-          const amountPaid = (session.amount_total || 0) / 100;
-          const upd = await supabase.from("job_draws")
-            .update({ status: "paid", paid_at: new Date().toISOString(), payment_amount: amountPaid, stripe_session_id: session.id })
-            .eq("id", drawId);
-          if (upd.error) throw upd.error;
-          // jobs.collected = sum of NET (gross − retainage) across paid draws
-          const { data: paid } = await supabase
-            .from("job_draws").select("amount, retainage_pct").eq("job_id", draw.job_id).eq("status", "paid");
-          const collected = (paid || []).reduce(
-            (s, d) => s + (Number(d.amount) || 0) * (1 - (Number(d.retainage_pct) || 0) / 100), 0);
-          await supabase.from("jobs")
-            .update({ collected: Math.round(collected * 100) / 100 }).eq("id", draw.job_id);
-          break;
-        }
+      // ── CONNECT: a delayed payment (ACH bank debit) cleared days later ──
+      case "checkout.session.async_payment_succeeded": {
+        const session = event.data.object;
+        if (session.mode !== "payment") break;
+        await markSessionPaid(session); // same logic as the card paid path; idempotent
+        break;
+      }
 
-        const quoteId = session.metadata?.quote_id;
-        if (!quoteId) break; // older/unrelated sessions without our id — skip
-        const amountPaid = (session.amount_total || 0) / 100;
-        const newStatus  = session.metadata?.depositOnly === "true" ? "deposit_paid" : "paid";
-        const { error } = await supabase.from("quotes")
-          .update({ status: newStatus, paid_at: new Date().toISOString(), payment_amount: amountPaid, stripe_session_id: session.id })
-          .eq("id", quoteId);
-        if (error) throw error; // let Stripe retry if the DB write failed
+      // ── CONNECT: a delayed payment (ACH) failed/was returned — leave unpaid ──
+      case "checkout.session.async_payment_failed": {
+        const session = event.data.object;
+        console.warn(
+          "ACH/delayed payment failed for session", session.id,
+          "quote", session.metadata?.quote_id, "draw", session.metadata?.draw_id,
+        );
         break;
       }
       default:

@@ -58,12 +58,18 @@ module.exports = async function handler(req, res) {
 
   try {
     const client = plaidClient();
+    // The Plaid Link Android SDK requires the link_token to carry the calling
+    // app's android_package_name; the native app sends it in the request body.
+    // (The package must also be allowlisted in the Plaid dashboard.) Web callers
+    // omit it, so this is a no-op for the web flow.
+    const androidPackageName = req.body && req.body.android_package_name;
     const response = await client.linkTokenCreate({
       user: { client_user_id: user.id },
       client_name: "Wireway",
       products: [Products.Transactions],
       country_codes: [CountryCode.Us],
       language: "en",
+      ...(androidPackageName ? { android_package_name: androidPackageName } : {}),
     });
     return res.status(200).json({ link_token: response.data.link_token });
   } catch (err) {

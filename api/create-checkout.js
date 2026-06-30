@@ -84,7 +84,14 @@ module.exports = async function handler(req, res) {
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
+      // Let Stripe pick the payment methods. Card always works; ACH (us_bank_account)
+      // is offered only on connected accounts that have the capability, so this never
+      // errors at checkout creation for card-only accounts. Still a direct charge on
+      // the contractor's connected account (stripeAccount option below). ACH is async:
+      // the session completes as "processing", so make sure the webhook also handles
+      // checkout.session.async_payment_succeeded/failed before treating an ACH
+      // payment as collected.
+      automatic_payment_methods: { enabled: true },
       line_items: [{
         price_data: {
           currency: "usd",
