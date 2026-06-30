@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Button
@@ -196,6 +197,14 @@ fun QuoteDetailScreen(
                 }
             }
 
+            Button(
+                onClick = { sharePayLink(context, quote.id, quote.quoteNumber, quote.isInvoice) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Outlined.Payments, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Text("Request payment (share pay link)")
+            }
+
             OutlinedButton(
                 onClick = { onPullList(quote.id) },
                 modifier = Modifier.fillMaxWidth(),
@@ -287,6 +296,28 @@ private fun MoneyRow(label: String, value: Double?) {
 
 private fun trimNum(value: Double): String =
     if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
+
+/**
+ * Opens the share sheet with the client-facing pay link — the web's public quote
+ * page (/quote/{id}) where the client can view, accept, and pay by card or bank.
+ * Same durable link the web app shares; payment requires the contractor's Stripe
+ * Connect setup (Settings → Get paid).
+ */
+private fun sharePayLink(context: Context, quoteId: String, quoteNumber: String?, isInvoice: Boolean) {
+    runCatching {
+        val url = "https://www.wireway.cc/quote/$quoteId"
+        val label = quoteNumber?.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
+        val kind = if (isInvoice) "invoice" else "quote"
+        val text = "Here's your $kind$label — view and pay securely here:\n$url"
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        context.startActivity(
+            Intent.createChooser(intent, "Share pay link").apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
+        )
+    }
+}
 
 /** Opens the system share sheet for a generated PDF file. */
 private fun sharePdf(context: Context, file: File) {
