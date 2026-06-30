@@ -1,6 +1,7 @@
 package com.wirewaypro.app.ui.auth
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,10 +10,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -20,18 +22,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.wirewaypro.app.ui.components.WirewayWordmark
+import com.wirewaypro.app.ui.components.GradientButton
+import com.wirewaypro.app.ui.components.WirewayLogoBadge
+import com.wirewaypro.app.ui.theme.BrandGradients
 
 /**
- * Email/password sign-in against Supabase gotrue. Loading + error states are
- * driven by [LoginViewModel]; a successful sign-in is handled app-side by the
- * session observer, which routes to the dashboard.
+ * Email/password sign-in against Supabase gotrue, restyled to the brand. A gradient
+ * logo badge anchors the screen, the brand tagline sets the tone, and the primary
+ * CTA is the gradient sign-in button. Loading + error states are driven by
+ * [LoginViewModel]; a successful sign-in routes to the dashboard via the session
+ * observer.
  */
 @Composable
 fun LoginScreen(
@@ -44,18 +52,46 @@ fun LoginScreen(
             .fillMaxSize()
             .systemBarsPadding()
             .imePadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        WirewayWordmark()
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(48.dp))
+
+        // Logo badge over a soft radial brand glow.
+        Box(contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .height(140.dp)
+                    .fillMaxWidth()
+                    .drawBehind { drawRect(brush = BrandGradients.glow, alpha = 0.5f) },
+            )
+            WirewayLogoBadge(size = 84.dp)
+        }
+
+        Spacer(Modifier.height(20.dp))
+        Row {
+            Text(
+                text = "Wireway",
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        Text(
+            text = "Powered by Precision",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium,
+        )
+        Spacer(Modifier.height(6.dp))
         Text(
             text = "Sign in to your contractor workspace",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(36.dp))
 
         OutlinedTextField(
             value = state.email,
@@ -63,6 +99,7 @@ fun LoginScreen(
             label = { Text("Email") },
             singleLine = true,
             enabled = !state.isSubmitting,
+            shape = RoundedCornerShape(16.dp),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next,
@@ -77,6 +114,7 @@ fun LoginScreen(
             label = { Text("Password") },
             singleLine = true,
             enabled = !state.isSubmitting,
+            shape = RoundedCornerShape(16.dp),
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
@@ -95,23 +133,14 @@ fun LoginScreen(
             )
         }
 
-        Spacer(Modifier.height(24.dp))
-        Button(
+        Spacer(Modifier.height(28.dp))
+        GradientButton(
+            text = "Sign in",
             onClick = viewModel::signIn,
             enabled = state.canSubmit,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-        ) {
-            if (state.isSubmitting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.height(22.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Text("Sign in", style = MaterialTheme.typography.labelLarge)
-            }
-        }
+            loading = state.isSubmitting,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(48.dp))
     }
 }

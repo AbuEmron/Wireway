@@ -1,5 +1,13 @@
 package com.wirewaypro.app.ui.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -21,10 +30,11 @@ import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.TrendingDown
+import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material.icons.outlined.WorkspacePremium
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,17 +44,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.wirewaypro.app.ui.components.SectionCard
+import com.wirewaypro.app.domain.model.MoneySnapshot
+import com.wirewaypro.app.ui.components.NavRow
+import com.wirewaypro.app.ui.components.SectionEyebrow
+import com.wirewaypro.app.ui.components.StatCard
 import com.wirewaypro.app.ui.components.WirewayWordmark
+import com.wirewaypro.app.ui.components.animatedCount
+import com.wirewaypro.app.ui.theme.BrandGradients
+import com.wirewaypro.app.ui.theme.BrandGreen
+import com.wirewaypro.app.ui.util.Format
 
 /**
- * Home tab. Greets the user with data pulled live from Supabase (profile + job
- * count) and offers quick links into the Jobs and Clients lists.
+ * Home tab — the flagship dashboard. A gradient hero counts up the money collected
+ * this month, a stat grid summarizes the rest, and soft list rows lead into the
+ * estimating tools and the core lists.
  */
 @Composable
 fun HomeScreen(
@@ -68,9 +89,15 @@ fun HomeScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        WirewayWordmark()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WirewayWordmark()
+        }
 
-        if (pending > 0) {
+        AnimatedVisibility(visible = pending > 0, enter = fadeIn(), exit = fadeOut()) {
             Text(
                 text = "⏳ ${if (pending == 1) "1 change" else "$pending changes"} waiting to sync",
                 style = MaterialTheme.typography.bodyMedium,
@@ -78,49 +105,64 @@ fun HomeScreen(
             )
         }
 
-        when {
-            state.isLoading -> Box(
-                Modifier.fillMaxWidth().height(160.dp),
-                contentAlignment = Alignment.Center,
-            ) { CircularProgressIndicator() }
-
-            state.error != null && state.profile == null -> Column {
-                Text(
-                    text = state.error!!,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                TextButton(onClick = viewModel::loadHome) { Text("Retry") }
-            }
-
-            else -> {
-                val name = state.profile?.fullName
-                    ?: state.profile?.email
-                    ?: "there"
-                Text(
-                    text = "Welcome back, $name",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-
-                SectionCard(title = "This month") {
-                    Text(
-                        text = state.jobCount?.let {
-                            if (it == 1L) "1 scheduled job" else "$it scheduled jobs"
-                        } ?: "—",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-        }
-
+        val name = state.profile?.fullName ?: state.profile?.email?.substringBefore("@") ?: "there"
         Text(
-            text = "ESTIMATE WITH AI",
-            style = MaterialTheme.typography.labelLarge,
+            text = "Welcome back, $name",
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        HeroCard(
+            isLoading = state.isLoading && state.snapshot == null,
+            snapshot = state.snapshot,
+            onClick = onOpenMoney,
+        )
+
+        if (state.error != null && state.profile == null) {
+            Text(
+                text = state.error!!,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = viewModel::loadHome) { Text("Retry") }
+        }
+
+        // ── Stat grid ────────────────────────────────────────────────────────
+        val snap = state.snapshot
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            StatCard(
+                label = "Spent",
+                value = Format.money(snap?.spent ?: 0.0),
+                icon = Icons.Outlined.TrendingDown,
+                accent = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.weight(1f),
+            )
+            StatCard(
+                label = "Real profit",
+                value = Format.money(snap?.realProfit ?: 0.0),
+                icon = Icons.Outlined.TrendingUp,
+                accent = if ((snap?.realProfit ?: 0.0) >= 0) BrandGreen else MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            StatCard(
+                label = if (state.jobCount == 1L) "Scheduled job" else "Scheduled jobs",
+                value = state.jobCount?.toString() ?: "—",
+                icon = Icons.Outlined.Work,
+                modifier = Modifier.weight(1f),
+            )
+            StatCard(
+                label = "Won this month",
+                value = Format.money(snap?.won ?: 0.0),
+                icon = Icons.Outlined.Savings,
+                accent = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        // ── Estimate with AI ─────────────────────────────────────────────────
+        SectionEyebrow("Estimate with AI", modifier = Modifier.padding(top = 4.dp))
         AiHeroCard(
             icon = Icons.Outlined.AutoAwesome,
             title = "AI Quote Builder",
@@ -134,17 +176,14 @@ fun HomeScreen(
             onClick = onOpenTakeoff,
         )
 
-        Text(
-            text = "BROWSE",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        QuickLink(icon = Icons.Outlined.Work, label = "Jobs", onClick = onOpenJobs)
-        QuickLink(icon = Icons.Outlined.Groups, label = "Clients", onClick = onOpenClients)
-        QuickLink(icon = Icons.Outlined.ReceiptLong, label = "Expenses & receipts", onClick = onOpenExpenses)
-        QuickLink(icon = Icons.Outlined.Payments, label = "Money", onClick = onOpenMoney)
-        QuickLink(icon = Icons.Outlined.AccountBalance, label = "Bank", onClick = onOpenBank)
-        QuickLink(icon = Icons.Outlined.WorkspacePremium, label = "Subscription", onClick = onOpenSubscription)
+        // ── Browse ───────────────────────────────────────────────────────────
+        SectionEyebrow("Browse", modifier = Modifier.padding(top = 4.dp))
+        NavRow(label = "Jobs", icon = Icons.Outlined.Work, onClick = onOpenJobs, modifier = Modifier.fillMaxWidth())
+        NavRow(label = "Clients", icon = Icons.Outlined.Groups, onClick = onOpenClients, modifier = Modifier.fillMaxWidth())
+        NavRow(label = "Expenses & receipts", icon = Icons.Outlined.ReceiptLong, onClick = onOpenExpenses, modifier = Modifier.fillMaxWidth())
+        NavRow(label = "Money", icon = Icons.Outlined.Payments, onClick = onOpenMoney, modifier = Modifier.fillMaxWidth())
+        NavRow(label = "Bank", icon = Icons.Outlined.AccountBalance, onClick = onOpenBank, modifier = Modifier.fillMaxWidth())
+        NavRow(label = "Subscription", icon = Icons.Outlined.WorkspacePremium, onClick = onOpenSubscription, modifier = Modifier.fillMaxWidth())
 
         Spacer(Modifier.height(4.dp))
         Text(
@@ -155,17 +194,99 @@ fun HomeScreen(
     }
 }
 
+/**
+ * The gradient hero: an animated blue→purple panel showing the money collected this
+ * month, counting up on load. Tapping it opens the Money dashboard.
+ */
+@Composable
+private fun HeroCard(
+    isLoading: Boolean,
+    snapshot: MoneySnapshot?,
+    onClick: () -> Unit,
+) {
+    // Slow, looping sweep of the gradient for a subtle "live current" shimmer.
+    val transition = rememberInfiniteTransition(label = "hero-gradient")
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 6000),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "hero-progress",
+    )
+    val collected = snapshot?.collected ?: 0.0
+    val shown = animatedCount(collected)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(26.dp))
+            .clickable(onClick = onClick)
+            .drawBehind { drawRect(brush = BrandGradients.animated(progress)) }
+            .padding(22.dp),
+    ) {
+        Column {
+            Text(
+                text = "COLLECTED THIS MONTH",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.85f),
+            )
+            Spacer(Modifier.height(10.dp))
+            if (isLoading) {
+                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(34.dp))
+            } else {
+                Text(
+                    text = Format.money(shown),
+                    style = MaterialTheme.typography.displayLarge,
+                    color = Color.White,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val profit = snapshot?.realProfit ?: 0.0
+                Box(
+                    modifier = Modifier
+                        .drawBehind {
+                            drawRoundRect(
+                                color = Color.White.copy(alpha = 0.18f),
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(20f, 20f),
+                            )
+                        }
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                ) {
+                    Text(
+                        text = "${if (profit >= 0) "▲" else "▼"} ${Format.money(profit)} profit",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White,
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = "View money →",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White.copy(alpha = 0.9f),
+                )
+            }
+        }
+    }
+}
+
 /** Prominent headline card for the two AI estimating tools. */
 @Composable
 private fun AiHeroCard(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ),
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .drawBehind {
+                drawRoundRect(
+                    brush = BrandGradients.primary,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(20.dp.toPx(), 20.dp.toPx()),
+                    alpha = 0.14f,
+                )
+            },
     ) {
         Row(
             modifier = Modifier
@@ -173,63 +294,38 @@ private fun AiHeroCard(icon: ImageVector, title: String, subtitle: String, onCli
                 .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(32.dp),
-            )
-            Spacer(Modifier.padding(start = 16.dp))
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .drawBehind {
+                        drawRoundRect(
+                            brush = BrandGradients.primary,
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(14.dp.toPx(), 14.dp.toPx()),
+                        )
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+            }
+            Spacer(Modifier.size(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-        }
-    }
-}
-
-@Composable
-private fun QuickLink(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.padding(start = 14.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }

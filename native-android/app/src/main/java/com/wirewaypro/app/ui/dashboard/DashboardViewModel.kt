@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.offline.SyncManager
 import com.wirewaypro.app.data.widget.WidgetUpdater
+import com.wirewaypro.app.domain.model.MoneySnapshot
 import com.wirewaypro.app.domain.model.UserProfile
 import com.wirewaypro.app.domain.repository.AuthRepository
+import com.wirewaypro.app.domain.repository.MoneyRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,12 +17,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.YearMonth
 import javax.inject.Inject
 
 data class HomeUiState(
     val isLoading: Boolean = true,
     val profile: UserProfile? = null,
     val jobCount: Long? = null,
+    val snapshot: MoneySnapshot? = null,
     val error: String? = null,
 )
 
@@ -28,6 +32,7 @@ data class HomeUiState(
 class DashboardViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val moneyRepository: MoneyRepository,
     private val widgetUpdater: WidgetUpdater,
     syncManager: SyncManager,
 ) : ViewModel() {
@@ -55,6 +60,8 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             val profileResult = profileRepository.getProfile(userId)
             val jobCountResult = profileRepository.getJobCount(userId)
+            val now = YearMonth.now()
+            val snapshotResult = moneyRepository.getSnapshot(userId, now.year, now.monthValue)
 
             val error = (profileResult.exceptionOrNull() ?: jobCountResult.exceptionOrNull())
                 ?.let { "Couldn't load your data. Pull to retry." }
@@ -64,6 +71,7 @@ class DashboardViewModel @Inject constructor(
                     isLoading = false,
                     profile = profileResult.getOrNull() ?: it.profile,
                     jobCount = jobCountResult.getOrNull() ?: it.jobCount,
+                    snapshot = snapshotResult.getOrNull() ?: it.snapshot,
                     error = error,
                 )
             }
