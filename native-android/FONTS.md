@@ -1,9 +1,14 @@
-# Brand fonts (drop-in)
+# Brand fonts
 
 The app uses **Space Grotesk** (display) and **Inter** (body) to match the web
 app. The typography is wired to pick these up automatically — `BrandFonts.resolve`
 looks them up by resource name at runtime, so the app builds and runs without
 them and upgrades the instant they're present (no code change needed).
+
+> **Status: bundled.** The static OFL `.ttf` weights below are now committed under
+> `app/src/main/res/font/` (sourced from Fontsource / jsDelivr, latin subset).
+> SIL OFL 1.1 license texts are in `native-android/licenses/`. The drop-in table
+> below is kept for reference / to swap in different weights.
 
 > Note: this file lives at `native-android/FONTS.md`, **not** under `res/font/` —
 > Android's resource merger only allows `.xml/.ttf/.ttc/.otf` files inside
