@@ -71,14 +71,12 @@ fun LoginScreen(
         }
 
         Spacer(Modifier.height(20.dp))
-        Row {
-            Text(
-                text = "Wireway",
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-        }
+        Text(
+            text = "Wireway",
+            style = MaterialTheme.typography.displayMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
         Text(
             text = "Powered by Precision",
             style = MaterialTheme.typography.titleMedium,
