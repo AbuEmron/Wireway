@@ -9,10 +9,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -49,22 +46,22 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.io.File
 
 /**
- * In-app CameraX preview + capture. Writes each photo to cache/receipts and hands
- * back its file Uri. Includes a document framing guide (fit the receipt inside the
- * frame) and a torch toggle for low light.
+ * In-app CameraX preview + capture. Writes each photo to cache/receipts.
  *
  * Two modes:
- * - single (default): one shutter press returns one Uri via [onCaptured] and the
- *   caller is expected to dismiss the camera.
- * - batch ([batchMode] = true): each shutter press accumulates a Uri while the
- *   preview stays open; tapping Done returns the whole list via [onBatchDone].
+ *  - single (default): each shutter press returns one Uri via [onCaptured].
+ *  - [batchMode]: the shutter keeps the camera open and accumulates shots; a
+ *    counter shows the running total and a Done button returns them all via
+ *    [onBatchDone] (snap a stack of receipts in one go).
+ *
+ * Includes a document framing guide and a torch toggle for low light.
  */
 @Composable
 fun CameraCapture(
     onClose: () -> Unit,
-    onCaptured: (Uri) -> Unit = {},
+    onCaptured: ((Uri) -> Unit)? = null,
     batchMode: Boolean = false,
-    onBatchDone: (List<Uri>) -> Unit = {},
+    onBatchDone: ((List<Uri>) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -73,7 +70,7 @@ fun CameraCapture(
     var camera by remember { mutableStateOf<Camera?>(null) }
     var torchOn by remember { mutableStateOf(false) }
     var capturing by remember { mutableStateOf(false) }
-    val batch = remember { mutableStateListOf<Uri>() }
+    val captured = remember { mutableStateListOf<Uri>() }
 
     Box(Modifier.fillMaxSize()) {
         AndroidView(
@@ -110,7 +107,8 @@ fun CameraCapture(
         )
 
         Text(
-            text = if (batchMode) "Snap each receipt — tap Done when finished" else "Fit the whole receipt inside the frame",
+            text = if (batchMode) "Snap each receipt — tap Done when finished"
+            else "Fit the whole receipt inside the frame",
             color = Color.White.copy(alpha = 0.9f),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
@@ -140,46 +138,37 @@ fun CameraCapture(
             )
         }
 
-        Column(
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+        // Running count while batching.
+        if (batchMode && captured.isNotEmpty()) {
+            Text(
+                text = "${captured.size} captured",
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 24.dp, bottom = 52.dp),
+            )
+        }
+
+        FloatingActionButton(
+            onClick = {
+                if (capturing) return@FloatingActionButton
+                capturing = true
+                capture(context, imageCapture, onSettled = { capturing = false }) { uri ->
+                    if (batchMode) captured.add(uri) else onCaptured?.invoke(uri)
+                }
+            },
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp).size(72.dp),
+            containerColor = MaterialTheme.colorScheme.primary,
         ) {
-            if (batchMode && batch.isNotEmpty()) {
-                Text(
-                    text = "${batch.size} captured",
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                FloatingActionButton(
-                    onClick = {
-                        if (capturing) return@FloatingActionButton
-                        capturing = true
-                        capture(
-                            context = context,
-                            imageCapture = imageCapture,
-                            onSaved = { uri -> if (batchMode) batch.add(uri) else onCaptured(uri) },
-                            onSettled = { capturing = false },
-                        )
-                    },
-                    modifier = Modifier.size(72.dp),
-                    containerColor = MaterialTheme.colorScheme.primary,
-                ) {
-                    Icon(Icons.Filled.PhotoCamera, contentDescription = "Capture")
-                }
-                if (batchMode && batch.isNotEmpty()) {
-                    ExtendedFloatingActionButton(
-                        onClick = { onBatchDone(batch.toList()) },
-                        icon = { Icon(Icons.Filled.Check, contentDescription = null) },
-                        text = { Text("Done (${batch.size})") },
-                    )
-                }
-            }
+            Icon(Icons.Filled.PhotoCamera, contentDescription = "Capture")
+        }
+
+        if (batchMode) {
+            ExtendedFloatingActionButton(
+                onClick = { onBatchDone?.invoke(captured.toList()) },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 40.dp),
+                icon = { Icon(Icons.Filled.Check, contentDescription = null) },
+                text = { Text("Done") },
+            )
         }
     }
 }
@@ -187,8 +176,8 @@ fun CameraCapture(
 private fun capture(
     context: android.content.Context,
     imageCapture: ImageCapture,
-    onSaved: (Uri) -> Unit,
     onSettled: () -> Unit,
+    onResult: (Uri) -> Unit,
 ) {
     val dir = File(context.cacheDir, "receipts").apply { mkdirs() }
     val file = File(dir, "cam_${System.currentTimeMillis()}.jpg")
@@ -199,7 +188,7 @@ private fun capture(
         object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                 onSettled()
-                onSaved(Uri.fromFile(file))
+                onResult(Uri.fromFile(file))
             }
 
             override fun onError(exception: androidx.camera.core.ImageCaptureException) {
