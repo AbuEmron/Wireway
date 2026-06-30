@@ -136,6 +136,11 @@ dependencies {
     // Home-screen widget (Glance)
     implementation(libs.androidx.glance.appwidget)
 
+    // WorkManager (local reminders + offline sync) with Hilt worker injection
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
     // CameraX
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)

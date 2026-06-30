@@ -15,6 +15,9 @@ interface JobRepository {
     /** The job's progress-billing draws, in sort order. */
     suspend fun getJobDraws(jobId: String): Result<List<JobDraw>>
 
+    /** Pending draws whose due date is on or before [onOrBeforeDate] (yyyy-MM-dd). */
+    suspend fun getDuePendingDraws(userId: String, onOrBeforeDate: String): Result<List<JobDraw>>
+
     /** Creates (id == null) or updates a job. Returns the saved record. */
     suspend fun saveJob(userId: String, input: JobInput): Result<Job>
 

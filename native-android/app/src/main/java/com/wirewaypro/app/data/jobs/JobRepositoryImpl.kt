@@ -52,6 +52,21 @@ class JobRepositoryImpl @Inject constructor(
             .map { it.toDomain() }
     }
 
+    override suspend fun getDuePendingDraws(userId: String, onOrBeforeDate: String): Result<List<JobDraw>> =
+        runCatching {
+            draws()
+                .select {
+                    filter {
+                        eq("user_id", userId)
+                        eq("status", "pending")
+                        lte("due_date", onOrBeforeDate)
+                    }
+                    order("due_date", Order.ASCENDING)
+                }
+                .decodeList<JobDrawDto>()
+                .map { it.toDomain() }
+        }
+
     override suspend fun saveJob(userId: String, input: JobInput): Result<Job> = runCatching {
         val payload = buildJsonObject {
             if (input.id == null) put("user_id", userId)
