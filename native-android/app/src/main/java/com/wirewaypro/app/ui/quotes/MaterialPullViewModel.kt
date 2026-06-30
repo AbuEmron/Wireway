@@ -114,7 +114,7 @@ class MaterialPullViewModel @Inject constructor(
         viewModelScope.launch {
             pullService.build(s.jobName, s.lines, s.locationInput.trim())
                 .onSuccess { r -> _state.update { it.copy(building = false, result = r) } }
-                .onFailure { _state.update { it.copy(building = false, error = "Couldn't build the pull list. Try again.") } }
+                .onFailure { e -> _state.update { it.copy(building = false, error = e.message ?: "Couldn't build the pull list. Try again.") } }
         }
     }
 

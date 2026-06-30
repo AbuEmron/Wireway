@@ -80,9 +80,9 @@ class MaterialPullService @Inject constructor(
             contentType(ContentType.Application.Json)
             setBody(body.toString())
         }
-        val raw = response.bodyAsText()
+        val raw = response.claudeBodyOrThrow(json)
         val text = extractText(raw).ifBlank { raw }
-        parse(text) ?: error("Couldn't read the pull list. Try again.")
+        parse(text) ?: error("The AI returned an unexpected response. [${text.take(180)}]")
     }
 
     private fun parse(text: String): PullListResult? {

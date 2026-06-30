@@ -92,9 +92,9 @@ class PricingAdvisorService @Inject constructor(
             contentType(ContentType.Application.Json)
             setBody(body.toString())
         }
-        val raw = response.bodyAsText()
+        val raw = response.claudeBodyOrThrow(json)
         val text = extractText(raw).ifBlank { raw }
-        parse(text) ?: error("Couldn't read the suggestion. Try again.")
+        parse(text) ?: error("The AI returned an unexpected response. [${text.take(180)}]")
     }
 
     private fun parse(text: String): PricingRecommendation? {

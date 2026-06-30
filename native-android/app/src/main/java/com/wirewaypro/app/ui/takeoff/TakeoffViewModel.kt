@@ -87,7 +87,7 @@ class TakeoffViewModel @Inject constructor(
                         )
                     }
                 }
-                .onFailure { _state.update { it.copy(isAnalyzing = false, error = "Couldn't analyze. Try again or add detail.") } }
+                .onFailure { e -> _state.update { it.copy(isAnalyzing = false, error = e.message ?: "Couldn't analyze. Try again or add detail.") } }
         }
     }
 

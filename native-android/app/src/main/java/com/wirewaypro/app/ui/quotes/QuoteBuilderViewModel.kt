@@ -232,7 +232,7 @@ class QuoteBuilderViewModel @Inject constructor(
             val flat = settingsPrefs.defaultFlatRate.first().takeIf { it > 0 }
             pricingAdvisor.recommend(desc, _state.value.locationInput.trim(), hourly, flat)
                 .onSuccess { rec -> _state.update { it.copy(advising = false, advice = rec) } }
-                .onFailure { _state.update { it.copy(advising = false, adviceError = "Couldn't get a suggestion. Try again.") } }
+                .onFailure { e -> _state.update { it.copy(advising = false, adviceError = e.message ?: "Couldn't get a suggestion. Try again.") } }
         }
     }
 
@@ -349,7 +349,7 @@ class QuoteBuilderViewModel @Inject constructor(
         viewModelScope.launch {
             aiService.complete(system, userText)
                 .onSuccess { text -> _state.update { it.copy(draftingNotes = false, notes = text) } }
-                .onFailure { _state.update { it.copy(draftingNotes = false, error = "Couldn't draft with AI. Try again.") } }
+                .onFailure { e -> _state.update { it.copy(draftingNotes = false, error = e.message ?: "Couldn't draft with AI. Try again.") } }
         }
     }
 

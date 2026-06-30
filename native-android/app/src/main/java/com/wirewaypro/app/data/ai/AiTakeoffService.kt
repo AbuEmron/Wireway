@@ -44,7 +44,13 @@ class AiTakeoffService @Inject constructor(
     private val client: SupabaseClient,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
-    private val http = HttpClient(Android)
+    private val http = HttpClient(Android) {
+        install(io.ktor.client.plugins.HttpTimeout) {
+            requestTimeoutMillis = 90_000
+            socketTimeoutMillis = 90_000
+            connectTimeoutMillis = 30_000
+        }
+    }
 
     suspend fun analyze(prompt: String, imageBytes: ByteArray?): Result<TakeoffResult> = runCatching {
         val token = client.auth.currentSessionOrNull()?.accessToken ?: error("Not signed in.")
@@ -94,11 +100,13 @@ class AiTakeoffService @Inject constructor(
             contentType(ContentType.Application.Json)
             setBody(body.toString())
         }
+        // Surface the real HTTP failure (auth/rate-limit/server) instead of letting
+        // a non-2xx body fall through to a misleading parse error.
+        val raw = response.claudeBodyOrThrow(json)
         // /api/claude returns the full Anthropic envelope; pull the model's text
         // (content[].text) out first, then extract its JSON object.
-        val raw = response.bodyAsText()
         val text = extractText(raw).ifBlank { raw }
-        parse(text) ?: error("Couldn't read the AI's response. Try again.")
+        parse(text) ?: error("The AI returned an unexpected response. [${text.take(180)}]")
     }
 
     /** Joins the Anthropic-style content blocks' text from the /api/claude envelope. */

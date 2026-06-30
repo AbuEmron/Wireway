@@ -31,7 +31,13 @@ class AiService @Inject constructor(
     private val client: SupabaseClient,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
-    private val http = HttpClient(Android)
+    private val http = HttpClient(Android) {
+        install(io.ktor.client.plugins.HttpTimeout) {
+            requestTimeoutMillis = 90_000
+            socketTimeoutMillis = 90_000
+            connectTimeoutMillis = 30_000
+        }
+    }
 
     suspend fun complete(system: String, userText: String, maxTokens: Int = 600): Result<String> = runCatching {
         val token = client.auth.currentSessionOrNull()?.accessToken ?: error("Not signed in.")
@@ -59,8 +65,8 @@ class AiService @Inject constructor(
             contentType(ContentType.Application.Json)
             setBody(body.toString())
         }
-        val text = extractText(response.bodyAsText())
-        if (text.isBlank()) error("Empty response") else text.trim()
+        val text = extractText(response.claudeBodyOrThrow(json))
+        if (text.isBlank()) error("The AI returned an empty response. Try again.") else text.trim()
     }
 
     /** Joins the Anthropic-style content blocks' text; tolerant of odd shapes. */
