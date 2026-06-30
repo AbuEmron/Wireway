@@ -192,6 +192,6 @@ class MaterialPullService @Inject constructor(
     """.trimIndent()
 
     companion object {
-        private const val BASE_URL = "https://www.wirewaypro.com"
+        private const val BASE_URL = "https://www.wireway.cc"
     }
 }

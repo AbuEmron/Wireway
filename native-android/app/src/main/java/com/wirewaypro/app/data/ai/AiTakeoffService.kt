@@ -214,6 +214,6 @@ class AiTakeoffService @Inject constructor(
     private fun num(v: Double): String = if (v % 1.0 == 0.0) v.toLong().toString() else v.toString()
 
     companion object {
-        private const val BASE_URL = "https://www.wirewaypro.com"
+        private const val BASE_URL = "https://www.wireway.cc"
     }
 }

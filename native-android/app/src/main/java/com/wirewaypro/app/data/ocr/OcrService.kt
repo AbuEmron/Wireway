@@ -135,7 +135,8 @@ class OcrService @Inject constructor(
     }
 
     companion object {
-        // Same origin the Capacitor build targets for /api/* (capacitor.config.ts).
-        private const val BASE_URL = "https://www.wirewaypro.com"
+        // Canonical app origin for /api/* — same Vercel deployment as wirewaypro.com,
+        // but wireway.cc is the domain the web app actually runs on.
+        private const val BASE_URL = "https://www.wireway.cc"
     }
 }

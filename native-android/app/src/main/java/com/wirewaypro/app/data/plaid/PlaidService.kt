@@ -92,7 +92,7 @@ class PlaidService @Inject constructor(
     }
 
     companion object {
-        private const val BASE_URL = "https://www.wirewaypro.com"
+        private const val BASE_URL = "https://www.wireway.cc"
     }
 }
 
