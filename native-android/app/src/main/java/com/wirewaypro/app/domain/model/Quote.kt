@@ -1,6 +1,22 @@
 package com.wirewaypro.app.domain.model
 
 /**
+ * Whole-quote pricing mode, persisted to `quotes.rate_mode`.
+ *  - [FLAT]: the catalog/itemized total (materials + labor + markup + tax).
+ *  - [HOURLY]: a time bid — total = estimated hours × hourly rate.
+ *
+ * Distinct from the web's `flat_rate_mode` (a proposal presentation toggle).
+ */
+enum class RateMode(val value: String) {
+    FLAT("flat"),
+    HOURLY("hourly");
+
+    companion object {
+        fun from(value: String?): RateMode = entries.firstOrNull { it.value == value } ?: FLAT
+    }
+}
+
+/**
  * The `quotes` table backs BOTH estimates and invoices — an invoice is simply a
  * quote row with `invoice_mode = true`. [isInvoice] distinguishes them.
  *
@@ -46,6 +62,7 @@ data class QuoteDetail(
     val markup: Double?,
     val hourlyRate: Double?,
     val taxRate: Double?,
+    val rateMode: RateMode,
     // Display merge of catalog `entries` + `custom_items` (read-only screens).
     val lineItems: List<QuoteLineItem>,
     // The editable custom items only (parsed from `custom_items`), for the builder.
@@ -94,6 +111,7 @@ data class QuoteInput(
     val notes: String?,
     val markup: Double,         // fraction, e.g. 0.30 = 30%
     val hourlyRate: Double,
+    val rateMode: RateMode,     // whole-quote pricing mode (flat catalog vs hourly)
     val taxEnabled: Boolean,
     val taxRate: Double,        // fraction, e.g. 0.08
     val invoiceMode: Boolean,   // true = invoice, false = estimate

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.ai.AiService
 import com.wirewaypro.app.data.ai.TakeoffHandoff
+import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.domain.catalog.Catalog
 import com.wirewaypro.app.domain.model.QuoteCalculator
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
@@ -12,12 +13,14 @@ import com.wirewaypro.app.domain.model.QuoteCustomItem
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.model.QuoteTotals
+import com.wirewaypro.app.domain.model.RateMode
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -54,6 +57,7 @@ data class QuoteBuilderUiState(
     val notes: String = "",
     val markupPct: String = "30",
     val hourlyRate: String = "85",
+    val rateMode: RateMode = RateMode.FLAT,
     val taxEnabled: Boolean = false,
     val taxRatePct: String = "8",
     val invoiceDueDate: String = "",
@@ -72,6 +76,7 @@ class QuoteBuilderViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val quoteRepository: QuoteRepository,
     private val aiService: AiService,
+    private val settingsPrefs: SettingsPrefs,
     takeoffHandoff: TakeoffHandoff,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -97,6 +102,11 @@ class QuoteBuilderViewModel @Inject constructor(
                 _state.update { s ->
                     s.copy(catalogItems = entries.map { CatalogEntryUi(it.serviceId, numText(it.qty), it.variantIdx, it.clientBuys) })
                 }
+            }
+            // Prefill the contractor's baseline hourly rate on a fresh quote.
+            viewModelScope.launch {
+                val baseline = settingsPrefs.defaultHourlyRate.first()
+                if (baseline > 0) _state.update { it.copy(hourlyRate = numText(baseline)) }
             }
         }
     }
@@ -153,6 +163,7 @@ class QuoteBuilderViewModel @Inject constructor(
                 notes = q.notes.orEmpty(),
                 markupPct = pctText(q.markup ?: 0.30),
                 hourlyRate = numText(q.hourlyRate ?: 85.0),
+                rateMode = q.rateMode,
                 taxEnabled = q.taxEnabled,
                 taxRatePct = pctText(q.taxRate ?: 0.08),
                 invoiceDueDate = q.invoiceDueDate.orEmpty(),
@@ -175,6 +186,7 @@ class QuoteBuilderViewModel @Inject constructor(
     fun setNotes(v: String) = _state.update { it.copy(notes = v) }
     fun setMarkupPct(v: String) = _state.update { it.copy(markupPct = v) }
     fun setHourlyRate(v: String) = _state.update { it.copy(hourlyRate = v) }
+    fun setRateMode(v: RateMode) = _state.update { it.copy(rateMode = v) }
     fun setTaxEnabled(v: Boolean) = _state.update { it.copy(taxEnabled = v) }
     fun setTaxRatePct(v: String) = _state.update { it.copy(taxRatePct = v) }
     fun setInvoiceMode(v: Boolean) = _state.update { it.copy(isInvoice = v) }
@@ -278,6 +290,7 @@ class QuoteBuilderViewModel @Inject constructor(
             notes = s.notes.ifBlank { null },
             markup = s.markupPct.toD() / 100.0,
             hourlyRate = currentHourlyRate(),
+            rateMode = s.rateMode,
             taxEnabled = s.taxEnabled,
             taxRate = s.taxRatePct.toD() / 100.0,
             invoiceMode = s.isInvoice,

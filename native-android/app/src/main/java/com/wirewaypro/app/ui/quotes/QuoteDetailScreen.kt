@@ -40,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteLineItem
+import com.wirewaypro.app.domain.model.RateMode
 import com.wirewaypro.app.ui.components.ConfirmDialog
 import com.wirewaypro.app.ui.components.DetailScaffold
 import com.wirewaypro.app.ui.components.InfoRow
@@ -153,11 +154,18 @@ fun QuoteDetailScreen(
             }
 
             SectionCard(title = "Totals") {
-                if (quote.showMaterials) MoneyRow("Materials", quote.totalMaterial)
-                val laborLabel = quote.totalHours?.let { "Labor (${trimNum(it)} hrs)" } ?: "Labor"
-                MoneyRow(laborLabel, quote.totalLabor)
-                MoneyRow("Markup", quote.totalMarkup)
-                if (quote.taxEnabled) MoneyRow("Tax", quote.totalTax)
+                if (quote.rateMode == RateMode.HOURLY) {
+                    InfoRow("Pricing", "Hourly")
+                    MoneyRow("Hourly rate", quote.hourlyRate)
+                    quote.totalHours?.let { InfoRow("Estimated time", "${trimNum(it)} hrs") }
+                } else {
+                    InfoRow("Pricing", "Flat rate")
+                    if (quote.showMaterials) MoneyRow("Materials", quote.totalMaterial)
+                    val laborLabel = quote.totalHours?.let { "Labor (${trimNum(it)} hrs)" } ?: "Labor"
+                    MoneyRow(laborLabel, quote.totalLabor)
+                    MoneyRow("Markup", quote.totalMarkup)
+                    if (quote.taxEnabled) MoneyRow("Tax", quote.totalTax)
+                }
                 Spacer(Modifier.padding(top = 6.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(Modifier.padding(top = 6.dp))
@@ -168,6 +176,14 @@ fun QuoteDetailScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                if (quote.rateMode == RateMode.HOURLY) {
+                    Spacer(Modifier.padding(top = 6.dp))
+                    Text(
+                        "Hourly time bid — materials billed at cost separately.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

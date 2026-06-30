@@ -13,7 +13,17 @@ data class QuoteTotals(
     val markupAmount: Double,
     val taxAmount: Double,
     val total: Double,
-)
+) {
+    /**
+     * The headline total for the quote's pricing mode:
+     *  - [RateMode.FLAT]   → the catalog/itemized [total].
+     *  - [RateMode.HOURLY] → a time bid: estimated hours × hourly rate.
+     */
+    fun headlineTotal(rateMode: RateMode, hourlyRate: Double): Double = when (rateMode) {
+        RateMode.FLAT -> total
+        RateMode.HOURLY -> totalHours * hourlyRate
+    }
+}
 
 /**
  * Reproduces the web app's quote math EXACTLY (electrical-estimator.jsx), for both

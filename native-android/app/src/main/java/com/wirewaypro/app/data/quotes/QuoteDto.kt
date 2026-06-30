@@ -7,6 +7,7 @@ import com.wirewaypro.app.domain.model.QuoteCustomItem
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteLineItem
 import com.wirewaypro.app.domain.model.QuoteSummary
+import com.wirewaypro.app.domain.model.RateMode
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
@@ -47,6 +48,7 @@ data class QuoteDto(
     @SerialName("tax_rate") val taxRate: Double? = null,
     val markup: Double? = null,
     @SerialName("hourly_rate") val hourlyRate: Double? = null,
+    @SerialName("rate_mode") val rateMode: String? = null,
     @SerialName("total_material") val totalMaterial: Double? = null,
     @SerialName("total_labor") val totalLabor: Double? = null,
     @SerialName("total_hours") val totalHours: Double? = null,
@@ -95,6 +97,7 @@ data class QuoteDto(
         markup = markup,
         hourlyRate = hourlyRate,
         taxRate = taxRate,
+        rateMode = RateMode.from(rateMode),
         lineItems = parseLineItems(entries, customItems, hourlyRate ?: 85.0),
         customItems = parseCustomItems(customItems),
         catalogEntries = parseCatalogEntries(entries),

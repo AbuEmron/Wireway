@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.wirewaypro.app.domain.model.BusinessInfo
 import com.wirewaypro.app.domain.model.QuoteDetail
+import com.wirewaypro.app.domain.model.RateMode
 import java.io.File
 import java.io.FileOutputStream
 
@@ -232,10 +233,15 @@ object QuotePdfGenerator {
             s.canvas.drawText(money(value), RIGHT, s.y + 12f, valueP)
             s.y += 17f
         }
-        if (q.showMaterials) row("Materials", q.totalMaterial)
-        row(q.totalHours?.let { "Labor (${trimNum(it)} hrs)" } ?: "Labor", q.totalLabor)
-        row("Markup", q.totalMarkup)
-        if (q.taxEnabled) row("Tax", q.totalTax)
+        if (q.rateMode == RateMode.HOURLY) {
+            val rate = q.hourlyRate?.let { " @ ${money(it)}/hr" } ?: ""
+            row(q.totalHours?.let { "Labor (${trimNum(it)} hrs$rate)" } ?: "Labor", q.total)
+        } else {
+            if (q.showMaterials) row("Materials", q.totalMaterial)
+            row(q.totalHours?.let { "Labor (${trimNum(it)} hrs)" } ?: "Labor", q.totalLabor)
+            row("Markup", q.totalMarkup)
+            if (q.taxEnabled) row("Tax", q.totalTax)
+        }
         s.y += 6f
         s.canvas.drawLine(labelX, s.y, RIGHT, s.y, paint(HAIR, 1f).apply { strokeWidth = 1f })
         s.y += 12f

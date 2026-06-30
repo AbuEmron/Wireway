@@ -44,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.catalog.Catalog
 import com.wirewaypro.app.domain.model.QuoteCalculator
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
+import com.wirewaypro.app.domain.model.RateMode
 import com.wirewaypro.app.ui.components.DateField
 import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.SaveTopBar
@@ -161,6 +162,25 @@ fun QuoteBuilderScreen(
             }
 
             SectionCard(title = "Pricing") {
+                Text(
+                    "How are you pricing this job?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.padding(top = 8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = state.rateMode == RateMode.FLAT,
+                        onClick = { viewModel.setRateMode(RateMode.FLAT) },
+                        label = { Text("Flat rate") },
+                    )
+                    FilterChip(
+                        selected = state.rateMode == RateMode.HOURLY,
+                        onClick = { viewModel.setRateMode(RateMode.HOURLY) },
+                        label = { Text("Hourly") },
+                    )
+                }
+                Spacer(Modifier.padding(top = 12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     FormField(state.markupPct, viewModel::setMarkupPct, "Markup %", Modifier.weight(1f), KeyboardType.Number)
                     FormField(state.hourlyRate, viewModel::setHourlyRate, "Hourly $", Modifier.weight(1f), KeyboardType.Number)
@@ -201,20 +221,34 @@ fun QuoteBuilderScreen(
             }
 
             SectionCard(title = "Totals") {
-                TotalRow("Materials", Format.money(totals.totalMaterial))
-                TotalRow("Labor", Format.money(totals.totalLabor))
-                TotalRow("Markup", Format.money(totals.markupAmount))
-                if (state.taxEnabled) TotalRow("Tax", Format.money(totals.taxAmount))
+                val headline = totals.headlineTotal(state.rateMode, hourlyRate)
+                if (state.rateMode == RateMode.HOURLY) {
+                    TotalRow("Estimated time", "${hoursText(totals.totalHours)} hrs")
+                    TotalRow("Hourly rate", Format.money(hourlyRate))
+                } else {
+                    TotalRow("Materials", Format.money(totals.totalMaterial))
+                    TotalRow("Labor", Format.money(totals.totalLabor))
+                    TotalRow("Markup", Format.money(totals.markupAmount))
+                    if (state.taxEnabled) TotalRow("Tax", Format.money(totals.taxAmount))
+                }
                 Spacer(Modifier.padding(top = 6.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(Modifier.padding(top = 6.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        Format.money(totals.total),
+                        Format.money(headline),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                if (state.rateMode == RateMode.HOURLY) {
+                    Spacer(Modifier.padding(top = 6.dp))
+                    Text(
+                        "Hourly time bid — materials billed at cost separately.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -324,3 +358,7 @@ private fun TotalRow(label: String, value: String) {
         Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }
+
+/** "12.0" -> "12", "12.5" -> "12.5" for the estimated-hours display. */
+private fun hoursText(h: Double): String =
+    if (h % 1.0 == 0.0) h.toLong().toString() else String.format("%.1f", h)
