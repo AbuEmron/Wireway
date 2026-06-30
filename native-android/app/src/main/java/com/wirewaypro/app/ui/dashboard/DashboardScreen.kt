@@ -42,6 +42,7 @@ import com.wirewaypro.app.ui.quotes.EstimatesScreen
 import com.wirewaypro.app.ui.quotes.InvoicesScreen
 import com.wirewaypro.app.ui.money.MoneyScreen
 import com.wirewaypro.app.ui.quotes.QuoteBuilderScreen
+import com.wirewaypro.app.ui.quotes.MaterialPullListScreen
 import com.wirewaypro.app.ui.quotes.QuoteDetailScreen
 import com.wirewaypro.app.ui.settings.ProfileEditScreen
 import com.wirewaypro.app.ui.settings.SettingsScreen
@@ -216,13 +217,18 @@ fun DashboardScreen(
                 QuoteDetailScreen(
                     onBack = { navController.popBackStack() },
                     onEdit = { id -> navController.navigate(DashDest.quoteBuilder(id = id)) },
+                    onPullList = { id -> navController.navigate(DashDest.pullList(id)) },
                 )
             }
             composable(DashDest.INVOICE_DETAIL, arguments = idArg) {
                 QuoteDetailScreen(
                     onBack = { navController.popBackStack() },
                     onEdit = { id -> navController.navigate(DashDest.quoteBuilder(id = id)) },
+                    onPullList = { id -> navController.navigate(DashDest.pullList(id)) },
                 )
+            }
+            composable(DashDest.PULL_LIST, arguments = idArg) {
+                MaterialPullListScreen(onBack = { navController.popBackStack() })
             }
 
             // ── Create / edit screens ───────────────────────────────────────────

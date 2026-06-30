@@ -45,6 +45,7 @@ object DashDest {
     const val JOB_DETAIL = "job/{id}"
     const val ESTIMATE_DETAIL = "estimate/{id}"
     const val INVOICE_DETAIL = "invoice/{id}"
+    const val PULL_LIST = "pull_list/{id}"
 
     // Create / edit routes (query args; blank id = create).
     const val QUOTE_BUILDER = "quote_builder?id={id}&invoice={invoice}"
@@ -58,6 +59,7 @@ object DashDest {
     fun jobDetail(id: String) = "job/$id"
     fun estimateDetail(id: String) = "estimate/$id"
     fun invoiceDetail(id: String) = "invoice/$id"
+    fun pullList(id: String) = "pull_list/$id"
 
     fun quoteBuilder(id: String? = null, invoice: Boolean = false) =
         "quote_builder?id=${id.orEmpty()}&invoice=$invoice"
