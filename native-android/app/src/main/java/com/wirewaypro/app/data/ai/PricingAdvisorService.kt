@@ -6,6 +6,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -37,7 +38,14 @@ class PricingAdvisorService @Inject constructor(
     private val client: SupabaseClient,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
-    private val http = HttpClient(Android)
+    // web_search makes the call take ~30-60s, so allow a long request window.
+    private val http = HttpClient(Android) {
+        install(HttpTimeout) {
+            requestTimeoutMillis = 120_000
+            socketTimeoutMillis = 120_000
+            connectTimeoutMillis = 30_000
+        }
+    }
 
     suspend fun recommend(
         jobDescription: String,
@@ -59,6 +67,8 @@ class PricingAdvisorService @Inject constructor(
 
         val body = buildJsonObject {
             put("max_tokens", 1200)
+            // Always search live so the suggestion reflects current local rates.
+            put("web_search", true)
             put("system", systemPrompt())
             putJsonArray("messages") {
                 add(
@@ -141,6 +151,8 @@ class PricingAdvisorService @Inject constructor(
 
     private fun systemPrompt(): String = """
         You are a pricing advisor for a licensed electrical contractor working anywhere in the United States. Given a job description, the job's location, and the contractor's baseline rates, recommend how to price the job.
+
+        Use web search to look up CURRENT, LOCAL information before answering — do not price from memory. Search for the prevailing electrician hourly rate and typical cost of comparable residential electrical jobs in THIS specific area right now.
 
         Account for the REGIONAL ECONOMIC REALITY of the SPECIFIC location named:
         - Local cost of living and prevailing electrician wages.

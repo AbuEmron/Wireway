@@ -388,10 +388,18 @@ private fun PricingAdvisorSheet(
                 if (state.advising) {
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                     Spacer(Modifier.width(8.dp))
-                    Text("Checking the local market…")
+                    Text("Searching live rates…")
                 } else {
                     Text("Get a suggestion")
                 }
+            }
+
+            if (state.advising) {
+                Text(
+                    "Searching live local rates for your area — this takes about 30–60 seconds.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             state.adviceError?.let {
