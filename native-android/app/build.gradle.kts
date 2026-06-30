@@ -151,6 +151,9 @@ dependencies {
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.fragment.ktx)
 
+    // Location (FusedLocationProvider) — AI pricing + pull-list locality
+    implementation(libs.play.services.location)
+
     // Plaid Link (bank connections)
     implementation(libs.plaid.link)
 
