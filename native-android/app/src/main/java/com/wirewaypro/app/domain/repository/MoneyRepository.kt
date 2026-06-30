@@ -16,4 +16,7 @@ interface MoneyRepository {
 
     /** Accountant CSV for a tax year (matches dashboard.js buildAccountantCsv columns). */
     suspend fun buildAccountantCsv(userId: String, year: Int): Result<String>
+
+    /** QuickBooks Online bank-import CSV (Date, Description, Amount) for a tax year. */
+    suspend fun buildQuickBooksCsv(userId: String, year: Int): Result<String>
 }

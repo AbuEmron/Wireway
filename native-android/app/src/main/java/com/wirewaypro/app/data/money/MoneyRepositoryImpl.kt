@@ -218,6 +218,32 @@ class MoneyRepositoryImpl @Inject constructor(
 
     // ── Accountant CSV (dashboard.js buildAccountantCsv) ────────────────────────
     override suspend fun buildAccountantCsv(userId: String, year: Int): Result<String> = runCatching {
+        val rows = gatherLedgerRows(userId, year)
+        val header = listOf("Date", "Type", "Name", "Category", "Job", "Amount", "Memo")
+        (listOf(header) + rows).joinToString("\n") { r -> r.joinToString(",") { csvCell(it) } }
+    }
+
+    /**
+     * QuickBooks Online "import bank transactions" CSV: Date, Description, Amount
+     * (signed — expenses negative, income positive). Derived from the same ledger
+     * rows as the accountant CSV.
+     */
+    override suspend fun buildQuickBooksCsv(userId: String, year: Int): Result<String> = runCatching {
+        val rows = gatherLedgerRows(userId, year)
+        val header = listOf("Date", "Description", "Amount")
+        val qbRows = rows.map { r ->
+            // r = [Date, Type, Name, Category, Job, Amount, Memo]
+            val description = listOf(r.getOrElse(2) { "" }, r.getOrElse(1) { "" }, r.getOrElse(4) { "" }, r.getOrElse(6) { "" })
+                .filter { it.isNotBlank() }
+                .joinToString(" — ")
+                .ifBlank { "Transaction" }
+            listOf(r.getOrElse(0) { "" }, description, r.getOrElse(5) { "0" })
+        }
+        (listOf(header) + qbRows).joinToString("\n") { r -> r.joinToString(",") { csvCell(it) } }
+    }
+
+    /** Gathers every money movement for the year as [Date, Type, Name, Category, Job, Amount, Memo] rows, sorted by date. */
+    private suspend fun gatherLedgerRows(userId: String, year: Int): List<List<String>> {
         val ys = "$year-01-01"; val ye = "$year-12-31"
         val rate = irsRate(year)
 
@@ -252,8 +278,7 @@ class MoneyRepositoryImpl @Inject constructor(
         }.forEach { rows += listOf(it.paidAt?.take(10).orEmpty(), "Income (draw)", "", "income", jobName[it.jobId].orEmpty(), drawNet(it.amount, it.retainagePct).toString(), it.label.orEmpty()) }
 
         rows.sortBy { it.firstOrNull().orEmpty() }
-        val header = listOf("Date", "Type", "Name", "Category", "Job", "Amount", "Memo")
-        (listOf(header) + rows).joinToString("\n") { r -> r.joinToString(",") { csvCell(it) } }
+        return rows
     }
 
     private fun csvCell(v: String): String =

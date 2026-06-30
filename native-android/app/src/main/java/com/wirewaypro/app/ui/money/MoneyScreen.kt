@@ -41,6 +41,7 @@ import com.wirewaypro.app.domain.model.JobPnl
 import com.wirewaypro.app.domain.model.JobPnlReport
 import com.wirewaypro.app.domain.model.MoneySnapshot
 import com.wirewaypro.app.ui.components.BackTopBar
+import com.wirewaypro.app.ui.components.GradientButton
 import com.wirewaypro.app.ui.components.InfoRow
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.theme.BrandGreen
@@ -66,8 +67,13 @@ fun MoneyScreen(
     // Hand a freshly-built CSV to the system share sheet, then clear it.
     LaunchedEffect(state.csvExport) {
         val csv = state.csvExport ?: return@LaunchedEffect
-        shareCsv(context, viewModel.year, csv)
+        shareCsv(context, "wireway-${viewModel.year}", "Wireway ${viewModel.year} expenses", csv)
         viewModel.csvConsumed()
+    }
+    LaunchedEffect(state.qbExport) {
+        val csv = state.qbExport ?: return@LaunchedEffect
+        shareCsv(context, "wireway-quickbooks-${viewModel.year}", "Wireway ${viewModel.year} — QuickBooks import", csv)
+        viewModel.qbConsumed()
     }
 
     Scaffold(
@@ -179,11 +185,28 @@ private fun MoneyContent(
             }
         }
 
-        Text(
-            "Export builds an accountant CSV (one row per money movement) and opens the share sheet.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        SectionCard(title = "Export for taxes & accounting") {
+            Text(
+                "One row per money movement for ${viewModel.year}. Accountant CSV is the full ledger; QuickBooks is a bank-import file (Date, Description, Amount).",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.size(12.dp))
+            GradientButton(
+                text = "Accountant CSV",
+                onClick = viewModel::exportCsv,
+                enabled = !state.exporting,
+                loading = state.exporting,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.size(10.dp))
+            GradientButton(
+                text = "QuickBooks (CSV)",
+                onClick = viewModel::exportQuickBooks,
+                enabled = !state.exporting,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
@@ -211,19 +234,19 @@ private fun JobPnlRow(job: JobPnl) {
 }
 
 /** Writes the CSV to cache/exports and opens the system share sheet. */
-private fun shareCsv(context: Context, year: Int, csv: String) {
+private fun shareCsv(context: Context, fileName: String, subject: String, csv: String) {
     runCatching {
         val dir = File(context.cacheDir, "exports").apply { mkdirs() }
-        val file = File(dir, "wireway-$year.csv")
+        val file = File(dir, "$fileName.csv")
         file.writeText(csv)
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/csv"
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "Wireway $year expenses")
+            putExtra(Intent.EXTRA_SUBJECT, subject)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Export CSV").apply {
+        context.startActivity(Intent.createChooser(intent, "Export").apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
     }

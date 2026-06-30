@@ -25,6 +25,7 @@ data class MoneyUiState(
     val error: String? = null,
     val exporting: Boolean = false,
     val csvExport: String? = null, // one-shot: non-null when ready for the share sheet
+    val qbExport: String? = null,  // one-shot: QuickBooks CSV ready for the share sheet
 )
 
 @HiltViewModel
@@ -76,4 +77,17 @@ class MoneyViewModel @Inject constructor(
 
     /** Called by the screen once the CSV has been handed to the share sheet. */
     fun csvConsumed() = _state.update { it.copy(csvExport = null) }
+
+    /** Builds a QuickBooks Online bank-import CSV and hands it to the share sheet. */
+    fun exportQuickBooks() {
+        val userId = auth.currentUserId() ?: return
+        _state.update { it.copy(exporting = true) }
+        viewModelScope.launch {
+            moneyRepository.buildQuickBooksCsv(userId, year)
+                .onSuccess { csv -> _state.update { it.copy(exporting = false, qbExport = csv) } }
+                .onFailure { _state.update { it.copy(exporting = false, error = "Couldn't build the QuickBooks export.") } }
+        }
+    }
+
+    fun qbConsumed() = _state.update { it.copy(qbExport = null) }
 }
