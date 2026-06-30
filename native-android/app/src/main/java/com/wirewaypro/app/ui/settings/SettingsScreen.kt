@@ -7,19 +7,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,6 +35,7 @@ import com.wirewaypro.app.BuildConfig
 import com.wirewaypro.app.ui.components.InfoRow
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.TabTopBar
+import com.wirewaypro.app.ui.theme.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +45,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val email by viewModel.email.collectAsStateWithLifecycle()
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -51,6 +60,10 @@ fun SettingsScreen(
         ) {
             SectionCard(title = "Account") {
                 InfoRow("Email", email ?: "—")
+            }
+
+            SectionCard(title = "Appearance") {
+                ThemeSelector(selected = themeMode, onSelect = viewModel::setThemeMode)
             }
 
             Button(
@@ -106,6 +119,32 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
+            }
+        }
+    }
+}
+
+/** Segmented System / Light / Dark theme override. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThemeSelector(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
+    data class Option(val mode: ThemeMode, val label: String, val icon: ImageVector)
+    val options = listOf(
+        Option(ThemeMode.SYSTEM, "System", Icons.Outlined.PhoneAndroid),
+        Option(ThemeMode.LIGHT, "Light", Icons.Outlined.LightMode),
+        Option(ThemeMode.DARK, "Dark", Icons.Outlined.DarkMode),
+    )
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        options.forEachIndexed { index, opt ->
+            SegmentedButton(
+                selected = selected == opt.mode,
+                onClick = { onSelect(opt.mode) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                icon = {
+                    Icon(opt.icon, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
+                },
+            ) {
+                Text(opt.label)
             }
         }
     }

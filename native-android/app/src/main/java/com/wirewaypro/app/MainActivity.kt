@@ -10,13 +10,17 @@ import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.wirewaypro.app.data.intent.AppIntents
 import com.wirewaypro.app.data.intent.SharedAttachment
 import com.wirewaypro.app.data.intent.SharedAttachmentHandoff
+import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.shortcuts.AppShortcuts
 import com.wirewaypro.app.ui.WirewayApp
 import com.wirewaypro.app.ui.navigation.DashDest
+import com.wirewaypro.app.ui.theme.ThemeMode
 import com.wirewaypro.app.ui.theme.WirewayTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -34,6 +38,7 @@ class MainActivity : FragmentActivity() {
 
     @Inject lateinit var appIntents: AppIntents
     @Inject lateinit var sharedAttachmentHandoff: SharedAttachmentHandoff
+    @Inject lateinit var settingsPrefs: SettingsPrefs
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -41,7 +46,8 @@ class MainActivity : FragmentActivity() {
         AppShortcuts.register(this)
         handleIntent(intent)
         setContent {
-            WirewayTheme {
+            val themeName by settingsPrefs.themeMode.collectAsState(initial = "SYSTEM")
+            WirewayTheme(themeMode = ThemeMode.fromName(themeName)) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,

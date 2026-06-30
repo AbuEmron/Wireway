@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -28,9 +29,14 @@ class SettingsPrefs @Inject constructor(
     private val notificationsKey = booleanPreferencesKey("notifications_enabled")
     private val hourlyRateKey = doublePreferencesKey("default_hourly_rate")
     private val flatRateKey = doublePreferencesKey("default_flat_rate")
+    private val themeModeKey = stringPreferencesKey("theme_mode")
 
     val notificationsEnabled: Flow<Boolean> =
         context.settingsDataStore.data.map { it[notificationsKey] ?: true }
+
+    /** Light/dark preference as a [ThemeMode] name; defaults to SYSTEM. */
+    val themeMode: Flow<String> =
+        context.settingsDataStore.data.map { it[themeModeKey] ?: "SYSTEM" }
 
     /** Contractor's standard hourly labor rate. Falls back to [DEFAULT_HOURLY_RATE]. */
     val defaultHourlyRate: Flow<Double> =
@@ -50,5 +56,10 @@ class SettingsPrefs @Inject constructor(
 
     suspend fun setDefaultFlatRate(rate: Double) {
         context.settingsDataStore.edit { it[flatRateKey] = rate }
+    }
+
+    /** Persist the light/dark preference (store the [ThemeMode] enum name). */
+    suspend fun setThemeMode(mode: String) {
+        context.settingsDataStore.edit { it[themeModeKey] = mode }
     }
 }
