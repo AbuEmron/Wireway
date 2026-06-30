@@ -21,6 +21,7 @@ data class ProfileDto(
     @SerialName("company_license") val companyLicense: String? = null,
     @SerialName("company_address") val companyAddress: String? = null,
     @SerialName("company_website") val companyWebsite: String? = null,
+    @SerialName("logo_url") val logoUrl: String? = null,
 ) {
     fun toDomain(): UserProfile = UserProfile(
         id = id,
@@ -34,5 +35,6 @@ data class ProfileDto(
         companyLicense = companyLicense,
         companyAddress = companyAddress,
         companyWebsite = companyWebsite,
+        logoUrl = logoUrl,
     )
 }

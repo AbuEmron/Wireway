@@ -30,9 +30,13 @@ data class ProfileEditUiState(
     val hourlyRate: String = "",
     val flatRate: String = "",
     val notificationsEnabled: Boolean = true,
+    val logoUrl: String = "",
+    val uploadingLogo: Boolean = false,
     val error: String? = null,
     val saved: Boolean = false,
-)
+) {
+    val hasLogo: Boolean get() = logoUrl.isNotBlank()
+}
 
 @HiltViewModel
 class ProfileEditViewModel @Inject constructor(
@@ -76,7 +80,19 @@ class ProfileEditViewModel @Inject constructor(
             hourlyRate = if (hourly > 0) trimNum(hourly) else "",
             flatRate = if (flat > 0) trimNum(flat) else "",
             notificationsEnabled = notify,
+            logoUrl = p?.logoUrl.orEmpty(),
         )
+    }
+
+    /** Uploads a picked business-logo image and stores its URL on the profile. */
+    fun uploadLogo(bytes: ByteArray) {
+        val userId = auth.currentUserId() ?: return
+        _state.update { it.copy(uploadingLogo = true, error = null) }
+        viewModelScope.launch {
+            profileRepository.uploadLogo(userId, bytes)
+                .onSuccess { url -> _state.update { it.copy(uploadingLogo = false, logoUrl = url) } }
+                .onFailure { _state.update { it.copy(uploadingLogo = false, error = "Couldn't upload the logo. Try again.") } }
+        }
     }
 
     /** "85.0" -> "85", "120.5" -> "120.5" for clean display in the rate fields. */

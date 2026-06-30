@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -22,11 +24,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.ui.components.FormField
+import com.wirewaypro.app.ui.components.GradientButton
 import com.wirewaypro.app.ui.components.SaveTopBar
 import com.wirewaypro.app.ui.components.SectionCard
 
@@ -37,8 +41,16 @@ fun ProfileEditScreen(
     viewModel: ProfileEditViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(state.saved) { if (state.saved) onClose() }
+
+    val pickLogo = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            val bytes = runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
+            if (bytes != null) viewModel.uploadLogo(bytes)
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -83,6 +95,23 @@ fun ProfileEditScreen(
                 FormField(state.companyAddress, viewModel::setCompanyAddress, "Address")
                 Spacer(Modifier.padding(top = 10.dp))
                 FormField(state.companyWebsite, viewModel::setCompanyWebsite, "Website")
+            }
+
+            SectionCard(title = "Business logo") {
+                Text(
+                    if (state.hasLogo) "Logo on file — shown on your quote PDFs and customer pages."
+                    else "Add your logo to brand quote PDFs and customer-facing pages.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.padding(top = 12.dp))
+                GradientButton(
+                    text = if (state.hasLogo) "Replace logo" else "Upload business logo",
+                    onClick = { pickLogo.launch("image/*") },
+                    loading = state.uploadingLogo,
+                    enabled = !state.uploadingLogo,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             SectionCard(title = "Baseline rates (your starting point)") {

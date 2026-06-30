@@ -16,6 +16,7 @@ data class UserProfile(
     val companyLicense: String? = null,
     val companyAddress: String? = null,
     val companyWebsite: String? = null,
+    val logoUrl: String? = null,
 ) {
     /**
      * Mirrors `isPro()` in the web app's src/lib/supabase.js. Teams and Elite are

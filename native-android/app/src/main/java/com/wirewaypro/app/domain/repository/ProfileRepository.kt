@@ -16,4 +16,10 @@ interface ProfileRepository {
 
     /** Updates the user's name + business info on `profiles`. */
     suspend fun saveProfile(userId: String, input: ProfileInput): Result<UserProfile>
+
+    /**
+     * Uploads a business logo image to the shared `logos` bucket, saves its public
+     * URL to `profiles.logo_url`, and returns that URL (cache-busted).
+     */
+    suspend fun uploadLogo(userId: String, bytes: ByteArray): Result<String>
 }
