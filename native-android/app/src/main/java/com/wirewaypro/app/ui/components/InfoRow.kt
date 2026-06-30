@@ -39,13 +39,13 @@ fun InfoRow(label: String, value: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** A small uppercase section label used to group a detail card's contents. */
+/** A small tracked-caps section label used to group a detail card's contents. */
 @Composable
 fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text.uppercase(),
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(bottom = 4.dp),
+        modifier = modifier.padding(bottom = 8.dp),
     )
 }
