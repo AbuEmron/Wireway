@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.wirewaypro.app.data.offline.SyncManager
 import com.wirewaypro.app.notifications.ReminderScheduler
+import com.wirewaypro.app.sync.SyncScheduler
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -31,5 +32,7 @@ class WirewayApplication : Application(), Configuration.Provider {
         syncManager.start()
         // Schedule periodic on-device reminders (overdue invoices, jobs, draws).
         ReminderScheduler.schedule(this)
+        // Background offline-sync safety net (connectivity-gated periodic flush).
+        SyncScheduler.schedule(this)
     }
 }

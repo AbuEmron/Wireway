@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.wirewaypro.app.sync.SyncScheduler
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -33,8 +34,11 @@ class OfflineQueue @Inject constructor(
 
     suspend fun all(): List<QueuedSave> = decode(context.offlineDataStore.data.first()[key])
 
-    suspend fun enqueue(save: QueuedSave) = mutate { current ->
-        current.filterNot { it.id == save.id } + save
+    suspend fun enqueue(save: QueuedSave) {
+        mutate { current -> current.filterNot { it.id == save.id } + save }
+        // Ask WorkManager to flush as soon as the network is back — survives the
+        // app being closed, unlike the in-process SyncManager connectivity watcher.
+        SyncScheduler.requestSync(context)
     }
 
     suspend fun remove(id: String) = mutate { current ->

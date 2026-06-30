@@ -9,7 +9,9 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -125,16 +127,22 @@ fun CameraCapture(
             )
         }
 
-        FloatingActionButton(
-            onClick = {
-                if (capturing) return@FloatingActionButton
-                capturing = true
-                capture(context, imageCapture, onCaptured) { capturing = false }
-            },
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp).size(72.dp),
-            containerColor = MaterialTheme.colorScheme.primary,
+        Column(
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(Icons.Filled.PhotoCamera, contentDescription = "Capture")
+            FloatingActionButton(
+                onClick = {
+                    if (capturing) return@FloatingActionButton
+                    capturing = true
+                    capture(context, imageCapture, onCaptured) { capturing = false }
+                },
+                modifier = Modifier.size(72.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+            ) {
+                Icon(Icons.Filled.PhotoCamera, contentDescription = "Capture")
+            }
         }
     }
 }
