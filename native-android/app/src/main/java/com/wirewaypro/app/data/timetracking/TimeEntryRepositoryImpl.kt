@@ -38,7 +38,7 @@ class TimeEntryRepositoryImpl @Inject constructor(
             .select {
                 filter { eq("user_id", userId) }
                 order("created_at", Order.DESCENDING)
-                limit(limit)
+                limit(limit.toLong())
             }
             .decodeList<TimeEntryDto>()
             .map { it.toDomain() }
