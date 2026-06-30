@@ -110,7 +110,16 @@ fun MoneyScreen(
                     Text(state.error!!, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     TextButton(onClick = viewModel::refresh) { Text("Retry") }
                 }
-                else -> MoneyContent(state.snapshot, state.aging, state.pnl, monthLabel)
+                else -> MoneyContent(
+                    snap = state.snapshot,
+                    aging = state.aging,
+                    pnl = state.pnl,
+                    monthLabel = monthLabel,
+                    year = viewModel.year,
+                    exporting = state.exporting,
+                    onExportCsv = viewModel::exportCsv,
+                    onExportQuickBooks = viewModel::exportQuickBooks,
+                )
             }
         }
     }
@@ -122,6 +131,10 @@ private fun MoneyContent(
     aging: AgingReport?,
     pnl: JobPnlReport?,
     monthLabel: String,
+    year: Int,
+    exporting: Boolean,
+    onExportCsv: () -> Unit,
+    onExportQuickBooks: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -187,23 +200,23 @@ private fun MoneyContent(
 
         SectionCard(title = "Export for taxes & accounting") {
             Text(
-                "One row per money movement for ${viewModel.year}. Accountant CSV is the full ledger; QuickBooks is a bank-import file (Date, Description, Amount).",
+                "One row per money movement for $year. Accountant CSV is the full ledger; QuickBooks is a bank-import file (Date, Description, Amount).",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.size(12.dp))
             GradientButton(
                 text = "Accountant CSV",
-                onClick = viewModel::exportCsv,
-                enabled = !state.exporting,
-                loading = state.exporting,
+                onClick = onExportCsv,
+                enabled = !exporting,
+                loading = exporting,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.size(10.dp))
             GradientButton(
                 text = "QuickBooks (CSV)",
-                onClick = viewModel::exportQuickBooks,
-                enabled = !state.exporting,
+                onClick = onExportQuickBooks,
+                enabled = !exporting,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
