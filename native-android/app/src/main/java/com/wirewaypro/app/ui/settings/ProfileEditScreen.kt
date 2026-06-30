@@ -85,6 +85,18 @@ fun ProfileEditScreen(
                 FormField(state.companyWebsite, viewModel::setCompanyWebsite, "Website")
             }
 
+            SectionCard(title = "Baseline rates (your starting point)") {
+                FormField(state.hourlyRate, viewModel::setHourlyRate, "Hourly rate $", keyboardType = KeyboardType.Number)
+                Spacer(Modifier.padding(top = 10.dp))
+                FormField(state.flatRate, viewModel::setFlatRate, "Flat-rate baseline $ (optional)", keyboardType = KeyboardType.Number)
+                Spacer(Modifier.padding(top = 8.dp))
+                Text(
+                    "These prefill new quotes and give the AI a starting point. You can always override per quote.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             SectionCard(title = "Notifications") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
