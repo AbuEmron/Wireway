@@ -5,6 +5,7 @@ import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.JobRepository
 import com.wirewaypro.app.domain.repository.MoneyRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
+import androidx.glance.appwidget.updateAll
 import com.wirewaypro.app.widget.WirewayWidget
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
