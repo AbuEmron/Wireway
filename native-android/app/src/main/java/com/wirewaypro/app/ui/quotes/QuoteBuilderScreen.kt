@@ -442,6 +442,14 @@ private fun AdviceResult(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Spacer(Modifier.padding(top = 4.dp))
+        val confidence = rec.confidence?.takeIf { it.isNotBlank() }
+            ?.replaceFirstChar { it.uppercase() }
+        Text(
+            "Live-searched estimate" + (confidence?.let { " · $it confidence" } ?: "") + " — not a guaranteed quote.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
         if (rec.areaContext.isNotBlank()) {
             Spacer(Modifier.padding(top = 6.dp))
             Text(rec.areaContext, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

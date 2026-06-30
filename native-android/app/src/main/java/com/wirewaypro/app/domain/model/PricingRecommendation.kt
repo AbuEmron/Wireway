@@ -10,6 +10,7 @@ data class PricingRecommendation(
     val recommendedTotal: Double?,   // suggested all-in total
     val lowTotal: Double?,           // sensible low end of the range
     val highTotal: Double?,          // sensible high end of the range
-    val areaContext: String,         // 1-2 sentences on the local market
+    val areaContext: String,         // 1-2 sentences on the local market + the basis for the figures
     val reasoning: String,           // 1-2 sentences on why this fits
+    val confidence: String? = null,  // "high" | "medium" | "low" — how solid the local data was
 )

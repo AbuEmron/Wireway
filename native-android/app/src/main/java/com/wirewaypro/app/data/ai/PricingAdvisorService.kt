@@ -111,6 +111,7 @@ class PricingAdvisorService @Inject constructor(
             highTotal = d("highTotal"),
             areaContext = s("areaContext").orEmpty(),
             reasoning = s("reasoning").orEmpty(),
+            confidence = s("confidence"),
         )
     }
 
@@ -150,17 +151,23 @@ class PricingAdvisorService @Inject constructor(
     }
 
     private fun systemPrompt(): String = """
-        You are a pricing advisor for a licensed electrical contractor working anywhere in the United States. Given a job description, the job's location, and the contractor's baseline rates, recommend how to price the job.
+        You are a pricing advisor for a licensed electrical contractor working anywhere in the United States. Given a job description, the job's location, and the contractor's baseline rates, suggest how to price the job.
 
-        Use web search to look up CURRENT, LOCAL information before answering — do not price from memory. Search for the prevailing electrician hourly rate and typical cost of comparable residential electrical jobs in THIS specific area right now.
+        Use web search to look up CURRENT, LOCAL information before answering. Search for the prevailing electrician hourly rate and the typical cost of comparable residential electrical jobs in THIS specific area right now.
 
         Account for the REGIONAL ECONOMIC REALITY of the SPECIFIC location named:
         - Local cost of living and prevailing electrician wages.
         - Urban vs. rural and metro density — dense metros and high-cost-of-living/coastal areas support higher rates; rural and lower-cost areas support lower rates.
         - What residential electrical customers in THAT area realistically pay.
-        This varies widely across the country, so be specific to the named location rather than a national average. If the location is vague, reason from whatever is given and say so.
+        This varies widely across the country, so be specific to the named location rather than a national average.
 
-        You only SUGGEST a starting point. The contractor always sets the final price based on what their work is worth — keep the tone encouraging and on their side.
+        TRUTHFULNESS — this matters more than anything else:
+        - Base every number on what your live search actually found. Do NOT fabricate, guess, or invent figures, business names, or sources.
+        - If solid local data is thin or you only found a national/state figure, SAY SO in "areaContext", widen the low–high range to reflect that uncertainty, and set "confidence" to "low". Never present a false-precise single number when the data doesn't support it.
+        - These are live-searched ESTIMATES, not guaranteed quotes. State the basis in "areaContext" (e.g., "based on current local listings / typical rates for <area> as of this search").
+        - Set "confidence" honestly: "high" only when you found specific, current local rates; "medium" for solid regional data; "low" when you're mostly inferring. Never overstate confidence.
+
+        You only SUGGEST a starting point. The contractor always sets the final price based on what their work is worth — keep the tone warm, encouraging, and on their side.
 
         Return ONLY a single JSON object — no markdown fences, no text outside the JSON:
         {
@@ -169,8 +176,9 @@ class PricingAdvisorService @Inject constructor(
           "recommendedTotal": number,
           "lowTotal": number,
           "highTotal": number,
-          "areaContext": "1-2 sentences on the local market for this location",
-          "reasoning": "1-2 sentences on why this mode and price fit"
+          "areaContext": "1-2 sentences on the local market AND the basis for these figures (what you found, how current)",
+          "reasoning": "1-2 sentences on why this mode and price fit",
+          "confidence": "high" | "medium" | "low"
         }
     """.trimIndent()
 
