@@ -4,15 +4,20 @@ import android.app.Activity
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryPurchasesParams
+import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.queryProductDetails
+import com.android.billingclient.api.queryPurchasesAsync
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,11 +55,38 @@ class SubscriptionsViewModel @Inject constructor(
 
     private val purchasesListener = PurchasesUpdatedListener { result, purchases ->
         when {
-            result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null ->
+            result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null -> {
+                // CRITICAL: acknowledge within 3 days or Google auto-refunds the purchase.
+                viewModelScope.launch { purchases.forEach { acknowledgeIfNeeded(it) } }
                 _state.update { it.copy(status = "Subscription active — thank you!") }
+            }
             result.responseCode == BillingClient.BillingResponseCode.USER_CANCELED ->
                 _state.update { it.copy(status = null) }
             else -> _state.update { it.copy(status = "Purchase didn't complete.") }
+        }
+    }
+
+    /** Acknowledge a completed SUBS purchase (idempotent) so it isn't auto-refunded. */
+    private suspend fun acknowledgeIfNeeded(purchase: Purchase) {
+        if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) return
+        if (purchase.isAcknowledged) return
+        val params = AcknowledgePurchaseParams.newBuilder()
+            .setPurchaseToken(purchase.purchaseToken)
+            .build()
+        runCatching { billing.acknowledgePurchase(params) }
+    }
+
+    /** On (re)connect, acknowledge any purchase the listener may have missed (app killed mid-flow). */
+    private fun reconcilePurchases() {
+        viewModelScope.launch {
+            val params = QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build()
+            val result = runCatching { billing.queryPurchasesAsync(params) }.getOrNull() ?: return@launch
+            result.purchasesList.forEach { acknowledgeIfNeeded(it) }
+            if (result.purchasesList.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }) {
+                _state.update { it.copy(status = "Subscription active") }
+            }
         }
     }
 
@@ -73,6 +105,7 @@ class SubscriptionsViewModel @Inject constructor(
                 override fun onBillingSetupFinished(result: BillingResult) {
                     if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                         queryProducts()
+                        reconcilePurchases()
                     } else {
                         _state.update { it.copy(connecting = false, available = false, status = "Subscriptions are unavailable on this device.") }
                     }
