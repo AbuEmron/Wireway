@@ -3,6 +3,8 @@ package com.wirewaypro.app.ui.subscription
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +21,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -92,9 +95,29 @@ fun SubscriptionsScreen(
                         Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
+
+                // Google Play requires the manage/cancel path to run through the Play
+                // subscription center — deep-link out to it rather than cancelling in-app.
+                // Shown regardless of load state so an existing subscriber always has a way out.
+                TextButton(
+                    onClick = { openManageSubscriptions(context) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Manage or cancel subscription")
+                }
             }
         }
     }
+}
+
+/** Opens the Google Play subscription center for this app (manage / cancel / change plan). */
+private fun openManageSubscriptions(context: Context) {
+    val uri = Uri.parse(
+        "https://play.google.com/store/account/subscriptions?package=${context.packageName}",
+    )
+    val playIntent = Intent(Intent.ACTION_VIEW, uri).setPackage("com.android.vending")
+    val launched = runCatching { context.startActivity(playIntent); true }.getOrDefault(false)
+    if (!launched) runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
 }
 
 private fun Context.findActivity(): Activity? {
