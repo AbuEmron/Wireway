@@ -37,6 +37,7 @@ object DashDest {
     const val ADD_EXPENSE = "add_expense"
     const val MONEY = "money"
     const val TAKEOFF = "takeoff"
+    const val AI_QUOTE_BUILDER = "ai_quote_builder"
     const val BANK = "bank"
     const val SUBSCRIPTION = "subscription"
     const val PROFILE_EDIT = "profile_edit"

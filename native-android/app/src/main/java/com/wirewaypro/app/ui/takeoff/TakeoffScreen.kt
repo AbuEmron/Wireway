@@ -61,6 +61,7 @@ private const val PREVIEW_RATE = 85.0 // catalog base rate; the builder uses the
 fun TakeoffScreen(
     onBack: () -> Unit,
     onCreateEstimate: () -> Unit,
+    mode: AiEstimateMode = AiEstimateMode.TAKEOFF,
     viewModel: TakeoffViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -87,7 +88,7 @@ fun TakeoffScreen(
         return
     }
 
-    Scaffold(topBar = { BackTopBar(title = "AI Takeoff", onBack = onBack) }) { padding ->
+    Scaffold(topBar = { BackTopBar(title = mode.title, onBack = onBack) }) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -96,17 +97,29 @@ fun TakeoffScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            SectionCard(title = "Describe the job") {
+            SectionCard(title = mode.cardTitle) {
+                Text(
+                    mode.cardSubtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.padding(top = 12.dp))
                 OutlinedTextField(
                     value = state.prompt,
                     onValueChange = viewModel::setPrompt,
-                    label = { Text("Scope of work") },
-                    placeholder = { Text("e.g. Install 12 recessed lights, 3 dimmers, and a dedicated 20A office circuit") },
+                    label = { Text(mode.promptLabel) },
+                    placeholder = { Text(mode.promptPlaceholder) },
                     minLines = 3,
                     keyboardOptions = KeyboardOptions.Default,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.padding(top = 10.dp))
+                Text(
+                    if (state.attachmentLabel != null) "" else mode.attachHint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.padding(top = 6.dp))
                 if (state.attachmentLabel != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(state.attachmentLabel!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))

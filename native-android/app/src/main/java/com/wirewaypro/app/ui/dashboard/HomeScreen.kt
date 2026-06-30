@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material.icons.outlined.WorkspacePremium
@@ -46,6 +48,7 @@ import com.wirewaypro.app.ui.components.WirewayWordmark
  */
 @Composable
 fun HomeScreen(
+    onOpenAiQuoteBuilder: () -> Unit,
     onOpenJobs: () -> Unit,
     onOpenClients: () -> Unit,
     onOpenExpenses: () -> Unit,
@@ -114,11 +117,28 @@ fun HomeScreen(
         }
 
         Text(
+            text = "ESTIMATE WITH AI",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        AiHeroCard(
+            icon = Icons.Outlined.AutoAwesome,
+            title = "AI Quote Builder",
+            subtitle = "Describe the job in plain English — get a full estimate in seconds",
+            onClick = onOpenAiQuoteBuilder,
+        )
+        AiHeroCard(
+            icon = Icons.Outlined.PhotoCamera,
+            title = "AI Takeoff",
+            subtitle = "Snap or upload a plan photo/PDF — AI reads it and builds the estimate",
+            onClick = onOpenTakeoff,
+        )
+
+        Text(
             text = "BROWSE",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        QuickLink(icon = Icons.Outlined.AutoAwesome, label = "AI Takeoff", onClick = onOpenTakeoff)
         QuickLink(icon = Icons.Outlined.Work, label = "Jobs", onClick = onOpenJobs)
         QuickLink(icon = Icons.Outlined.Groups, label = "Clients", onClick = onOpenClients)
         QuickLink(icon = Icons.Outlined.ReceiptLong, label = "Expenses & receipts", onClick = onOpenExpenses)
@@ -128,10 +148,57 @@ fun HomeScreen(
 
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "Read-only this phase. Estimates and Invoices are in the bottom tabs.",
+            text = "Your Estimates and Invoices live in the bottom tabs.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/** Prominent headline card for the two AI estimating tools. */
+@Composable
+private fun AiHeroCard(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(32.dp),
+            )
+            Spacer(Modifier.padding(start = 16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
     }
 }
 

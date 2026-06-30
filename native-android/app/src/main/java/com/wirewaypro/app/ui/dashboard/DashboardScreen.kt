@@ -46,6 +46,7 @@ import com.wirewaypro.app.ui.quotes.QuoteDetailScreen
 import com.wirewaypro.app.ui.settings.ProfileEditScreen
 import com.wirewaypro.app.ui.settings.SettingsScreen
 import com.wirewaypro.app.ui.subscription.SubscriptionsScreen
+import com.wirewaypro.app.ui.takeoff.AiEstimateMode
 import com.wirewaypro.app.ui.takeoff.TakeoffScreen
 
 /**
@@ -111,6 +112,7 @@ fun DashboardScreen(
         ) {
             composable(HomeTab.HOME.route) {
                 HomeScreen(
+                    onOpenAiQuoteBuilder = { navController.navigate(DashDest.AI_QUOTE_BUILDER) },
                     onOpenJobs = { navController.navigate(DashDest.JOBS) },
                     onOpenClients = { navController.navigate(DashDest.CLIENTS) },
                     onOpenExpenses = { navController.navigate(DashDest.EXPENSES) },
@@ -173,10 +175,22 @@ fun DashboardScreen(
             }
             composable(DashDest.TAKEOFF) {
                 TakeoffScreen(
+                    mode = AiEstimateMode.TAKEOFF,
                     onBack = { navController.popBackStack() },
                     onCreateEstimate = {
                         navController.navigate(DashDest.quoteBuilder(invoice = false)) {
                             popUpTo(DashDest.TAKEOFF) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            composable(DashDest.AI_QUOTE_BUILDER) {
+                TakeoffScreen(
+                    mode = AiEstimateMode.QUOTE_BUILDER,
+                    onBack = { navController.popBackStack() },
+                    onCreateEstimate = {
+                        navController.navigate(DashDest.quoteBuilder(invoice = false)) {
+                            popUpTo(DashDest.AI_QUOTE_BUILDER) { inclusive = true }
                         }
                     },
                 )
