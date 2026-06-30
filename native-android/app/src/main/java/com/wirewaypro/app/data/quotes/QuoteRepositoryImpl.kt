@@ -27,6 +27,7 @@ import java.time.Year
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.roundToInt
 
 @Singleton
 class QuoteRepositoryImpl @Inject constructor(
@@ -98,7 +99,9 @@ class QuoteRepositoryImpl @Inject constructor(
             put("client_phone", input.clientPhone)
             put("job_name", input.jobName)
             put("notes", input.notes)
-            put("hourly_rate", input.hourlyRate)
+            // hourly_rate is an INTEGER column in Postgres — emit a whole number
+            // (Postgres rejects "85.0" for an integer column). Web stores it as int too.
+            put("hourly_rate", input.hourlyRate.roundToInt())
             put("markup", input.markup)
             put("show_materials", input.showMaterials)
             put("client_buys_all", input.clientBuysAll)
