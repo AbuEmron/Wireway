@@ -131,6 +131,11 @@ fun JobDetailScreen(
                         Icon(Icons.Outlined.Payments, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                         Text("Request payment (share pay page)")
                     }
+                    Text(
+                        "Client pays by card or bank (ACH) — money goes straight to your connected account.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 Spacer(Modifier.padding(top = 10.dp))
                 OutlinedButton(onClick = viewModel::addDraw, modifier = Modifier.fillMaxWidth()) {
