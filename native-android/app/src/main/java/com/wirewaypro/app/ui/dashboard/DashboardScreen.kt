@@ -38,6 +38,7 @@ import com.wirewaypro.app.ui.jobs.JobDetailScreen
 import com.wirewaypro.app.ui.jobs.JobEditScreen
 import com.wirewaypro.app.ui.jobs.JobsCalendarScreen
 import com.wirewaypro.app.ui.jobs.JobsScreen
+import com.wirewaypro.app.ui.load.LoadAdvisorScreen
 import com.wirewaypro.app.ui.mileage.MileageScreen
 import com.wirewaypro.app.ui.navigation.DashDest
 import com.wirewaypro.app.ui.nec.NecReferenceScreen
@@ -135,6 +136,7 @@ fun DashboardScreen(
                     onOpenMileage = { navController.navigate(DashDest.MILEAGE) },
                     onOpenTimeTracking = { navController.navigate(DashDest.TIME_TRACKING) },
                     onOpenNec = { navController.navigate(DashDest.NEC) },
+                    onOpenLoadAdvisor = { navController.navigate(DashDest.LOAD_ADVISOR) },
                     onOpenMoney = { navController.navigate(DashDest.MONEY) },
                     onOpenTakeoff = { navController.navigate(DashDest.TAKEOFF) },
                     onOpenBank = { navController.navigate(DashDest.BANK) },
@@ -201,6 +203,9 @@ fun DashboardScreen(
             }
             composable(DashDest.NEC) {
                 NecReferenceScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.LOAD_ADVISOR) {
+                LoadAdvisorScreen(onBack = { navController.popBackStack() })
             }
             composable(DashDest.TAKEOFF) {
                 TakeoffScreen(
