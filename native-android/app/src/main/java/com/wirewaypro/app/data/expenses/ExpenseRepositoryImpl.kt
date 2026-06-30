@@ -7,6 +7,7 @@ import com.wirewaypro.app.data.offline.isConnectivityError
 import com.wirewaypro.app.domain.model.Expense
 import com.wirewaypro.app.domain.model.ExpenseInput
 import com.wirewaypro.app.domain.repository.ExpenseRepository
+import com.wirewaypro.app.domain.util.IsoDate
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
@@ -15,6 +16,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -106,7 +108,9 @@ class ExpenseRepositoryImpl @Inject constructor(
     ): JsonObject = buildJsonObject {
         put("id", rowId)
         put("user_id", userId)
-        put("expense_date", input.expenseDate)
+        // expense_date is NOT NULL — normalize to valid ISO, falling back to today
+        // if the value (e.g. an OCR-extracted date) can't be parsed.
+        put("expense_date", IsoDate.normalizeOrNull(input.expenseDate) ?: LocalDate.now().toString())
         put("amount", input.amount)
         put("category", input.category)
         put("vendor", input.vendor)

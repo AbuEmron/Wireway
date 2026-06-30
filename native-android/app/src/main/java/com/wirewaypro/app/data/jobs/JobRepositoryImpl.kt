@@ -5,6 +5,7 @@ import com.wirewaypro.app.domain.model.JobDraw
 import com.wirewaypro.app.domain.model.JobDrawInput
 import com.wirewaypro.app.domain.model.JobInput
 import com.wirewaypro.app.domain.repository.JobRepository
+import com.wirewaypro.app.domain.util.IsoDate
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
@@ -76,7 +77,7 @@ class JobRepositoryImpl @Inject constructor(
             put("client_email", input.clientEmail)
             put("job_address", input.jobAddress)
             put("notes", input.notes)
-            put("scheduled_date", input.scheduledDate)
+            put("scheduled_date", IsoDate.normalizeOrNull(input.scheduledDate))
             put("scheduled_time", input.scheduledTime)
             put("duration_hours", input.durationHours)
             put("status", input.status)
@@ -106,7 +107,7 @@ class JobRepositoryImpl @Inject constructor(
             put("amount", input.amount)
             put("retainage_pct", input.retainagePct)
             put("status", input.status)
-            put("due_date", input.dueDate)
+            put("due_date", IsoDate.normalizeOrNull(input.dueDate))
             put("sort_order", input.sortOrder)
         }
         val saved = if (input.id == null) {

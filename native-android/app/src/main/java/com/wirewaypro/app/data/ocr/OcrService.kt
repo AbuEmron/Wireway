@@ -2,6 +2,7 @@ package com.wirewaypro.app.data.ocr
 
 import android.util.Base64
 import com.wirewaypro.app.domain.model.ExpenseCategories
+import com.wirewaypro.app.domain.util.IsoDate
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.ktor.client.HttpClient
@@ -122,7 +123,10 @@ class OcrService @Inject constructor(
                 ?.takeIf { it.isNotBlank() && it != "null" }
 
         val amount = obj?.get("amount")?.jsonPrimitive?.doubleOrNull?.takeIf { it > 0 }
-        val date = str("date")?.takeIf { Regex("""\d{4}-\d{2}-\d{2}""").matches(it) }
+        // The model is asked for YYYY-MM-DD, but it can still emit an impossible
+        // day (e.g. 2026-06-31) or a dd/MM/yyyy string. Normalize to a real ISO
+        // date so we never hand Postgres an out-of-range value.
+        val date = IsoDate.normalizeOrNull(str("date"))
         val category = str("category")?.takeIf { id -> ExpenseCategories.ALL.any { it.id == id } }
 
         return OcrResult(

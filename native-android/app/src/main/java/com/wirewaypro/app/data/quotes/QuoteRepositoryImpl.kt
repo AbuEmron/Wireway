@@ -7,6 +7,7 @@ import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.model.QuoteSummary
 import com.wirewaypro.app.domain.repository.QuoteRepository
+import com.wirewaypro.app.domain.util.IsoDate
 import com.wirewaypro.app.data.offline.NetworkMonitor
 import com.wirewaypro.app.data.offline.OfflineQueue
 import com.wirewaypro.app.data.offline.QueuedSave
@@ -108,7 +109,10 @@ class QuoteRepositoryImpl @Inject constructor(
             put("flat_rate_mode", false)
             put("rate_mode", input.rateMode.value)
             put("invoice_mode", input.invoiceMode)
-            put("invoice_due_date", input.invoiceDueDate)
+            // Always store a valid ISO yyyy-MM-dd (or null) — Postgres rejects
+            // impossible days / dd-MM-yyyy strings that can arrive from edits of
+            // stale rows or non-picker sources.
+            put("invoice_due_date", IsoDate.normalizeOrNull(input.invoiceDueDate))
             put("invoice_paid", input.invoicePaid)
             put("tax_enabled", input.taxEnabled)
             put("tax_rate", input.taxRate)
@@ -173,7 +177,7 @@ class QuoteRepositoryImpl @Inject constructor(
         notes = input.notes,
         status = "draft",
         isInvoice = input.invoiceMode,
-        invoiceDueDate = input.invoiceDueDate,
+        invoiceDueDate = IsoDate.normalizeOrNull(input.invoiceDueDate),
         invoicePaid = input.invoicePaid,
         createdAt = null,
         paidAt = null,
@@ -220,7 +224,7 @@ class QuoteRepositoryImpl @Inject constructor(
         quoteId: String,
         dueDate: String?,
     ): Result<QuoteDetail> = runCatching {
-        val payload = buildJsonObject { put("invoice_due_date", dueDate) }
+        val payload = buildJsonObject { put("invoice_due_date", IsoDate.normalizeOrNull(dueDate)) }
         quotes().update(payload) {
             filter { eq("id", quoteId); eq("user_id", userId) }
             select()
