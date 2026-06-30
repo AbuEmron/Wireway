@@ -168,6 +168,9 @@ dependencies {
     // Location (FusedLocationProvider) — AI pricing + pull-list locality
     implementation(libs.play.services.location)
 
+    // Chrome Custom Tabs — Stripe Connect onboarding / hosted pay pages
+    implementation(libs.androidx.browser)
+
     // Plaid Link (bank connections)
     implementation(libs.plaid.link)
 

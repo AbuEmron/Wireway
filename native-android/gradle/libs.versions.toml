@@ -43,6 +43,9 @@ fragment = "1.8.5"
 # Location (FusedLocationProvider) for AI pricing + pull-list locality
 playServicesLocation = "21.3.0"
 
+# Chrome Custom Tabs (Stripe Connect onboarding / hosted pay pages)
+browser = "1.8.0"
+
 # Plaid Link (sandbox/dev bank connections)
 plaid = "5.5.1"
 
@@ -116,6 +119,9 @@ androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", ve
 
 # Location services (FusedLocationProvider)
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+
+# Chrome Custom Tabs
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 
 # Plaid Link Android SDK
 plaid-link = { group = "com.plaid.link", name = "sdk-core", version.ref = "plaid" }

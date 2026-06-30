@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,6 +33,7 @@ import com.wirewaypro.app.ui.components.TabTopBar
 @Composable
 fun SettingsScreen(
     onEditProfile: () -> Unit,
+    onGetPaid: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val email by viewModel.email.collectAsStateWithLifecycle()
@@ -61,6 +63,18 @@ fun SettingsScreen(
                     modifier = Modifier.padding(end = 8.dp),
                 )
                 Text("Edit profile & business")
+            }
+
+            Button(
+                onClick = onGetPaid,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    Icons.Outlined.Payments,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                Text("Get paid (connect Stripe)")
             }
 
             OutlinedButton(
