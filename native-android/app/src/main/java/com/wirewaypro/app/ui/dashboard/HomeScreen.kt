@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.ReceiptLong
@@ -78,6 +79,7 @@ fun HomeScreen(
     onOpenExpenses: () -> Unit,
     onOpenMileage: () -> Unit,
     onOpenTimeTracking: () -> Unit,
+    onOpenNec: () -> Unit,
     onOpenMoney: () -> Unit,
     onOpenTakeoff: () -> Unit,
     onOpenBank: () -> Unit,
@@ -196,6 +198,7 @@ fun HomeScreen(
         NavRow(label = "Expenses & receipts", icon = Icons.Outlined.ReceiptLong, onClick = onOpenExpenses, modifier = Modifier.fillMaxWidth())
         NavRow(label = "Mileage", icon = Icons.Outlined.DirectionsCar, onClick = onOpenMileage, modifier = Modifier.fillMaxWidth())
         NavRow(label = "Time tracking", icon = Icons.Outlined.Schedule, onClick = onOpenTimeTracking, modifier = Modifier.fillMaxWidth())
+        NavRow(label = "NEC code reference", icon = Icons.Outlined.MenuBook, onClick = onOpenNec, modifier = Modifier.fillMaxWidth())
         NavRow(label = "Money", icon = Icons.Outlined.Payments, onClick = onOpenMoney, modifier = Modifier.fillMaxWidth())
         NavRow(label = "Bank", icon = Icons.Outlined.AccountBalance, onClick = onOpenBank, modifier = Modifier.fillMaxWidth())
         NavRow(label = "Subscription", icon = Icons.Outlined.WorkspacePremium, onClick = onOpenSubscription, modifier = Modifier.fillMaxWidth())
