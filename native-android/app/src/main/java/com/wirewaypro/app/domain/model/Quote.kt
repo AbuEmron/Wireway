@@ -52,6 +52,7 @@ data class QuoteDetail(
     val paidAt: String?,
     // Money breakdown
     val showMaterials: Boolean,
+    val clientBuysAll: Boolean,   // true = client supplies materials (labor only)
     val totalMaterial: Double?,
     val totalLabor: Double?,
     val totalHours: Double?,
@@ -118,6 +119,7 @@ data class QuoteInput(
     val invoiceDueDate: String?,
     val invoicePaid: Boolean,
     val showMaterials: Boolean,
+    val clientBuysAll: Boolean,   // true = client supplies materials (labor only)
     val catalogEntries: List<QuoteCatalogEntry>,
     val customItems: List<QuoteCustomItem>,
 )

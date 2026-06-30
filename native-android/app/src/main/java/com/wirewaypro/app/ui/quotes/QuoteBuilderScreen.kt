@@ -74,6 +74,7 @@ fun QuoteBuilderScreen(
     val kind = if (state.isInvoice) "Invoice" else "Estimate"
     val titleVerb = if (state.isEdit) "Edit" else "New"
     val hourlyRate = state.hourlyRate.trim().toDoubleOrNull()?.takeIf { it > 0 } ?: 85.0
+    val taxRate = state.taxRatePct.trim().toDoubleOrNull()?.div(100.0) ?: 0.0
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -180,6 +181,27 @@ fun QuoteBuilderScreen(
                         label = { Text("Hourly") },
                     )
                 }
+                if (state.rateMode == RateMode.HOURLY) {
+                    Spacer(Modifier.padding(top = 10.dp))
+                    Text(
+                        "Who supplies the materials?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.padding(top = 6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = !state.clientBuysAll,
+                            onClick = { viewModel.setClientBuysAll(false) },
+                            label = { Text("Labor + materials") },
+                        )
+                        FilterChip(
+                            selected = state.clientBuysAll,
+                            onClick = { viewModel.setClientBuysAll(true) },
+                            label = { Text("Just labor") },
+                        )
+                    }
+                }
                 Spacer(Modifier.padding(top = 12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     FormField(state.markupPct, viewModel::setMarkupPct, "Markup %", Modifier.weight(1f), KeyboardType.Number)
@@ -221,10 +243,15 @@ fun QuoteBuilderScreen(
             }
 
             SectionCard(title = "Totals") {
-                val headline = totals.headlineTotal(state.rateMode, hourlyRate)
+                val headline = totals.headlineTotal(state.rateMode, hourlyRate, state.taxEnabled, taxRate)
                 if (state.rateMode == RateMode.HOURLY) {
                     TotalRow("Estimated time", "${hoursText(totals.totalHours)} hrs")
                     TotalRow("Hourly rate", Format.money(hourlyRate))
+                    TotalRow("Labor", Format.money(totals.totalHours * hourlyRate))
+                    if (!state.clientBuysAll) {
+                        TotalRow("Materials", Format.money(totals.totalMaterial))
+                        if (state.taxEnabled) TotalRow("Tax", Format.money(totals.totalMaterial * taxRate))
+                    }
                 } else {
                     TotalRow("Materials", Format.money(totals.totalMaterial))
                     TotalRow("Labor", Format.money(totals.totalLabor))
@@ -246,7 +273,8 @@ fun QuoteBuilderScreen(
                 if (state.rateMode == RateMode.HOURLY) {
                     Spacer(Modifier.padding(top = 6.dp))
                     Text(
-                        "Hourly time bid — materials billed at cost separately.",
+                        if (state.clientBuysAll) "Just labor — the client supplies the materials."
+                        else "Labor + materials you supply.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

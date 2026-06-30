@@ -235,7 +235,12 @@ object QuotePdfGenerator {
         }
         if (q.rateMode == RateMode.HOURLY) {
             val rate = q.hourlyRate?.let { " @ ${money(it)}/hr" } ?: ""
-            row(q.totalHours?.let { "Labor (${trimNum(it)} hrs$rate)" } ?: "Labor", q.total)
+            val labor = (q.totalHours ?: 0.0) * (q.hourlyRate ?: 0.0)
+            row(q.totalHours?.let { "Labor (${trimNum(it)} hrs$rate)" } ?: "Labor", labor)
+            if (!q.clientBuysAll) {
+                if (q.showMaterials) row("Materials", q.totalMaterial)
+                if (q.taxEnabled) row("Tax", (q.totalMaterial ?: 0.0) * (q.taxRate ?: 0.0))
+            }
         } else {
             if (q.showMaterials) row("Materials", q.totalMaterial)
             row(q.totalHours?.let { "Labor (${trimNum(it)} hrs)" } ?: "Labor", q.totalLabor)

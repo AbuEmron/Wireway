@@ -58,6 +58,7 @@ data class QuoteBuilderUiState(
     val markupPct: String = "30",
     val hourlyRate: String = "85",
     val rateMode: RateMode = RateMode.FLAT,
+    val clientBuysAll: Boolean = false,   // true = client supplies materials (labor only)
     val taxEnabled: Boolean = false,
     val taxRatePct: String = "8",
     val invoiceDueDate: String = "",
@@ -120,6 +121,7 @@ class QuoteBuilderViewModel @Inject constructor(
             taxEnabled = _state.value.taxEnabled,
             taxRate = _state.value.taxRatePct.toD() / 100.0,
             hourlyRate = currentHourlyRate(),
+            clientBuysAll = _state.value.clientBuysAll,
         )
 
     private fun currentHourlyRate(): Double = _state.value.hourlyRate.toD().takeIf { it > 0 } ?: 85.0
@@ -164,6 +166,7 @@ class QuoteBuilderViewModel @Inject constructor(
                 markupPct = pctText(q.markup ?: 0.30),
                 hourlyRate = numText(q.hourlyRate ?: 85.0),
                 rateMode = q.rateMode,
+                clientBuysAll = q.clientBuysAll,
                 taxEnabled = q.taxEnabled,
                 taxRatePct = pctText(q.taxRate ?: 0.08),
                 invoiceDueDate = q.invoiceDueDate.orEmpty(),
@@ -187,6 +190,8 @@ class QuoteBuilderViewModel @Inject constructor(
     fun setMarkupPct(v: String) = _state.update { it.copy(markupPct = v) }
     fun setHourlyRate(v: String) = _state.update { it.copy(hourlyRate = v) }
     fun setRateMode(v: RateMode) = _state.update { it.copy(rateMode = v) }
+    /** Hourly sub-option: true = "Just labor" (client supplies materials). */
+    fun setClientBuysAll(v: Boolean) = _state.update { it.copy(clientBuysAll = v) }
     fun setTaxEnabled(v: Boolean) = _state.update { it.copy(taxEnabled = v) }
     fun setTaxRatePct(v: String) = _state.update { it.copy(taxRatePct = v) }
     fun setInvoiceMode(v: Boolean) = _state.update { it.copy(isInvoice = v) }
@@ -297,6 +302,7 @@ class QuoteBuilderViewModel @Inject constructor(
             invoiceDueDate = s.invoiceDueDate.ifBlank { null },
             invoicePaid = s.invoicePaid,
             showMaterials = true,
+            clientBuysAll = s.clientBuysAll,
             catalogEntries = catalog,
             customItems = items,
         )

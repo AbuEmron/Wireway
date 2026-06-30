@@ -155,9 +155,14 @@ fun QuoteDetailScreen(
 
             SectionCard(title = "Totals") {
                 if (quote.rateMode == RateMode.HOURLY) {
-                    InfoRow("Pricing", "Hourly")
+                    InfoRow("Pricing", if (quote.clientBuysAll) "Hourly · just labor" else "Hourly · labor + materials")
                     MoneyRow("Hourly rate", quote.hourlyRate)
                     quote.totalHours?.let { InfoRow("Estimated time", "${trimNum(it)} hrs") }
+                    MoneyRow("Labor", (quote.totalHours ?: 0.0) * (quote.hourlyRate ?: 0.0))
+                    if (!quote.clientBuysAll) {
+                        if (quote.showMaterials) MoneyRow("Materials", quote.totalMaterial)
+                        if (quote.taxEnabled) MoneyRow("Tax", (quote.totalMaterial ?: 0.0) * (quote.taxRate ?: 0.0))
+                    }
                 } else {
                     InfoRow("Pricing", "Flat rate")
                     if (quote.showMaterials) MoneyRow("Materials", quote.totalMaterial)
@@ -181,7 +186,8 @@ fun QuoteDetailScreen(
                 if (quote.rateMode == RateMode.HOURLY) {
                     Spacer(Modifier.padding(top = 6.dp))
                     Text(
-                        "Hourly time bid — materials billed at cost separately.",
+                        if (quote.clientBuysAll) "Just labor — the client supplies the materials."
+                        else "Labor + materials you supply.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

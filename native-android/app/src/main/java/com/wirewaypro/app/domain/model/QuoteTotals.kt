@@ -16,13 +16,21 @@ data class QuoteTotals(
 ) {
     /**
      * The headline total for the quote's pricing mode:
-     *  - [RateMode.FLAT]   → the catalog/itemized [total].
-     *  - [RateMode.HOURLY] → a time bid: estimated hours × hourly rate.
+     *  - [RateMode.FLAT]   → the catalog/itemized [total] (materials + labor + markup + tax).
+     *  - [RateMode.HOURLY] → a time bid: estimated hours × hourly rate, plus materials
+     *    (and material tax) when you supply them. When the client supplies materials
+     *    (`client_buys_all`), [totalMaterial] is already 0, so this collapses to pure
+     *    labor — matching the web app's materials/tax handling.
      */
-    fun headlineTotal(rateMode: RateMode, hourlyRate: Double): Double = when (rateMode) {
-        RateMode.FLAT -> total
-        RateMode.HOURLY -> totalHours * hourlyRate
-    }
+    fun headlineTotal(rateMode: RateMode, hourlyRate: Double, taxEnabled: Boolean, taxRate: Double): Double =
+        when (rateMode) {
+            RateMode.FLAT -> total
+            RateMode.HOURLY -> {
+                val labor = totalHours * hourlyRate
+                val materialTax = if (taxEnabled) totalMaterial * taxRate else 0.0
+                labor + totalMaterial + materialTax
+            }
+        }
 }
 
 /**
@@ -55,6 +63,7 @@ object QuoteCalculator {
         taxEnabled: Boolean,
         taxRate: Double,
         hourlyRate: Double,
+        clientBuysAll: Boolean = false,
     ): QuoteTotals {
         var totMat = 0.0
         var totLab = 0.0
@@ -67,7 +76,10 @@ object QuoteCalculator {
             val mat = s.materialCost * vm * e.qty
             val lab = Math.round(s.laborCost * vm * e.qty * (hourlyRate / BASE_HOURLY)).toDouble()
             val hrs = s.laborHours * vm * e.qty
-            if (!e.clientBuys) totMat += mat
+            // Whole-quote "client buys" overrides per-item, exactly like the web app
+            // (cBuys = e.clientBuys ?? clientBuysAll).
+            val clientBuys = e.clientBuys || clientBuysAll
+            if (!clientBuys) totMat += mat
             totLab += lab
             totHrs += hrs
         }

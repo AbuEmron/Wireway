@@ -71,9 +71,10 @@ class QuoteRepositoryImpl @Inject constructor(
             taxEnabled = input.taxEnabled,
             taxRate = input.taxRate,
             hourlyRate = input.hourlyRate,
+            clientBuysAll = input.clientBuysAll,
         )
-        // Headline total depends on the whole-quote pricing mode.
-        val headlineTotal = totals.headlineTotal(input.rateMode, input.hourlyRate)
+        // Headline total depends on the whole-quote pricing mode + who supplies materials.
+        val headlineTotal = totals.headlineTotal(input.rateMode, input.hourlyRate, input.taxEnabled, input.taxRate)
 
         // Stable id up front so an offline upsert is idempotent on retry.
         val rowId = input.id ?: UUID.randomUUID().toString()
@@ -100,7 +101,7 @@ class QuoteRepositoryImpl @Inject constructor(
             put("hourly_rate", input.hourlyRate)
             put("markup", input.markup)
             put("show_materials", input.showMaterials)
-            put("client_buys_all", false)
+            put("client_buys_all", input.clientBuysAll)
             put("flat_rate_mode", false)
             put("rate_mode", input.rateMode.value)
             put("invoice_mode", input.invoiceMode)
@@ -174,13 +175,14 @@ class QuoteRepositoryImpl @Inject constructor(
         createdAt = null,
         paidAt = null,
         showMaterials = input.showMaterials,
+        clientBuysAll = input.clientBuysAll,
         totalMaterial = totals.totalMaterial,
         totalLabor = totals.totalLabor,
         totalHours = totals.totalHours,
         totalMarkup = totals.markupAmount,
         taxEnabled = input.taxEnabled,
         totalTax = totals.taxAmount,
-        total = totals.headlineTotal(input.rateMode, input.hourlyRate),
+        total = totals.headlineTotal(input.rateMode, input.hourlyRate, input.taxEnabled, input.taxRate),
         markup = input.markup,
         hourlyRate = input.hourlyRate,
         taxRate = input.taxRate,
