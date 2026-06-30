@@ -1,6 +1,9 @@
 package com.wirewaypro.app.ui.dashboard
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -10,7 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -89,10 +94,20 @@ fun DashboardScreen(
             }
         },
     ) { innerPadding ->
+        // Adaptive layout: on tablets/foldables, cap content width and center it so
+        // single-column screens (forms especially) don't stretch edge to edge.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter,
+        ) {
         NavHost(
             navController = navController,
             startDestination = HomeTab.HOME.route,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 640.dp),
         ) {
             composable(HomeTab.HOME.route) {
                 HomeScreen(
@@ -221,6 +236,7 @@ fun DashboardScreen(
             composable(DashDest.CLIENT_EDIT, arguments = listOf(optionalId)) {
                 ClientEditScreen(onClose = { navController.popBackStack() })
             }
+        }
         }
     }
 }

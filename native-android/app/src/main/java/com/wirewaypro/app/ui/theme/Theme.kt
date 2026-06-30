@@ -1,7 +1,9 @@
 package com.wirewaypro.app.ui.theme
 
+import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
@@ -28,12 +30,26 @@ private val WirewayColorScheme = darkColorScheme(
     onError = Color.White,
 )
 
+/**
+ * @param dynamicColor opt into Material You wallpaper-based color on Android 12+.
+ *   Defaults to false: Wireway ships a deliberate dark brand palette (mirrors the
+ *   web app), so dynamic color is available but off by default. When enabled we
+ *   stay dark — [dynamicDarkColorScheme] — so the app never flips to a light UI.
+ */
 @Composable
-fun WirewayTheme(content: @Composable () -> Unit) {
+fun WirewayTheme(
+    dynamicColor: Boolean = false,
+    content: @Composable () -> Unit,
+) {
     val context = LocalContext.current
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            dynamicDarkColorScheme(context)
+        else -> WirewayColorScheme
+    }
     val families = remember { BrandFonts.resolve(context) }
     MaterialTheme(
-        colorScheme = WirewayColorScheme,
+        colorScheme = colorScheme,
         typography = wirewayTypography(families.display, families.body),
         shapes = WirewayShapes,
         content = content,
