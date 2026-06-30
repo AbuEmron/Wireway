@@ -10,12 +10,17 @@ import java.util.Locale
 object Format {
 
     private val currency: NumberFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    private val number1: NumberFormat = NumberFormat.getNumberInstance(Locale.US).apply { maximumFractionDigits = 1 }
     private val dateOut = DateTimeFormatter.ofPattern("MMM d, yyyy")
     private val timeOut = DateTimeFormatter.ofPattern("h:mm a")
 
     /** "$1,234.56", or an em-dash when null. */
     fun money(value: Double?): String =
         value?.let { currency.format(it) } ?: "—"
+
+    /** "1,234.5" (one decimal), or "0" when null. */
+    fun miles(value: Double?): String =
+        value?.let { number1.format(it) } ?: "0"
 
     /** Accepts "yyyy-MM-dd" or a full ISO timestamp; returns "Jun 28, 2026". */
     fun date(iso: String?): String {

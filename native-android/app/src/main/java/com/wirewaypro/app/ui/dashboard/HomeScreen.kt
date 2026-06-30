@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Payments
@@ -74,6 +75,7 @@ fun HomeScreen(
     onOpenJobs: () -> Unit,
     onOpenClients: () -> Unit,
     onOpenExpenses: () -> Unit,
+    onOpenMileage: () -> Unit,
     onOpenMoney: () -> Unit,
     onOpenTakeoff: () -> Unit,
     onOpenBank: () -> Unit,
@@ -190,6 +192,7 @@ fun HomeScreen(
         NavRow(label = "Jobs", icon = Icons.Outlined.Work, onClick = onOpenJobs, modifier = Modifier.fillMaxWidth())
         NavRow(label = "Clients", icon = Icons.Outlined.Groups, onClick = onOpenClients, modifier = Modifier.fillMaxWidth())
         NavRow(label = "Expenses & receipts", icon = Icons.Outlined.ReceiptLong, onClick = onOpenExpenses, modifier = Modifier.fillMaxWidth())
+        NavRow(label = "Mileage", icon = Icons.Outlined.DirectionsCar, onClick = onOpenMileage, modifier = Modifier.fillMaxWidth())
         NavRow(label = "Money", icon = Icons.Outlined.Payments, onClick = onOpenMoney, modifier = Modifier.fillMaxWidth())
         NavRow(label = "Bank", icon = Icons.Outlined.AccountBalance, onClick = onOpenBank, modifier = Modifier.fillMaxWidth())
         NavRow(label = "Subscription", icon = Icons.Outlined.WorkspacePremium, onClick = onOpenSubscription, modifier = Modifier.fillMaxWidth())
