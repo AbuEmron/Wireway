@@ -56,11 +56,25 @@ android {
         )
     }
 
+    signingConfigs {
+        // Stable, committed debug key so every debug APK (local + CI) shares one
+        // signature — builds install over the top instead of conflicting. This is
+        // the standard Android debug key (alias androiddebugkey, store/key pass
+        // "android"); it is NOT a release/upload key and carries no secrecy value.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         debug {
             // Distinct id during dev so debug + release can also coexist.
             applicationIdSuffix = ".dev"
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
         }
         release {
             isMinifyEnabled = true
