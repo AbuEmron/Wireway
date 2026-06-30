@@ -1,5 +1,9 @@
 package com.wirewaypro.app.ui.quotes
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -24,10 +30,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,12 +45,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.catalog.Catalog
+import com.wirewaypro.app.domain.model.PricingRecommendation
 import com.wirewaypro.app.domain.model.QuoteCalculator
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.RateMode
@@ -58,7 +70,21 @@ fun QuoteBuilderScreen(
     viewModel: QuoteBuilderViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var showCatalog by remember { mutableStateOf(false) }
+    var showAdvisor by remember { mutableStateOf(false) }
+
+    val locationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) viewModel.useMyLocation() }
+
+    fun requestGps() {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        if (granted) viewModel.useMyLocation() else locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
 
     LaunchedEffect(state.saved) { if (state.saved) onClose() }
 
@@ -213,6 +239,11 @@ fun QuoteBuilderScreen(
                     Spacer(Modifier.padding(top = 10.dp))
                     FormField(state.taxRatePct, viewModel::setTaxRatePct, "Tax rate %", keyboardType = KeyboardType.Number)
                 }
+                Spacer(Modifier.padding(top = 12.dp))
+                OutlinedButton(onClick = { showAdvisor = true }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.AutoAwesome, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Suggest a price for this area")
+                }
             }
 
             SectionCard(title = "Document") {
@@ -284,6 +315,143 @@ fun QuoteBuilderScreen(
             if (state.error != null) {
                 Text(state.error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
+        }
+    }
+
+    if (showAdvisor) {
+        PricingAdvisorSheet(
+            state = state,
+            onLocationChange = viewModel::setLocationInput,
+            onUseGps = { requestGps() },
+            onGetSuggestion = viewModel::requestPricing,
+            onApply = { viewModel.applyAdvice(); showAdvisor = false },
+            onDismiss = { viewModel.dismissAdvice(); showAdvisor = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PricingAdvisorSheet(
+    state: QuoteBuilderUiState,
+    onLocationChange: (String) -> Unit,
+    onUseGps: () -> Unit,
+    onGetSuggestion: () -> Unit,
+    onApply: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(10.dp))
+                Text("AI pricing suggestion", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+            Text(
+                "Tell me where the job is and I'll suggest a price that fits the local market. " +
+                    "It's just a starting point — you set what your work is worth.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            OutlinedTextField(
+                value = state.locationInput,
+                onValueChange = onLocationChange,
+                label = { Text("Job location (city, state or address)") },
+                placeholder = { Text("e.g. Binghamton, NY") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedButton(onClick = onUseGps, enabled = !state.locatingArea, modifier = Modifier.fillMaxWidth()) {
+                if (state.locatingArea) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Finding your location…")
+                } else {
+                    Icon(Icons.Outlined.MyLocation, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Use my GPS location")
+                }
+            }
+
+            Button(
+                onClick = onGetSuggestion,
+                enabled = !state.advising,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (state.advising) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Checking the local market…")
+                } else {
+                    Text("Get a suggestion")
+                }
+            }
+
+            state.adviceError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+
+            state.advice?.let { rec -> AdviceResult(rec, state.locationInput, onApply, onDismiss) }
+        }
+    }
+}
+
+@Composable
+private fun AdviceResult(
+    rec: PricingRecommendation,
+    area: String,
+    onApply: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val areaLabel = area.trim().ifBlank { "your area" }
+    SectionCard {
+        rec.recommendedTotal?.let { total ->
+            Text(
+                "Jobs like this around $areaLabel tend to run about ${Format.money(total)}.",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Spacer(Modifier.padding(top = 6.dp))
+        val modeLine = if (rec.mode == RateMode.HOURLY) {
+            rec.recommendedRate?.let { "Suggested: hourly at ${Format.money(it)}/hr" } ?: "Suggested: hourly"
+        } else {
+            "Suggested: flat rate"
+        }
+        Text(modeLine, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+        if (rec.lowTotal != null && rec.highTotal != null) {
+            Text(
+                "Typical range: ${Format.money(rec.lowTotal)} – ${Format.money(rec.highTotal)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (rec.areaContext.isNotBlank()) {
+            Spacer(Modifier.padding(top = 6.dp))
+            Text(rec.areaContext, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (rec.reasoning.isNotBlank()) {
+            Spacer(Modifier.padding(top = 4.dp))
+            Text(rec.reasoning, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(Modifier.padding(top = 10.dp))
+        Text(
+            "Here's our suggestion — adjust it to what your work is worth.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.padding(top = 12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = onApply, modifier = Modifier.weight(1f)) { Text("Use this") }
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Keep mine") }
         }
     }
 }

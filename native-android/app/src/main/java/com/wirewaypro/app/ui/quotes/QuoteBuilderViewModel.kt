@@ -4,13 +4,16 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.ai.AiService
+import com.wirewaypro.app.data.ai.PricingAdvisorService
 import com.wirewaypro.app.data.ai.TakeoffHandoff
+import com.wirewaypro.app.data.location.LocationService
 import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.domain.catalog.Catalog
 import com.wirewaypro.app.domain.model.QuoteCalculator
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.QuoteCustomItem
 import com.wirewaypro.app.domain.model.QuoteDetail
+import com.wirewaypro.app.domain.model.PricingRecommendation
 import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.model.QuoteTotals
 import com.wirewaypro.app.domain.model.RateMode
@@ -66,6 +69,12 @@ data class QuoteBuilderUiState(
     val catalogItems: List<CatalogEntryUi> = emptyList(),
     val items: List<CustomItemUi> = emptyList(),
     val draftingNotes: Boolean = false,
+    // AI pricing advisor (Batch D)
+    val locationInput: String = "",
+    val locatingArea: Boolean = false,
+    val advising: Boolean = false,
+    val advice: PricingRecommendation? = null,
+    val adviceError: String? = null,
     val error: String? = null,
     val saved: Boolean = false,
 )
@@ -78,6 +87,8 @@ class QuoteBuilderViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val aiService: AiService,
     private val settingsPrefs: SettingsPrefs,
+    private val pricingAdvisor: PricingAdvisorService,
+    private val locationService: LocationService,
     takeoffHandoff: TakeoffHandoff,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -193,6 +204,77 @@ class QuoteBuilderViewModel @Inject constructor(
     /** Hourly sub-option: true = "Just labor" (client supplies materials). */
     fun setClientBuysAll(v: Boolean) = _state.update { it.copy(clientBuysAll = v) }
     fun setTaxEnabled(v: Boolean) = _state.update { it.copy(taxEnabled = v) }
+
+    // ── AI pricing advisor (Batch D) ─────────────────────────────────────────────
+    fun setLocationInput(v: String) = _state.update { it.copy(locationInput = v, adviceError = null) }
+
+    /** Fill the location from GPS. The UI requests the runtime permission first. */
+    fun useMyLocation() {
+        _state.update { it.copy(locatingArea = true, adviceError = null) }
+        viewModelScope.launch {
+            val area = locationService.currentArea()
+            _state.update {
+                it.copy(
+                    locatingArea = false,
+                    locationInput = area?.label ?: it.locationInput,
+                    adviceError = if (area == null) "Couldn't read your location — type the job address instead." else null,
+                )
+            }
+        }
+    }
+
+    /** Ask the AI to suggest pricing for the current job in the entered area. */
+    fun requestPricing() {
+        val desc = currentJobDescription()
+        _state.update { it.copy(advising = true, adviceError = null, advice = null) }
+        viewModelScope.launch {
+            val hourly = settingsPrefs.defaultHourlyRate.first()
+            val flat = settingsPrefs.defaultFlatRate.first().takeIf { it > 0 }
+            pricingAdvisor.recommend(desc, _state.value.locationInput.trim(), hourly, flat)
+                .onSuccess { rec -> _state.update { it.copy(advising = false, advice = rec) } }
+                .onFailure { _state.update { it.copy(advising = false, adviceError = "Couldn't get a suggestion. Try again.") } }
+        }
+    }
+
+    /** Apply the suggestion — sets the mode, and the hourly rate when hourly. */
+    fun applyAdvice() {
+        val rec = _state.value.advice ?: return
+        _state.update { s ->
+            s.copy(
+                rateMode = rec.mode,
+                hourlyRate = if (rec.mode == RateMode.HOURLY && (rec.recommendedRate ?: 0.0) > 0)
+                    numText(rec.recommendedRate!!) else s.hourlyRate,
+                advice = null,
+            )
+        }
+    }
+
+    fun dismissAdvice() = _state.update { it.copy(advice = null, adviceError = null) }
+
+    /** A short plain-English description of the current line items for the AI. */
+    private fun currentJobDescription(): String {
+        val s = _state.value
+        val labels = mutableListOf<String>()
+        s.catalogItems.forEach { ci ->
+            val svc = Catalog.service(ci.serviceId) ?: return@forEach
+            val variant = svc.variants.getOrNull(ci.variantIdx)?.label
+            val qty = ci.qty.trim()
+            labels += buildString {
+                append(svc.label)
+                if (variant != null && svc.variants.size > 1) append(" ($variant)")
+                if (qty.isNotBlank() && qty != "1") append(" x$qty")
+            }
+        }
+        s.items.forEach {
+            val label = it.label.trim()
+            if (label.isNotBlank()) {
+                val qty = it.qty.trim()
+                labels += label + if (qty.isNotBlank() && qty != "1") " x$qty" else ""
+            }
+        }
+        val base = labels.joinToString("; ").ifBlank { "general residential electrical work" }
+        return s.jobName.ifBlank { null }?.let { "$it — $base" } ?: base
+    }
     fun setTaxRatePct(v: String) = _state.update { it.copy(taxRatePct = v) }
     fun setInvoiceMode(v: Boolean) = _state.update { it.copy(isInvoice = v) }
     fun setInvoiceDueDate(v: String) = _state.update { it.copy(invoiceDueDate = v) }
