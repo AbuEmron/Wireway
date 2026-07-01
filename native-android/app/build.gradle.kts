@@ -147,6 +147,11 @@ dependencies {
     // Offline queue
     implementation(libs.androidx.datastore.preferences)
 
+    // Room — local offline-first database (source of truth for core entities)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
     // Home-screen widget (Glance)
     implementation(libs.androidx.glance.appwidget)
 
