@@ -18,6 +18,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ── Upload keystore (fail fast, before any long build) ───────────────────
+      - name: Prepare upload keystore
+        id: uploadkey
+        env:
+          KEYSTORE_B64: ${{ secrets.WIREWAY_UPLOAD_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > /tmp/wireway-upload.keystore
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "Upload keystore secrets not set — skipping release AAB."
+          fi
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -57,21 +71,25 @@ jobs:
           path: native-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
-      # ── Signed release AAB for Play ──────────────────────────────────────────
-      # Runs only when the owner has added the upload-key secrets:
-      #   WIREWAY_UPLOAD_KEYSTORE_B64 (base64 of the PWABuilder upload keystore),
-      #   WIREWAY_KEYSTORE_PASSWORD, WIREWAY_KEY_ALIAS, WIREWAY_KEY_PASSWORD
-      - name: Prepare upload keystore
-        id: uploadkey
+      - name: Validate upload keystore (fast, clear error)
+        if: steps.uploadkey.outputs.have == 'true'
         env:
-          KEYSTORE_B64: ${{ secrets.WIREWAY_UPLOAD_KEYSTORE_B64 }}
+          SP: ${{ secrets.WIREWAY_KEYSTORE_PASSWORD }}
+          KA: ${{ secrets.WIREWAY_KEY_ALIAS }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > /tmp/wireway-upload.keystore
-            echo "have=true" >> "$GITHUB_OUTPUT"
+          set +x
+          if keytool -list -keystore /tmp/wireway-upload.keystore -storepass "$SP" >/dev/null 2>&1; then
+            echo "Store password: OK"
           else
-            echo "have=false" >> "$GITHUB_OUTPUT"
-            echo "Upload keystore secrets not set — skipping release AAB."
+            echo "::error::WIREWAY_KEYSTORE_PASSWORD does not open the keystore (check for swapped store/key passwords or stray spaces)."
+            exit 1
+          fi
+          if keytool -list -keystore /tmp/wireway-upload.keystore -storepass "$SP" -alias "$KA" >/dev/null 2>&1; then
+            echo "Alias: OK"
+          else
+            echo "::error::WIREWAY_KEY_ALIAS not found in the keystore. Aliases present (names are not secret):"
+            keytool -list -keystore /tmp/wireway-upload.keystore -storepass "$SP" | grep -i "keystore\|entry\|," || true
+            exit 1
           fi
 
       - name: Build signed release AAB
