@@ -8,6 +8,10 @@ import com.wirewaypro.app.data.ai.PricingAdvisorService
 import com.wirewaypro.app.data.ai.TakeoffHandoff
 import com.wirewaypro.app.data.location.LocationService
 import com.wirewaypro.app.data.prefs.SettingsPrefs
+import com.wirewaypro.app.data.quotes.DraftCatalogEntry
+import com.wirewaypro.app.data.quotes.DraftCustomItem
+import com.wirewaypro.app.data.quotes.QuoteDraft
+import com.wirewaypro.app.data.quotes.QuoteDraftStore
 import com.wirewaypro.app.domain.catalog.Catalog
 import com.wirewaypro.app.domain.model.QuoteCalculator
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
@@ -23,7 +27,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -89,37 +98,111 @@ class QuoteBuilderViewModel @Inject constructor(
     private val settingsPrefs: SettingsPrefs,
     private val pricingAdvisor: PricingAdvisorService,
     private val locationService: LocationService,
-    takeoffHandoff: TakeoffHandoff,
+    private val draftStore: QuoteDraftStore,
+    private val takeoffHandoff: TakeoffHandoff,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val quoteId: String? =
         savedStateHandle.get<String>(ARG_ID)?.takeIf { it.isNotBlank() }
 
+    private val isInvoiceArg: Boolean = savedStateHandle.get<Boolean>(ARG_INVOICE) ?: false
+
+    /** Stable key for this builder session's autosaved draft. */
+    private val draftKey: String = draftStore.keyFor(quoteId, isInvoiceArg)
+
     private val _state = MutableStateFlow(
         QuoteBuilderUiState(
             isEdit = quoteId != null,
-            isInvoice = savedStateHandle.get<Boolean>(ARG_INVOICE) ?: false,
+            isInvoice = isInvoiceArg,
             isLoading = quoteId != null,
         )
     )
     val state: StateFlow<QuoteBuilderUiState> = _state.asStateFlow()
 
     init {
-        if (quoteId != null) {
-            loadExisting(quoteId)
-        } else {
-            // A new quote may have been seeded by the AI takeoff screen.
-            takeoffHandoff.take()?.takeIf { it.isNotEmpty() }?.let { entries ->
-                _state.update { s ->
-                    s.copy(catalogItems = entries.map { CatalogEntryUi(it.serviceId, numText(it.qty), it.variantIdx, it.clientBuys) })
+        viewModelScope.launch {
+            // Restore an autosaved draft first — a crash/kill mid-estimate must
+            // never lose work. A draft always wins over the saved copy (it IS the
+            // newer, unsynced edit). No draft → load the quote (edit) or seed (new).
+            val draft = draftStore.load(draftKey)
+            when {
+                draft != null -> applyDraft(draft)
+                quoteId != null -> loadExisting(quoteId)
+                else -> seedNewQuote()
+            }
+            _state.update { it.copy(isLoading = false) }
+
+            // On an untouched edit, don't autosave the loaded quote back as a draft
+            // until the user actually changes something (avoids stale drafts).
+            val baseline = if (quoteId != null && draft == null) _state.value.toDraft() else null
+            _state.map { it.toDraft() }
+                .distinctUntilChanged()
+                .debounce(AUTOSAVE_DEBOUNCE_MS)
+                .onEach { d ->
+                    if (!d.isEmpty && d != baseline) {
+                        draftStore.save(draftKey, d, System.currentTimeMillis())
+                    }
                 }
+                .launchIn(viewModelScope)
+        }
+    }
+
+    /** A new quote may have been seeded by the AI takeoff screen; also prefill the rate. */
+    private suspend fun seedNewQuote() {
+        takeoffHandoff.take()?.takeIf { it.isNotEmpty() }?.let { entries ->
+            _state.update { s ->
+                s.copy(catalogItems = entries.map { CatalogEntryUi(it.serviceId, numText(it.qty), it.variantIdx, it.clientBuys) })
             }
-            // Prefill the contractor's baseline hourly rate on a fresh quote.
-            viewModelScope.launch {
-                val baseline = settingsPrefs.defaultHourlyRate.first()
-                if (baseline > 0) _state.update { it.copy(hourlyRate = numText(baseline)) }
-            }
+        }
+        val baseline = settingsPrefs.defaultHourlyRate.first()
+        if (baseline > 0) _state.update { it.copy(hourlyRate = numText(baseline)) }
+    }
+
+    /** Current form → serializable draft snapshot. */
+    private fun QuoteBuilderUiState.toDraft(): QuoteDraft = QuoteDraft(
+        isInvoice = isInvoice,
+        quoteNumber = quoteNumber,
+        clientName = clientName,
+        clientEmail = clientEmail,
+        clientPhone = clientPhone,
+        jobName = jobName,
+        notes = notes,
+        markupPct = markupPct,
+        hourlyRate = hourlyRate,
+        rateMode = rateMode.value,
+        clientBuysAll = clientBuysAll,
+        taxEnabled = taxEnabled,
+        taxRatePct = taxRatePct,
+        invoiceDueDate = invoiceDueDate,
+        invoicePaid = invoicePaid,
+        catalogItems = catalogItems.map { DraftCatalogEntry(it.serviceId, it.qty, it.variantIdx, it.clientBuys) },
+        items = items.map { DraftCustomItem(it.id, it.label, it.qty, it.materialCost, it.laborCost, it.laborHours, it.kind) },
+    )
+
+    /** Restore a saved draft into the form. */
+    private fun applyDraft(d: QuoteDraft) {
+        _state.update {
+            it.copy(
+                isLoading = false,
+                isInvoice = d.isInvoice,
+                quoteNumber = d.quoteNumber,
+                clientName = d.clientName,
+                clientEmail = d.clientEmail,
+                clientPhone = d.clientPhone,
+                jobName = d.jobName,
+                notes = d.notes,
+                markupPct = d.markupPct,
+                hourlyRate = d.hourlyRate,
+                rateMode = RateMode.from(d.rateMode),
+                clientBuysAll = d.clientBuysAll,
+                taxEnabled = d.taxEnabled,
+                taxRatePct = d.taxRatePct,
+                invoiceDueDate = d.invoiceDueDate,
+                invoicePaid = d.invoicePaid,
+                catalogItems = d.catalogItems.map { CatalogEntryUi(it.serviceId, it.qty, it.variantIdx, it.clientBuys) },
+                items = d.items.map { CustomItemUi(it.id, it.label, it.qty, it.materialCost, it.laborCost, it.laborHours, it.kind) },
+            )
         }
     }
 
@@ -155,12 +238,10 @@ class QuoteBuilderViewModel @Inject constructor(
             )
         }
 
-    private fun loadExisting(id: String) {
-        viewModelScope.launch {
-            quoteRepository.getQuote(id)
-                .onSuccess { q -> applyLoaded(q) }
-                .onFailure { _state.update { it.copy(isLoading = false, error = "Couldn't load this quote.") } }
-        }
+    private suspend fun loadExisting(id: String) {
+        quoteRepository.getQuote(id)
+            .onSuccess { q -> applyLoaded(q) }
+            .onFailure { _state.update { it.copy(isLoading = false, error = "Couldn't load this quote.") } }
     }
 
     private fun applyLoaded(q: QuoteDetail) {
@@ -392,7 +473,11 @@ class QuoteBuilderViewModel @Inject constructor(
         _state.update { it.copy(isSaving = true, error = null) }
         viewModelScope.launch {
             quoteRepository.saveQuote(userId, input)
-                .onSuccess { _state.update { it.copy(isSaving = false, saved = true) } }
+                .onSuccess {
+                    // The quote is now persisted for real — drop the autosaved draft.
+                    draftStore.clear(draftKey)
+                    _state.update { it.copy(isSaving = false, saved = true) }
+                }
                 .onFailure { _state.update { it.copy(isSaving = false, error = "Couldn't save. Try again.") } }
         }
     }
@@ -400,6 +485,9 @@ class QuoteBuilderViewModel @Inject constructor(
     companion object {
         const val ARG_ID = "id"
         const val ARG_INVOICE = "invoice"
+
+        /** Coalesce rapid keystrokes into one draft write instead of one per char. */
+        private const val AUTOSAVE_DEBOUNCE_MS = 400L
 
         private fun pctText(fraction: Double): String = numText(fraction * 100.0)
 

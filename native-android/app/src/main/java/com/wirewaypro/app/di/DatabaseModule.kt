@@ -3,6 +3,7 @@ package com.wirewaypro.app.di
 import android.content.Context
 import androidx.room.Room
 import com.wirewaypro.app.data.local.QuoteDao
+import com.wirewaypro.app.data.local.QuoteDraftDao
 import com.wirewaypro.app.data.local.WirewayDatabase
 import dagger.Module
 import dagger.Provides
@@ -25,9 +26,13 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): WirewayDatabase =
         Room.databaseBuilder(context, WirewayDatabase::class.java, WirewayDatabase.NAME)
+            .addMigrations(WirewayDatabase.MIGRATION_1_2)
             .fallbackToDestructiveMigration()
             .build()
 
     @Provides
     fun provideQuoteDao(db: WirewayDatabase): QuoteDao = db.quoteDao()
+
+    @Provides
+    fun provideQuoteDraftDao(db: WirewayDatabase): QuoteDraftDao = db.quoteDraftDao()
 }
