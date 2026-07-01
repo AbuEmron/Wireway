@@ -18,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -124,6 +125,22 @@ fun ProfileEditScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                val band = state.rateSuggestion
+                if (band != null) {
+                    Spacer(Modifier.padding(top = 12.dp))
+                    Text(
+                        "Typical in ${band.stateName}: $${band.low}\u2013$${band.high}/hr",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        "Approximate, from public wage data \u2014 your market may vary.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = viewModel::useSuggestedRate) {
+                        Text("Use $${band.typical}/hr as my default")
+                    }
+                }
             }
 
             SectionCard(title = "Notifications") {

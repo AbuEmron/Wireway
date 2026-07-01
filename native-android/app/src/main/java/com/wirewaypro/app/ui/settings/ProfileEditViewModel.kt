@@ -6,6 +6,8 @@ import com.wirewaypro.app.data.prefs.DEFAULT_HOURLY_RATE
 import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.domain.model.ProfileInput
 import com.wirewaypro.app.domain.model.UserProfile
+import com.wirewaypro.app.domain.pricing.RateBand
+import com.wirewaypro.app.domain.pricing.RegionalLaborRates
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,6 +31,7 @@ data class ProfileEditUiState(
     val companyWebsite: String = "",
     val hourlyRate: String = "",
     val flatRate: String = "",
+    val rateSuggestion: RateBand? = null,
     val notificationsEnabled: Boolean = true,
     val logoUrl: String = "",
     val uploadingLogo: Boolean = false,
@@ -81,6 +84,7 @@ class ProfileEditViewModel @Inject constructor(
             flatRate = if (flat > 0) trimNum(flat) else "",
             notificationsEnabled = notify,
             logoUrl = p?.logoUrl.orEmpty(),
+            rateSuggestion = RegionalLaborRates.forState(RegionalLaborRates.detectState(p?.companyAddress)),
         )
     }
 
@@ -104,9 +108,16 @@ class ProfileEditViewModel @Inject constructor(
     fun setCompanyPhone(v: String) = _state.update { it.copy(companyPhone = v) }
     fun setCompanyEmail(v: String) = _state.update { it.copy(companyEmail = v) }
     fun setCompanyLicense(v: String) = _state.update { it.copy(companyLicense = v) }
-    fun setCompanyAddress(v: String) = _state.update { it.copy(companyAddress = v) }
+    fun setCompanyAddress(v: String) = _state.update {
+        it.copy(companyAddress = v, rateSuggestion = RegionalLaborRates.forState(RegionalLaborRates.detectState(v)))
+    }
     fun setCompanyWebsite(v: String) = _state.update { it.copy(companyWebsite = v) }
     fun setHourlyRate(v: String) = _state.update { it.copy(hourlyRate = v) }
+
+    /** Applies the regional suggestion's typical rate to the hourly-rate field. */
+    fun useSuggestedRate() = _state.update { s ->
+        s.rateSuggestion?.let { s.copy(hourlyRate = it.typical.toString()) } ?: s
+    }
     fun setFlatRate(v: String) = _state.update { it.copy(flatRate = v) }
     fun setNotifications(v: Boolean) = _state.update { it.copy(notificationsEnabled = v) }
 
