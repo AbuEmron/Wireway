@@ -26,7 +26,7 @@ data class MoneyUiState(
     val exporting: Boolean = false,
     val csvExport: String? = null, // one-shot: non-null when ready for the share sheet
     val qbExport: String? = null,
-    val taxExport: String? = null,  // one-shot: QuickBooks CSV ready for the share sheet
+    val taxExport: String? = null, // one-shot: tax-ready P&L CSV for the share sheet
 )
 
 @HiltViewModel
