@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.ui.components.GradientButton
@@ -72,13 +73,13 @@ fun LoginScreen(
 
         Spacer(Modifier.height(20.dp))
         Text(
-            text = "Wireway",
-            style = MaterialTheme.typography.displayMedium,
+            text = "WIREWAY",
+            style = MaterialTheme.typography.displayMedium.copy(letterSpacing = 2.sp),
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Text(
-            text = "Powered by Precision",
+            text = "Electrical estimating · Powered by Precision",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium,

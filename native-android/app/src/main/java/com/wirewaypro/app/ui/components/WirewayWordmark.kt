@@ -1,9 +1,9 @@
 package com.wirewaypro.app.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,47 +15,53 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.wirewaypro.app.ui.theme.BrandGradients
 
+private val WirewayCyan = Color(0xFF22D3FF)
+
 /**
- * The Wireway brand lockup: the lightning-"W" gradient badge + the "Wireway" word
- * with an accent "PRO" chip. Used on the login screen and the dashboard header.
+ * The Wireway brand lockup from the mockup: the W-bolt badge + the "WIREWAY" wordmark
+ * with a cyan "PRO", optionally over the "electrical estimating · powered by precision"
+ * tagline. Used on the login and dashboard headers.
  */
 @Composable
 fun WirewayWordmark(
     modifier: Modifier = Modifier,
     badgeSize: Dp = 36.dp,
     showPro: Boolean = true,
+    tagline: Boolean = false,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier,
-    ) {
-        WirewayLogoBadge(size = badgeSize)
-        Text(
-            text = "Wireway",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        if (showPro) {
+    Column(modifier = modifier) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            WirewayLogoBadge(size = badgeSize)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "WIREWAY",
+                    style = MaterialTheme.typography.headlineSmall.copy(letterSpacing = 1.2.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                if (showPro) {
+                    Text(
+                        text = "PRO",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = WirewayCyan,
+                        modifier = Modifier.padding(start = 5.dp),
+                    )
+                }
+            }
+        }
+        if (tagline) {
             Text(
-                text = "PRO",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier
-                    .drawWithCache {
-                        val brush = BrandGradients.primary
-                        onDrawBehind {
-                            drawRoundRect(
-                                brush = brush,
-                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(7.dp.toPx(), 7.dp.toPx()),
-                            )
-                        }
-                    }
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                text = "ELECTRICAL ESTIMATING · POWERED BY PRECISION",
+                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.8.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = badgeSize + 10.dp, top = 4.dp),
             )
         }
     }
