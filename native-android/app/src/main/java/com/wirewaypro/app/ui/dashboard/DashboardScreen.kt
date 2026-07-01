@@ -44,6 +44,7 @@ import com.wirewaypro.app.ui.navigation.DashDest
 import com.wirewaypro.app.ui.nec.NecReferenceScreen
 import com.wirewaypro.app.ui.timetracking.TimeTrackingScreen
 import com.wirewaypro.app.ui.navigation.HomeTab
+import com.wirewaypro.app.ui.quotes.AssembliesScreen
 import com.wirewaypro.app.ui.quotes.EstimatesScreen
 import com.wirewaypro.app.ui.quotes.InvoicesScreen
 import com.wirewaypro.app.ui.money.MoneyScreen
@@ -139,6 +140,7 @@ fun DashboardScreen(
                     onOpenLoadAdvisor = { navController.navigate(DashDest.LOAD_ADVISOR) },
                     onOpenMoney = { navController.navigate(DashDest.MONEY) },
                     onOpenTakeoff = { navController.navigate(DashDest.TAKEOFF) },
+                    onOpenAssemblies = { navController.navigate(DashDest.ASSEMBLIES) },
                     onOpenBank = { navController.navigate(DashDest.BANK) },
                     onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
                 )
@@ -214,6 +216,16 @@ fun DashboardScreen(
                     onCreateEstimate = {
                         navController.navigate(DashDest.quoteBuilder(invoice = false)) {
                             popUpTo(DashDest.TAKEOFF) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            composable(DashDest.ASSEMBLIES) {
+                AssembliesScreen(
+                    onBack = { navController.popBackStack() },
+                    onPicked = {
+                        navController.navigate(DashDest.quoteBuilder(invoice = false)) {
+                            popUpTo(DashDest.ASSEMBLIES) { inclusive = true }
                         }
                     },
                 )

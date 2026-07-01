@@ -84,6 +84,7 @@ fun HomeScreen(
     onOpenLoadAdvisor: () -> Unit,
     onOpenMoney: () -> Unit,
     onOpenTakeoff: () -> Unit,
+    onOpenAssemblies: () -> Unit,
     onOpenBank: () -> Unit,
     onOpenSubscription: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
@@ -169,6 +170,16 @@ fun HomeScreen(
                 modifier = Modifier.weight(1f),
             )
         }
+
+        // ── Start fast (no AI) ────────────────────────────────────────────────
+        // Job templates are the fast path to an estimate without AI — free to all.
+        SectionEyebrow("Start fast", modifier = Modifier.padding(top = 4.dp))
+        AiHeroCard(
+            icon = Icons.Outlined.Bolt,
+            title = "Job Templates",
+            subtitle = "Panel swap, EV charger, can-lights & more — a pre-filled estimate in one tap",
+            onClick = onOpenAssemblies,
+        )
 
         // ── Estimate with AI ─────────────────────────────────────────────────
         // AI Takeoff is an Elite-tier feature; non-Elite users see it as a locked
