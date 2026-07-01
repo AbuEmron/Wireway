@@ -9,6 +9,9 @@ interface TimeEntryRepository {
     /** Recent time entries (running + completed), newest first. */
     suspend fun getRecent(userId: String, limit: Int = 50): Result<List<TimeEntry>>
 
+    /** All time entries tagged to one job, newest first (job profitability). */
+    suspend fun getForJob(userId: String, jobId: String): Result<List<TimeEntry>>
+
     /** Clocks in: starts a running timer (optionally tied to a job). */
     suspend fun start(userId: String, jobId: String?, rate: Double): Result<TimeEntry>
 

@@ -7,6 +7,9 @@ interface ExpenseRepository {
     /** The user's expenses for a calendar year, newest first. */
     suspend fun getExpenses(userId: String, year: Int): Result<List<Expense>>
 
+    /** All expenses tagged to one job, newest first (job profitability). */
+    suspend fun getExpensesForJob(userId: String, jobId: String): Result<List<Expense>>
+
     /**
      * Creates an expense. If [imageBytes] is non-null it is uploaded to the
      * shared `receipts` storage bucket first and linked as the receipt image.

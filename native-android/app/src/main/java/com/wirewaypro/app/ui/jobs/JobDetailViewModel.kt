@@ -6,8 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.domain.model.Job
 import com.wirewaypro.app.domain.model.JobDraw
 import com.wirewaypro.app.domain.model.JobDrawInput
+import com.wirewaypro.app.domain.model.JobProfitability
+import com.wirewaypro.app.domain.model.MoneyMath
 import com.wirewaypro.app.domain.repository.AuthRepository
+import com.wirewaypro.app.domain.repository.ExpenseRepository
 import com.wirewaypro.app.domain.repository.JobRepository
+import com.wirewaypro.app.domain.repository.TimeEntryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +39,7 @@ data class JobDetailUiState(
     val isLoading: Boolean = true,
     val job: Job? = null,
     val draws: List<JobDraw> = emptyList(),
+    val profitability: JobProfitability? = null,
     val error: String? = null,
     val editingDraw: DrawDraft? = null,
     val deleted: Boolean = false,
@@ -44,6 +49,8 @@ data class JobDetailUiState(
 class JobDetailViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val jobRepository: JobRepository,
+    private val expenseRepository: ExpenseRepository,
+    private val timeEntryRepository: TimeEntryRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -69,12 +76,32 @@ class JobDetailViewModel @Inject constructor(
             }
             val draws = jobRepository.getJobDraws(jobId).getOrDefault(emptyList())
             _state.update { it.copy(isLoading = false, job = job, draws = draws, error = null) }
+            refreshProfitability(draws)
         }
+    }
+
+    /**
+     * "Did I make money?" — paid draws (net) minus job-tagged expenses and
+     * completed time entries. Best-effort: failures just leave the card as-is.
+     */
+    private suspend fun refreshProfitability(draws: List<JobDraw>) {
+        val userId = auth.currentUserId() ?: return
+        val expenses = expenseRepository.getExpensesForJob(userId, jobId).getOrDefault(emptyList())
+        val entries = timeEntryRepository.getForJob(userId, jobId).getOrDefault(emptyList())
+            .filter { !it.isRunning }
+        val profitability = JobProfitability(
+            collected = MoneyMath.round2(draws.filter { it.status == "paid" }.sumOf { it.net }),
+            materials = MoneyMath.round2(expenses.sumOf { it.amount }),
+            laborHours = MoneyMath.round2(entries.sumOf { it.hours ?: 0.0 }),
+            laborCost = MoneyMath.round2(entries.sumOf { it.laborCost }),
+        )
+        _state.update { it.copy(profitability = profitability) }
     }
 
     private suspend fun reloadDraws() {
         val draws = jobRepository.getJobDraws(jobId).getOrDefault(emptyList())
         _state.update { it.copy(draws = draws) }
+        refreshProfitability(draws)
     }
 
     // ── Draw editor ─────────────────────────────────────────────────────────────

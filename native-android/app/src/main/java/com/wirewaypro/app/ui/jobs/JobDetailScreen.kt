@@ -144,6 +144,46 @@ fun JobDetailScreen(
                 }
             }
 
+            state.profitability?.let { p ->
+                SectionCard(title = "Did I make money?") {
+                    if (p.isEmpty) {
+                        Text(
+                            "Mark draws paid, and tag receipts + time entries to this job \u2014 real profit shows up here.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        InfoRow("Collected (paid draws)", Format.money(p.collected))
+                        InfoRow("Materials & receipts", "\u2212" + Format.money(p.materials))
+                        InfoRow("Labor (" + trimNum(p.laborHours) + " hrs)", "\u2212" + Format.money(p.laborCost))
+                        Spacer(Modifier.padding(top = 6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text("Profit", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                            Text(
+                                Format.money(p.profit),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (p.profit >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                            )
+                        }
+                        p.margin?.let { m ->
+                            Text(
+                                "${(m * 100).toInt()}% of collected",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text(
+                            "Counts only what you've recorded on this job.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             job.notes?.takeIf { it.isNotBlank() }?.let { notes ->
                 SectionCard(title = "Notes") {
                     Text(notes, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)

@@ -44,6 +44,19 @@ class TimeEntryRepositoryImpl @Inject constructor(
             .map { it.toDomain() }
     }
 
+    override suspend fun getForJob(userId: String, jobId: String): Result<List<TimeEntry>> = runCatching {
+        entries()
+            .select {
+                filter {
+                    eq("user_id", userId)
+                    eq("job_id", jobId)
+                }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<TimeEntryDto>()
+            .map { it.toDomain() }
+    }
+
     override suspend fun start(userId: String, jobId: String?, rate: Double): Result<TimeEntry> = runCatching {
         val payload = buildJsonObject {
             put("id", UUID.randomUUID().toString())
