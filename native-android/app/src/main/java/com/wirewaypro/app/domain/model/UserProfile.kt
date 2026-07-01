@@ -49,6 +49,7 @@ data class UserProfile(
         license = companyLicense,
         address = companyAddress,
         website = companyWebsite,
+        logoUrl = logoUrl,
     )
 }
 
@@ -60,6 +61,8 @@ data class BusinessInfo(
     val license: String?,
     val address: String?,
     val website: String?,
+    /** Public URL of the uploaded business logo (drawn onto PDF exports). */
+    val logoUrl: String? = null,
 )
 
 /** Editable profile fields (name + business info), written to `profiles`. */

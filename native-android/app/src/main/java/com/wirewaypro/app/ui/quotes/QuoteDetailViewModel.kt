@@ -107,7 +107,17 @@ class QuoteDetailViewModel @Inject constructor(
             val business = auth.currentUserId()
                 ?.let { profileRepository.getProfile(it).getOrNull() }
                 ?.businessInfo()
-            val file = withContext(Dispatchers.IO) { QuotePdfGenerator.generate(appContext, quote, business) }
+            // Fetch the business logo for the PDF header (best-effort; PDF still
+            // renders without it if the download or decode fails).
+            val logo = withContext(Dispatchers.IO) {
+                business?.logoUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    runCatching {
+                        val bytes = java.net.URL(url).openStream().use { it.readBytes() }
+                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    }.getOrNull()
+                }
+            }
+            val file = withContext(Dispatchers.IO) { QuotePdfGenerator.generate(appContext, quote, business, logo) }
             if (file == null) {
                 _state.update { it.copy(exportingPdf = false, error = "Couldn't build the PDF.") }
             } else {

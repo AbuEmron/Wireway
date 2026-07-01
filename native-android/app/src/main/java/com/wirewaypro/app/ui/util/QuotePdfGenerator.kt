@@ -1,8 +1,10 @@
 package com.wirewaypro.app.ui.util
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.wirewaypro.app.domain.model.BusinessInfo
@@ -36,13 +38,13 @@ object QuotePdfGenerator {
             "of work require a written change order. Permits and inspection fees are included " +
             "unless otherwise noted. Warranty: one (1) year on workmanship from date of completion."
 
-    fun generate(context: Context, quote: QuoteDetail, business: BusinessInfo? = null): File? = runCatching {
+    fun generate(context: Context, quote: QuoteDetail, business: BusinessInfo? = null, logo: Bitmap? = null): File? = runCatching {
         val doc = PdfDocument()
         val state = PageState(doc)
         state.start()
 
         drawHeader(state, quote)
-        if (business != null) drawBusiness(state, business)
+        if (business != null) drawBusiness(state, business, logo)
         drawClient(state, quote)
         drawLineItems(state, quote)
         drawTotals(state, quote)
@@ -110,7 +112,8 @@ object QuotePdfGenerator {
         s.y += 16f
     }
 
-    private fun drawBusiness(s: PageState, business: BusinessInfo) {
+    private fun drawBusiness(s: PageState, business: BusinessInfo, logo: Bitmap? = null) {
+        val yTop = s.y
         val name = business.name?.takeIf { it.isNotBlank() }
         if (name != null) {
             s.canvas.drawText(name, MARGIN, s.y + 13f, paint(INK, 13f, bold = true))
@@ -127,7 +130,19 @@ object QuotePdfGenerator {
             s.canvas.drawText(line, MARGIN, s.y + 11f, paint(MUTED, 10f))
             s.y += 14f
         }
-        if (name != null || contact.isNotEmpty()) {
+        // Business logo, right-aligned beside the text block (best-effort).
+        val hasLogo = logo != null && logo.width > 0 && logo.height > 0
+        if (hasLogo) {
+            val maxW = 140f
+            val maxH = 56f
+            val scale = minOf(maxW / logo!!.width, maxH / logo.height)
+            val w = logo.width * scale
+            val h = logo.height * scale
+            val bmpPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+            s.canvas.drawBitmap(logo, null, RectF(RIGHT - w, yTop, RIGHT, yTop + h), bmpPaint)
+            if (yTop + h + 8f > s.y) s.y = yTop + h + 8f
+        }
+        if (name != null || contact.isNotEmpty() || hasLogo) {
             s.y += 8f
             rule(s)
             s.y += 14f
