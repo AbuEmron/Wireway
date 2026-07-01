@@ -3,6 +3,7 @@ package com.wirewaypro.app.ui.clients
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.offline.NetworkMonitor
+import com.wirewaypro.app.data.offline.SyncManager
 import com.wirewaypro.app.domain.model.Client
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ClientRepository
@@ -24,16 +25,22 @@ class ClientsViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val clientRepository: ClientRepository,
     network: NetworkMonitor,
+    private val syncManager: SyncManager,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ListUiState<Client>())
     val state: StateFlow<ListUiState<Client>> = _state.asStateFlow()
 
-    /** Offline + pending-sync status for the banner atop the list. */
+    /** Offline + pending + failed-sync status for the banner atop the list. */
     val syncBanner: StateFlow<SyncBannerState> =
-        combine(network.online, clientRepository.pendingSyncCount()) { online, pending ->
-            SyncBannerState(isOffline = !online, pendingCount = pending)
+        combine(network.online, clientRepository.pendingSyncCount(), syncManager.failedCount) { online, pending, failed ->
+            SyncBannerState(isOffline = !online, pendingCount = pending, failedCount = failed)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncBannerState())
+
+    /** Re-arm and flush writes parked after exhausting auto-retry. */
+    fun retrySync() {
+        viewModelScope.launch { syncManager.retryFailed() }
+    }
 
     init {
         load(isRefresh = false)

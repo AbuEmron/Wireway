@@ -32,7 +32,25 @@ class OfflineQueue @Inject constructor(
         decode(prefs[key]).size
     }
 
+    /** Count of writes that have exhausted auto-retry and are parked for a manual retry. */
+    val failedCountFlow: Flow<Int> = context.offlineDataStore.data.map { prefs ->
+        decode(prefs[key]).count { it.attempts >= MAX_ATTEMPTS }
+    }
+
     suspend fun all(): List<QueuedSave> = decode(context.offlineDataStore.data.first()[key])
+
+    /** True while any write can still be flushed (not parked at the retry cap). */
+    suspend fun hasFlushable(): Boolean = all().any { it.attempts < MAX_ATTEMPTS }
+
+    /**
+     * Clears the retry counter on every parked write so a manual "retry" re-attempts
+     * them, then asks WorkManager to flush. The full payload was never discarded —
+     * only parked — so the replay is exact.
+     */
+    suspend fun retryFailed() {
+        mutate { current -> current.map { if (it.attempts > 0) it.copy(attempts = 0) else it } }
+        SyncScheduler.requestSync(context)
+    }
 
     suspend fun enqueue(save: QueuedSave) {
         mutate { current -> current.filterNot { it.id == save.id } + save }
@@ -66,4 +84,9 @@ class OfflineQueue @Inject constructor(
     private fun decode(raw: String?): List<QueuedSave> =
         if (raw.isNullOrBlank()) emptyList()
         else runCatching { json.decodeFromString<List<QueuedSave>>(raw) }.getOrDefault(emptyList())
+
+    companion object {
+        /** Auto-retry attempts before a write is parked for manual retry (never dropped). */
+        const val MAX_ATTEMPTS = 5
+    }
 }

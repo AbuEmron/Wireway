@@ -45,9 +45,18 @@ class SyncManager @Inject constructor(
 
     val pendingCount: Flow<Int> = queue.countFlow
 
+    /** Count of writes parked after exhausting auto-retry, awaiting a manual retry. */
+    val failedCount: Flow<Int> = queue.failedCountFlow
+
     fun start() {
         network.start()
         scope.launch { network.online.collect { online -> if (online) flush() } }
+    }
+
+    /** Re-arm every parked write and flush — the manual "retry" behind a failed row. */
+    suspend fun retryFailed() {
+        queue.retryFailed()
+        flush()
     }
 
     suspend fun flush() {
@@ -55,6 +64,9 @@ class SyncManager @Inject constructor(
         if (!flushing.compareAndSet(false, true)) return
         try {
             for (item in queue.all()) {
+                // Skip writes parked at the retry cap — they wait for a manual retry
+                // (which re-arms them) so they can't loop forever on their own.
+                if (item.attempts >= OfflineQueue.MAX_ATTEMPTS) continue
                 try {
                     when (item.mode) {
                         "delete" -> client.postgrest.from(item.table)
@@ -75,11 +87,11 @@ class SyncManager @Inject constructor(
                 } catch (e: Exception) {
                     if (isConnectivityError(e)) break // still offline — retry later
                     val attempts = queue.bumpAttempts(item.id)
-                    if (attempts >= 5) {
-                        // Don't silently drop the user's write: surface it as an
-                        // error state they can retry, then stop the retry loop.
+                    if (attempts >= OfflineQueue.MAX_ATTEMPTS) {
+                        // Don't silently drop the user's write: flag the row ERROR and
+                        // PARK it in the queue (full payload kept) so a manual retry can
+                        // replay it exactly. Auto-retry stops here to avoid a loop.
                         reflectError(item)
-                        queue.remove(item.id)
                     }
                 }
             }

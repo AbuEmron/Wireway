@@ -45,7 +45,12 @@ fun ClientsScreen(
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
-            SyncBanner(isOffline = banner.isOffline, pendingCount = banner.pendingCount)
+            SyncBanner(
+                isOffline = banner.isOffline,
+                pendingCount = banner.pendingCount,
+                failedCount = banner.failedCount,
+                onRetry = viewModel::retrySync,
+            )
             RefreshableList(
                 isLoading = state.isLoading,
                 isRefreshing = state.isRefreshing,
