@@ -144,6 +144,30 @@ fun JobDetailScreen(
                 }
             }
 
+            if (job.status == "complete") {
+                SectionCard(title = "After the job") {
+                    Text(
+                        "Happy client? Ask for a review while the good work is fresh.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.padding(top = 10.dp))
+                    OutlinedButton(
+                        onClick = { shareReviewRequest(context, job.clientName, state.reviewLink) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Ask for a review")
+                    }
+                    if (state.reviewLink.isBlank()) {
+                        Text(
+                            "Tip: add your Google/Yelp review link in Profile & business so the text includes it.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             state.profitability?.let { p ->
                 SectionCard(title = "Did I make money?") {
                     if (p.isEmpty) {
@@ -308,6 +332,22 @@ private fun trimNum(value: Double): String =
  * /pay/{jobId}, where the client can pay this job's outstanding progress draws by
  * card or bank. Payment requires the contractor's Stripe Connect (Settings → Get paid).
  */
+/** Opens the share sheet with a prefilled review-request text (SMS-friendly). */
+private fun shareReviewRequest(context: android.content.Context, clientName: String?, reviewLink: String) {
+    val first = clientName?.trim()?.split(" ")?.firstOrNull()?.takeIf { it.isNotBlank() }
+    val message = buildString {
+        append(if (first != null) "Hi $first, " else "Hi, ")
+        append("thanks for having us out! If you were happy with the electrical work, ")
+        append("a quick review would mean a lot to our small business.")
+        if (reviewLink.isNotBlank()) append(" $reviewLink")
+    }
+    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(android.content.Intent.EXTRA_TEXT, message)
+    }
+    context.startActivity(android.content.Intent.createChooser(intent, "Ask for a review"))
+}
+
 private fun shareDrawPayLink(context: android.content.Context, jobId: String) {
     runCatching {
         val url = "https://www.wireway.cc/pay/$jobId"

@@ -31,6 +31,7 @@ data class ProfileEditUiState(
     val companyWebsite: String = "",
     val hourlyRate: String = "",
     val flatRate: String = "",
+    val reviewLink: String = "",
     val rateSuggestion: RateBand? = null,
     val notificationsEnabled: Boolean = true,
     val logoUrl: String = "",
@@ -65,12 +66,13 @@ class ProfileEditViewModel @Inject constructor(
             val notify = settingsPrefs.notificationsEnabled.first()
             val hourly = settingsPrefs.defaultHourlyRate.first()
             val flat = settingsPrefs.defaultFlatRate.first()
+            val review = settingsPrefs.reviewLink.first()
             val profile = profileRepository.getProfile(userId).getOrNull()
-            apply(profile, notify, hourly, flat)
+            apply(profile, notify, hourly, flat, review)
         }
     }
 
-    private fun apply(p: UserProfile?, notify: Boolean, hourly: Double, flat: Double) = _state.update {
+    private fun apply(p: UserProfile?, notify: Boolean, hourly: Double, flat: Double, review: String = "") = _state.update {
         it.copy(
             isLoading = false,
             fullName = p?.fullName.orEmpty(),
@@ -82,6 +84,7 @@ class ProfileEditViewModel @Inject constructor(
             companyWebsite = p?.companyWebsite.orEmpty(),
             hourlyRate = if (hourly > 0) trimNum(hourly) else "",
             flatRate = if (flat > 0) trimNum(flat) else "",
+            reviewLink = review,
             notificationsEnabled = notify,
             logoUrl = p?.logoUrl.orEmpty(),
             rateSuggestion = RegionalLaborRates.forState(RegionalLaborRates.detectState(p?.companyAddress)),
@@ -119,6 +122,7 @@ class ProfileEditViewModel @Inject constructor(
         s.rateSuggestion?.let { s.copy(hourlyRate = it.typical.toString()) } ?: s
     }
     fun setFlatRate(v: String) = _state.update { it.copy(flatRate = v) }
+    fun setReviewLink(v: String) = _state.update { it.copy(reviewLink = v) }
     fun setNotifications(v: Boolean) = _state.update { it.copy(notificationsEnabled = v) }
 
     fun save() {
@@ -142,6 +146,7 @@ class ProfileEditViewModel @Inject constructor(
             settingsPrefs.setNotificationsEnabled(s.notificationsEnabled)
             settingsPrefs.setDefaultHourlyRate(s.hourlyRate.toDoubleOrNull()?.takeIf { it > 0 } ?: DEFAULT_HOURLY_RATE)
             settingsPrefs.setDefaultFlatRate(s.flatRate.toDoubleOrNull()?.takeIf { it > 0 } ?: 0.0)
+            settingsPrefs.setReviewLink(s.reviewLink)
             profileRepository.saveProfile(userId, input)
                 .onSuccess { _state.update { it.copy(isSaving = false, saved = true) } }
                 .onFailure { _state.update { it.copy(isSaving = false, error = "Couldn't save your profile. Try again.") } }

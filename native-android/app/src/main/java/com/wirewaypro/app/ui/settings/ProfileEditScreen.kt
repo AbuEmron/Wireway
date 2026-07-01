@@ -143,6 +143,16 @@ fun ProfileEditScreen(
                 }
             }
 
+            SectionCard(title = "Reviews") {
+                FormField(state.reviewLink, viewModel::setReviewLink, "Review link (Google/Yelp, optional)")
+                Spacer(Modifier.padding(top = 8.dp))
+                Text(
+                    "After a job is complete, one tap texts your client a review request with this link. More 5-stars = more work.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             SectionCard(title = "Notifications") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

@@ -9,6 +9,7 @@ import com.wirewaypro.app.domain.model.JobDrawInput
 import com.wirewaypro.app.domain.model.JobProfitability
 import com.wirewaypro.app.domain.model.MoneyMath
 import com.wirewaypro.app.domain.repository.AuthRepository
+import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.domain.repository.ExpenseRepository
 import com.wirewaypro.app.domain.repository.JobRepository
 import com.wirewaypro.app.domain.repository.TimeEntryRepository
@@ -40,6 +41,7 @@ data class JobDetailUiState(
     val job: Job? = null,
     val draws: List<JobDraw> = emptyList(),
     val profitability: JobProfitability? = null,
+    val reviewLink: String = "",
     val error: String? = null,
     val editingDraw: DrawDraft? = null,
     val deleted: Boolean = false,
@@ -51,6 +53,7 @@ class JobDetailViewModel @Inject constructor(
     private val jobRepository: JobRepository,
     private val expenseRepository: ExpenseRepository,
     private val timeEntryRepository: TimeEntryRepository,
+    private val settingsPrefs: SettingsPrefs,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -61,6 +64,9 @@ class JobDetailViewModel @Inject constructor(
 
     init {
         load()
+        viewModelScope.launch {
+            settingsPrefs.reviewLink.collect { link -> _state.update { it.copy(reviewLink = link) } }
+        }
     }
 
     fun load() {

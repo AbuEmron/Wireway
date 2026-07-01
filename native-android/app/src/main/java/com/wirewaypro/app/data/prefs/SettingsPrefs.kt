@@ -30,6 +30,7 @@ class SettingsPrefs @Inject constructor(
     private val hourlyRateKey = doublePreferencesKey("default_hourly_rate")
     private val flatRateKey = doublePreferencesKey("default_flat_rate")
     private val themeModeKey = stringPreferencesKey("theme_mode")
+    private val reviewLinkKey = stringPreferencesKey("review_link")
 
     val notificationsEnabled: Flow<Boolean> =
         context.settingsDataStore.data.map { it[notificationsKey] ?: true }
@@ -56,6 +57,14 @@ class SettingsPrefs @Inject constructor(
 
     suspend fun setDefaultFlatRate(rate: Double) {
         context.settingsDataStore.edit { it[flatRateKey] = rate }
+    }
+
+    /** Public review link (Google Business, Yelp, ...) used in review requests. */
+    val reviewLink: Flow<String> =
+        context.settingsDataStore.data.map { it[reviewLinkKey] ?: "" }
+
+    suspend fun setReviewLink(link: String) {
+        context.settingsDataStore.edit { it[reviewLinkKey] = link.trim() }
     }
 
     /** Persist the light/dark preference (store the [ThemeMode] enum name). */
