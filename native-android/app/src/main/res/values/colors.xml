@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brand palette mirrors the web app's official "wireway" theme (src/themes.js):
+     blue accent #3aa9ff on a near-black #080b10 ground. -->
+<resources>
+    <color name="brand_background">#080B10</color>
+    <color name="brand_surface">#0E1420</color>
+    <color name="brand_accent">#3AA9FF</color>
+    <color name="brand_on_dark">#E8EDF5</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+</resources>

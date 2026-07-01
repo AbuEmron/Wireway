@@ -19,6 +19,7 @@ import MileageView from "./MileageView";
 import ExpensesView from "./ExpensesView";
 import PlaidView from "./PlaidView";
 import { BottomNav, MoreSheet } from "./BottomNav";
+import { PUBLIC_ORIGIN } from "./lib/nativeBridge";
 import JobCostingView from "./JobCostingView";
 import ReceiptCaptureView from "./ReceiptCaptureView";
 import SubcontractorsView from "./SubcontractorsView";
@@ -1351,7 +1352,7 @@ export default function Wireway({ user, profile, onProfileUpdate, onShowPricing,
                       { icon:"⎘",  label:"Copy",       desc: copied ? "Copied!" : "Text", action: copyQuote,   color: copied ? "#7dcea0" : "var(--accent)" },
                       { icon:"🔗", label:"Share Link", desc: quoteId ? "Client link" : "Save first", action: () => {
                         if (!quoteId) { setSaveMsg("Save the quote first."); setTimeout(() => setSaveMsg(""), 2000); return; }
-                        const link = `${window.location.origin}/quote/${quoteId}`;
+                        const link = `${PUBLIC_ORIGIN}/quote/${quoteId}`;
                         navigator.clipboard.writeText(link);
                         setSaveMsg("Link copied!"); setTimeout(() => setSaveMsg(""), 2500);
                       }, color:"#b87ee8" },

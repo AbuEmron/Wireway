@@ -7,6 +7,7 @@ import {
   generateSchedule, scheduleTotals, drawNet, drawRetainage, buildDrawInvoiceText,
 } from "./lib/billing";
 import { canCollectPayments } from "./lib/entitlements";
+import { PUBLIC_ORIGIN } from "./lib/nativeBridge";
 
 const IS = {
   background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)",
@@ -38,7 +39,7 @@ export default function ProgressBillingView({ user, company = {}, profile, onSho
 
   const isProUser  = canCollectPayments(profile);
   const stripeReady = !!profile?.stripe_charges_enabled;
-  const payUrl = jobId ? `${window.location.origin}/pay/${jobId}` : "";
+  const payUrl = jobId ? `${PUBLIC_ORIGIN}/pay/${jobId}` : "";
 
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 2500); };
   const job = jobs.find((j) => j.id === jobId) || null;

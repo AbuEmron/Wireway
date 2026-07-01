@@ -16,7 +16,10 @@ import MfaChallenge from "./MfaChallenge";
 import Wireway from "./electrical-estimator";
 import { logReferral } from "./lib/referral";
 import { mfaRequired as checkMfaRequired } from "./lib/mfa";
+import { initNativeApp } from "./lib/nativeBridge";
 export default function App() {
+  // Native shell: hide splash screen + theme the status bar once mounted. No-op on web.
+  useEffect(() => { initNativeApp(); }, []);
   const [session,       setSession]       = useState(undefined);
   const [profile,       setProfile]       = useState(null);
   const [loading,       setLoading]       = useState(true);

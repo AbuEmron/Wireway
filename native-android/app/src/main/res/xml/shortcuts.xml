@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Static launcher shortcuts (long-press the app icon). Each fires a wireway://
+  deep link resolved by MainActivity's intent-filter. Using an implicit VIEW +
+  data intent (no targetPackage) keeps these correct across build variants, whose
+  applicationId carries a .native/.dev suffix. Dynamic equivalents: AppShortcuts.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="new_estimate"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_estimate"
+        android:shortcutShortLabel="@string/shortcut_new_estimate_short"
+        android:shortcutLongLabel="@string/shortcut_new_estimate_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="wireway://new-estimate" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="snap_receipt"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_receipt"
+        android:shortcutShortLabel="@string/shortcut_snap_receipt_short"
+        android:shortcutLongLabel="@string/shortcut_snap_receipt_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="wireway://snap-receipt" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="ai_takeoff"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_takeoff"
+        android:shortcutShortLabel="@string/shortcut_ai_takeoff_short"
+        android:shortcutLongLabel="@string/shortcut_ai_takeoff_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="wireway://ai-takeoff" />
+    </shortcut>
+
+</shortcuts>

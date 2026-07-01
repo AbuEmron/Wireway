@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Exclude the Supabase session store from cloud backups so auth tokens are
+     not copied off-device. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="wireway_auth.xml" />
+</full-backup-content>

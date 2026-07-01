@@ -1,9 +1,17 @@
 {
   "name": "wireway",
   "version": "2.0.0",
-  "description": "Professional NEC 2023 Electrical Estimating \u2014 SaaS",
+  "description": "Professional NEC 2023 Electrical Estimating — SaaS",
   "private": true,
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/camera": "^8.2.0",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@supabase/supabase-js": "^2.45.0",
     "plaid": "^26.0.0",
     "react": "^18.3.1",
@@ -39,5 +47,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5"
   }
 }

@@ -1,5 +1,6 @@
 // src/lib/supabase.js
 import { createClient } from "@supabase/supabase-js";
+import { PUBLIC_ORIGIN } from "./nativeBridge";
 
 const supabaseUrl  = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnon = process.env.REACT_APP_SUPABASE_ANON_KEY;
@@ -126,7 +127,7 @@ export const signUp = async ({ email, password, fullName }) => {
     email, password,
     options: {
       data: { full_name: fullName },
-      emailRedirectTo: `${window.location.origin}/`,
+      emailRedirectTo: `${PUBLIC_ORIGIN}/`,
     },
   });
   return { data, error };
@@ -145,7 +146,7 @@ export const signOut = async () => {
 
 export const resetPassword = async (email) => {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/`,
+    redirectTo: `${PUBLIC_ORIGIN}/`,
   });
   return { error };
 };
