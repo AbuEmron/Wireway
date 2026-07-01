@@ -3,8 +3,12 @@ package com.wirewaypro.app.domain.repository
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.model.QuoteSummary
+import kotlinx.coroutines.flow.Flow
 
 interface QuoteRepository {
+    /** Live count of quotes with local changes still waiting to sync (pending or errored). */
+    fun pendingSyncCount(): Flow<Int>
+
     /** Quotes that are NOT in invoice mode (estimates), newest first. */
     suspend fun getEstimates(userId: String): Result<List<QuoteSummary>>
 

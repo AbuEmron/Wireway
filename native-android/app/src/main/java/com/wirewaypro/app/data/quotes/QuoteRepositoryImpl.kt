@@ -47,6 +47,8 @@ class QuoteRepositoryImpl @Inject constructor(
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    override fun pendingSyncCount() = dao.pendingCount()
+
     /** Builds the local row from the exact push payload, tagged with a sync state. */
     private fun localEntity(
         userId: String,

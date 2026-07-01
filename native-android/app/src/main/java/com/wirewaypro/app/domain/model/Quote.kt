@@ -22,6 +22,15 @@ enum class RateMode(val value: String) {
  *
  * [QuoteSummary] is the list-row projection; [QuoteDetail] is the full record.
  */
+/**
+ * Offline-first sync state of a locally-held record.
+ *  - [SYNCED]  — matches the server; nothing pending.
+ *  - [PENDING] — created/edited/deleted locally, waiting to push.
+ *  - [ERROR]   — the server rejected the push; kept locally so it's never lost,
+ *                surfaced so the user can retry.
+ */
+enum class SyncState { SYNCED, PENDING, ERROR }
+
 data class QuoteSummary(
     val id: String,
     val quoteNumber: String?,
@@ -34,6 +43,7 @@ data class QuoteSummary(
     val invoiceDueDate: String?,
     val invoicePaid: Boolean,
     val paidAt: String?,
+    val syncState: SyncState = SyncState.SYNCED,
 )
 
 data class QuoteDetail(

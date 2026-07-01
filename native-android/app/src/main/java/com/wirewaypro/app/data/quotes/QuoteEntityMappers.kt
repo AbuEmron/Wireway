@@ -4,6 +4,7 @@ import com.wirewaypro.app.data.local.QuoteEntity
 import com.wirewaypro.app.data.local.SyncStatus
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteSummary
+import com.wirewaypro.app.domain.model.SyncState
 import kotlinx.serialization.json.Json
 
 /**
@@ -58,4 +59,9 @@ fun QuoteEntity.toSummary(): QuoteSummary = QuoteSummary(
     invoiceDueDate = invoiceDueDate,
     invoicePaid = invoicePaid,
     paidAt = paidAt,
+    syncState = when (syncStatus) {
+        SyncStatus.PENDING -> SyncState.PENDING
+        SyncStatus.ERROR -> SyncState.ERROR
+        else -> SyncState.SYNCED
+    },
 )
