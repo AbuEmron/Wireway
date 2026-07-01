@@ -15,13 +15,22 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * update. [fallbackToDestructiveMigration] stays only as a last-resort backstop.
  */
 @Database(
-    entities = [QuoteEntity::class, QuoteDraftEntity::class],
-    version = 2,
+    entities = [
+        QuoteEntity::class,
+        QuoteDraftEntity::class,
+        JobEntity::class,
+        ClientEntity::class,
+        JobDrawEntity::class,
+    ],
+    version = 3,
     exportSchema = false,
 )
 abstract class WirewayDatabase : RoomDatabase() {
     abstract fun quoteDao(): QuoteDao
     abstract fun quoteDraftDao(): QuoteDraftDao
+    abstract fun jobDao(): JobDao
+    abstract fun clientDao(): ClientDao
+    abstract fun jobDrawDao(): JobDrawDao
 
     companion object {
         const val NAME = "wireway.db"
@@ -36,6 +45,45 @@ abstract class WirewayDatabase : RoomDatabase() {
                         "`updatedAt` INTEGER NOT NULL, " +
                         "PRIMARY KEY(`draftKey`))",
                 )
+            }
+        }
+
+        /** v2 → v3: add jobs, clients, and job_draws offline tables (additive). */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `jobs` (" +
+                        "`id` TEXT NOT NULL, `userId` TEXT NOT NULL, " +
+                        "`scheduledDate` TEXT, `createdAt` TEXT, `payloadJson` TEXT NOT NULL, " +
+                        "`syncStatus` TEXT NOT NULL, `deleted` INTEGER NOT NULL, " +
+                        "`updatedAt` INTEGER NOT NULL, `syncAttempts` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`id`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_jobs_userId` ON `jobs` (`userId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_jobs_syncStatus` ON `jobs` (`syncStatus`)")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `clients` (" +
+                        "`id` TEXT NOT NULL, `userId` TEXT NOT NULL, " +
+                        "`name` TEXT NOT NULL, `createdAt` TEXT, `payloadJson` TEXT NOT NULL, " +
+                        "`syncStatus` TEXT NOT NULL, `deleted` INTEGER NOT NULL, " +
+                        "`updatedAt` INTEGER NOT NULL, `syncAttempts` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`id`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_clients_userId` ON `clients` (`userId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_clients_syncStatus` ON `clients` (`syncStatus`)")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `job_draws` (" +
+                        "`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `jobId` TEXT NOT NULL, " +
+                        "`status` TEXT NOT NULL, `dueDate` TEXT, `sortOrder` INTEGER NOT NULL, " +
+                        "`payloadJson` TEXT NOT NULL, `syncStatus` TEXT NOT NULL, " +
+                        "`deleted` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, " +
+                        "`syncAttempts` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_job_draws_jobId` ON `job_draws` (`jobId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_job_draws_userId` ON `job_draws` (`userId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_job_draws_syncStatus` ON `job_draws` (`syncStatus`)")
             }
         }
     }
