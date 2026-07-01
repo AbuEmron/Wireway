@@ -1,5 +1,7 @@
 package com.wirewaypro.app.data.local
 
+import com.wirewaypro.app.domain.model.SyncState
+
 /**
  * Per-row sync state for offline-first entities. Stored as a plain String column
  * so it survives Room schema evolution without an enum TypeConverter.
@@ -13,4 +15,11 @@ object SyncStatus {
     const val SYNCED = "synced"
     const val PENDING = "pending"
     const val ERROR = "error"
+}
+
+/** Maps the stored [SyncStatus] string to the domain [SyncState] shown in the UI. */
+fun String.toSyncState(): SyncState = when (this) {
+    SyncStatus.PENDING -> SyncState.PENDING
+    SyncStatus.ERROR -> SyncState.ERROR
+    else -> SyncState.SYNCED
 }

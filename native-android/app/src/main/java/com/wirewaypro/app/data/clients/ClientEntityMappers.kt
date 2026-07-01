@@ -2,6 +2,7 @@ package com.wirewaypro.app.data.clients
 
 import com.wirewaypro.app.data.local.ClientEntity
 import com.wirewaypro.app.data.local.SyncStatus
+import com.wirewaypro.app.data.local.toSyncState
 import com.wirewaypro.app.domain.model.Client
 import kotlinx.serialization.json.Json
 
@@ -29,3 +30,4 @@ fun ClientDto.toEntity(
 
 fun ClientEntity.toDomain(): Client =
     entityJson.decodeFromString(ClientDto.serializer(), payloadJson).toDomain()
+        .copy(syncState = syncStatus.toSyncState())

@@ -2,6 +2,7 @@ package com.wirewaypro.app.data.jobs
 
 import com.wirewaypro.app.data.local.JobEntity
 import com.wirewaypro.app.data.local.SyncStatus
+import com.wirewaypro.app.data.local.toSyncState
 import com.wirewaypro.app.domain.model.Job
 import kotlinx.serialization.json.Json
 
@@ -29,3 +30,4 @@ fun JobDto.toEntity(
 
 fun JobEntity.toDomain(): Job =
     entityJson.decodeFromString(JobDto.serializer(), payloadJson).toDomain()
+        .copy(syncState = syncStatus.toSyncState())

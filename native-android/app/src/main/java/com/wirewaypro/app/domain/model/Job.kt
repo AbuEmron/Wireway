@@ -19,6 +19,7 @@ data class Job(
     val status: String?,        // scheduled | in_progress | complete | cancelled
     val total: Double?,
     val createdAt: String?,
+    val syncState: SyncState = SyncState.SYNCED,
 )
 
 /** Everything the job editor can write. Mirrors the `jobs` columns. */
