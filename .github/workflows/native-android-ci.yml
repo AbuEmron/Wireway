@@ -57,6 +57,41 @@ jobs:
           path: native-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
+      # ── Signed release AAB for Play ──────────────────────────────────────────
+      # Runs only when the owner has added the upload-key secrets:
+      #   WIREWAY_UPLOAD_KEYSTORE_B64 (base64 of the PWABuilder upload keystore),
+      #   WIREWAY_KEYSTORE_PASSWORD, WIREWAY_KEY_ALIAS, WIREWAY_KEY_PASSWORD
+      - name: Prepare upload keystore
+        id: uploadkey
+        env:
+          KEYSTORE_B64: ${{ secrets.WIREWAY_UPLOAD_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > /tmp/wireway-upload.keystore
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "Upload keystore secrets not set — skipping release AAB."
+          fi
+
+      - name: Build signed release AAB
+        if: steps.uploadkey.outputs.have == 'true'
+        working-directory: native-android
+        env:
+          WIREWAY_KEYSTORE_FILE: /tmp/wireway-upload.keystore
+          WIREWAY_KEYSTORE_PASSWORD: ${{ secrets.WIREWAY_KEYSTORE_PASSWORD }}
+          WIREWAY_KEY_ALIAS: ${{ secrets.WIREWAY_KEY_ALIAS }}
+          WIREWAY_KEY_PASSWORD: ${{ secrets.WIREWAY_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --stacktrace
+
+      - name: Upload release AAB artifact
+        if: steps.uploadkey.outputs.have == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wireway-native-release-aab
+          path: native-android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
       # Every green build refreshes the permanent download link:
       # https://github.com/AbuEmron/Wireway/releases/download/android-test-430d3a2/wireway-pro.apk
       - name: Publish APK to the rolling test release
