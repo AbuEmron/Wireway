@@ -1,5 +1,6 @@
 package com.wirewaypro.app.data.offline
 
+import com.wirewaypro.app.data.local.QuoteDao
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +31,7 @@ class SyncManager @Inject constructor(
     private val client: SupabaseClient,
     private val queue: OfflineQueue,
     private val network: NetworkMonitor,
+    private val quoteDao: QuoteDao,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true }
@@ -48,25 +50,49 @@ class SyncManager @Inject constructor(
         try {
             for (item in queue.all()) {
                 try {
-                    val body = json.parseToJsonElement(item.payload) as? JsonObject
-                    if (body == null) {
-                        // Unparseable payload — drop it; can't ever succeed.
-                        queue.remove(item.id)
-                        continue
-                    }
                     when (item.mode) {
-                        "upsert" -> client.postgrest.from(item.table).upsert(body)
-                        else -> client.postgrest.from(item.table).insert(body)
+                        "delete" -> client.postgrest.from(item.table)
+                            .delete { filter { eq("id", item.id); eq("user_id", item.userId) } }
+                        else -> {
+                            val body = json.parseToJsonElement(item.payload) as? JsonObject
+                            if (body == null) {
+                                // Unparseable payload — drop it; can't ever succeed.
+                                queue.remove(item.id)
+                                continue
+                            }
+                            if (item.mode == "upsert") client.postgrest.from(item.table).upsert(body)
+                            else client.postgrest.from(item.table).insert(body)
+                        }
                     }
                     queue.remove(item.id)
+                    reflectSuccess(item)
                 } catch (e: Exception) {
                     if (isConnectivityError(e)) break // still offline — retry later
                     val attempts = queue.bumpAttempts(item.id)
-                    if (attempts >= 5) queue.remove(item.id)
+                    if (attempts >= 5) {
+                        // Don't silently drop the user's write: surface it as an
+                        // error state they can retry, then stop the retry loop.
+                        reflectError(item)
+                        queue.remove(item.id)
+                    }
                 }
             }
         } finally {
             flushing.set(false)
         }
+    }
+
+    /**
+     * Mirror a queued push's outcome into the Room source of truth. Only quotes
+     * are Room-backed today (expenses still live in the queue alone), so this is
+     * a no-op for other tables until they migrate.
+     */
+    private suspend fun reflectSuccess(item: QueuedSave) {
+        if (item.table != "quotes") return
+        if (item.mode == "delete") quoteDao.hardDelete(item.id) else quoteDao.markSynced(item.id)
+    }
+
+    private suspend fun reflectError(item: QueuedSave) {
+        if (item.table == "quotes") quoteDao.markError(item.id)
     }
 }

@@ -45,6 +45,18 @@ interface QuoteDao {
     @Query("SELECT COUNT(*) FROM quotes WHERE syncStatus != '${SyncStatus.SYNCED}'")
     fun pendingCount(): Flow<Int>
 
+    /** After a queued write pushes successfully: the local row now matches the server. */
+    @Query("UPDATE quotes SET syncStatus = '${SyncStatus.SYNCED}', syncAttempts = 0 WHERE id = :id")
+    suspend fun markSynced(id: String)
+
+    /**
+     * The server rejected the push for good (bad data / auth). Keep the row —
+     * the user's edit is never silently dropped — but flag it so the UI can show
+     * a "couldn't sync — retry" state instead of pretending it saved.
+     */
+    @Query("UPDATE quotes SET syncStatus = '${SyncStatus.ERROR}' WHERE id = :id")
+    suspend fun markError(id: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(quote: QuoteEntity)
 
