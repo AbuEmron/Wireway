@@ -1,6 +1,8 @@
 package com.wirewaypro.app.data.jobs
 
 import com.wirewaypro.app.data.local.JobDao
+import com.wirewaypro.app.data.local.JobDrawDao
+import com.wirewaypro.app.data.local.JobDrawEntity
 import com.wirewaypro.app.data.local.JobEntity
 import com.wirewaypro.app.data.local.SyncStatus
 import com.wirewaypro.app.data.offline.NetworkMonitor
@@ -32,6 +34,7 @@ class JobRepositoryImpl @Inject constructor(
     private val queue: OfflineQueue,
     private val network: NetworkMonitor,
     private val dao: JobDao,
+    private val drawDao: JobDrawDao,
 ) : JobRepository {
 
     private fun jobs() = client.postgrest.from("jobs")
@@ -73,29 +76,54 @@ class JobRepositoryImpl @Inject constructor(
             ?: error("Job not found.")
     }
 
-    override suspend fun getJobDraws(jobId: String): Result<List<JobDraw>> = runCatching {
-        draws()
+    /** Mirror a job's draws from Supabase, preserving unsynced local rows (LWW). */
+    private suspend fun refreshDraws(jobId: String) {
+        if (!network.isOnline()) return
+        val rows = draws()
             .select {
                 filter { eq("job_id", jobId) }
                 order("sort_order", Order.ASCENDING)
             }
             .decodeList<JobDrawDto>()
-            .map { it.toDomain() }
+        val now = System.currentTimeMillis()
+        val pendingIds = drawDao.pending().mapTo(HashSet()) { it.id }
+        drawDao.upsertAll(
+            rows.filter { it.id !in pendingIds }.map { it.toEntity(fallbackJobId = jobId, updatedAt = now) },
+        )
+        val serverIds = rows.mapTo(HashSet()) { it.id }
+        drawDao.allIdsForJob(jobId).forEach { id ->
+            if (id !in serverIds && id !in pendingIds) drawDao.hardDelete(id)
+        }
+    }
+
+    override suspend fun getJobDraws(jobId: String): Result<List<JobDraw>> = runCatching {
+        runCatching { refreshDraws(jobId) } // offline → serve the cache
+        drawDao.observeForJob(jobId).first().map { it.toDomain() }
     }
 
     override suspend fun getDuePendingDraws(userId: String, onOrBeforeDate: String): Result<List<JobDraw>> =
         runCatching {
-            draws()
-                .select {
-                    filter {
-                        eq("user_id", userId)
-                        eq("status", "pending")
-                        lte("due_date", onOrBeforeDate)
-                    }
-                    order("due_date", Order.ASCENDING)
+            // Best-effort refresh (no prune — this is a cross-job query), then read Room.
+            if (network.isOnline()) {
+                runCatching {
+                    val rows = draws()
+                        .select {
+                            filter {
+                                eq("user_id", userId)
+                                eq("status", "pending")
+                                lte("due_date", onOrBeforeDate)
+                            }
+                            order("due_date", Order.ASCENDING)
+                        }
+                        .decodeList<JobDrawDto>()
+                    val now = System.currentTimeMillis()
+                    val pendingIds = drawDao.pending().mapTo(HashSet()) { it.id }
+                    drawDao.upsertAll(
+                        rows.filter { it.id !in pendingIds }.map { it.toEntity(fallbackUserId = userId, updatedAt = now) },
+                    )
                 }
-                .decodeList<JobDrawDto>()
-                .map { it.toDomain() }
+            }
+            drawDao.duePending(userId, onOrBeforeDate).map { it.toDomain() }
         }
 
     override suspend fun saveJob(userId: String, input: JobInput): Result<Job> = runCatching {
@@ -181,7 +209,9 @@ class JobRepositoryImpl @Inject constructor(
             .copy(createdAt = createdAt, deleted = false)
 
     override suspend fun saveDraw(userId: String, input: JobDrawInput): Result<JobDraw> = runCatching {
+        val rowId = input.id ?: UUID.randomUUID().toString()
         val payload = buildJsonObject {
+            put("id", rowId)
             put("user_id", userId)
             put("job_id", input.jobId)
             put("label", input.label)
@@ -191,19 +221,52 @@ class JobRepositoryImpl @Inject constructor(
             put("due_date", IsoDate.normalizeOrNull(input.dueDate))
             put("sort_order", input.sortOrder)
         }
-        val saved = if (input.id == null) {
-            draws().insert(payload) { select() }.decodeSingle<JobDrawDto>()
-        } else {
-            draws().update(payload) {
-                filter { eq("id", input.id); eq("user_id", userId) }
-                select()
-            }.decodeSingle<JobDrawDto>()
+        val now = System.currentTimeMillis()
+
+        // 1) Write-through to Room first.
+        drawDao.upsert(localDraw(userId, input.jobId, payload, SyncStatus.PENDING, now))
+
+        // 2) Push if online.
+        if (network.isOnline()) {
+            try {
+                val saved = if (input.id == null) {
+                    draws().insert(payload) { select() }.decodeSingle<JobDrawDto>()
+                } else {
+                    draws().update(payload) {
+                        filter { eq("id", rowId); eq("user_id", userId) }
+                        select()
+                    }.decodeSingle<JobDrawDto>()
+                }
+                drawDao.upsert(saved.toEntity(userId, input.jobId, updatedAt = now, syncStatus = SyncStatus.SYNCED))
+                return@runCatching saved.toDomain()
+            } catch (e: Exception) {
+                if (!isConnectivityError(e)) {
+                    drawDao.markError(rowId)
+                    throw e
+                }
+            }
         }
-        saved.toDomain()
+
+        // 3) Offline — row stays PENDING; enqueue the upsert for later.
+        queue.enqueue(QueuedSave(rowId, "job_draws", "upsert", payload.toString(), userId, now))
+        json.decodeFromJsonElement(JobDrawDto.serializer(), payload).toDomain()
     }
 
     override suspend fun deleteDraw(userId: String, drawId: String): Result<Unit> = runCatching {
-        draws().delete { filter { eq("id", drawId); eq("user_id", userId) } }
+        val now = System.currentTimeMillis()
+        if (network.isOnline()) {
+            try {
+                draws().delete { filter { eq("id", drawId); eq("user_id", userId) } }
+                drawDao.hardDelete(drawId)
+                return@runCatching
+            } catch (e: Exception) {
+                if (!isConnectivityError(e)) throw e
+            }
+        }
+        drawDao.getById(drawId)?.let {
+            drawDao.upsert(it.copy(deleted = true, syncStatus = SyncStatus.PENDING, updatedAt = now))
+        }
+        queue.enqueue(QueuedSave(drawId, "job_draws", "delete", "{}", userId, now))
     }
 
     override suspend fun setDrawStatus(
@@ -211,14 +274,57 @@ class JobRepositoryImpl @Inject constructor(
         drawId: String,
         status: String,
     ): Result<JobDraw> = runCatching {
-        val payload = buildJsonObject {
+        val row = drawDao.getById(drawId) ?: error("Draw not found.")
+        val now = System.currentTimeMillis()
+        // Patch the FULL cached row so an offline upsert replays every column.
+        val patched = patchPayload(row.payloadJson) {
             put("status", status)
             if (status == "invoiced") put("invoiced_at", Instant.now().toString())
             if (status == "paid") put("paid_at", Instant.now().toString())
         }
-        draws().update(payload) {
-            filter { eq("id", drawId); eq("user_id", userId) }
-            select()
-        }.decodeSingle<JobDrawDto>().toDomain()
+
+        // 1) Write-through to Room first.
+        drawDao.upsert(row.copy(status = status, payloadJson = patched.toString(), syncStatus = SyncStatus.PENDING, updatedAt = now))
+
+        // 2) Push if online.
+        if (network.isOnline()) {
+            try {
+                val saved = draws().update(patched) {
+                    filter { eq("id", drawId); eq("user_id", userId) }
+                    select()
+                }.decodeSingle<JobDrawDto>()
+                drawDao.upsert(saved.toEntity(userId, row.jobId, updatedAt = now, syncStatus = SyncStatus.SYNCED))
+                return@runCatching saved.toDomain()
+            } catch (e: Exception) {
+                if (!isConnectivityError(e)) {
+                    drawDao.markError(drawId)
+                    throw e
+                }
+            }
+        }
+
+        // 3) Offline — row stays PENDING; enqueue the upsert for later.
+        queue.enqueue(QueuedSave(drawId, "job_draws", "upsert", patched.toString(), userId, now))
+        json.decodeFromJsonElement(JobDrawDto.serializer(), patched).toDomain()
+    }
+
+    /** Local draw row built from the exact push payload, tagged with a sync state. */
+    private fun localDraw(
+        userId: String,
+        jobId: String,
+        payload: JsonObject,
+        syncStatus: String,
+        updatedAt: Long,
+    ): JobDrawEntity =
+        json.decodeFromJsonElement(JobDrawDto.serializer(), payload)
+            .toEntity(fallbackUserId = userId, fallbackJobId = jobId, updatedAt = updatedAt, syncStatus = syncStatus)
+
+    /** Returns [payloadJson] parsed and merged with [changes] (adds/overrides keys). */
+    private fun patchPayload(payloadJson: String, changes: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit): JsonObject {
+        val base = json.parseToJsonElement(payloadJson) as JsonObject
+        return buildJsonObject {
+            base.forEach { (k, v) -> put(k, v) }
+            changes()
+        }
     }
 }
