@@ -6,6 +6,10 @@ on:
     branches:
       - feature/native-android
 
+# Needed so the build can clobber the rolling release asset (wireway-pro.apk).
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build debug APK
@@ -52,3 +56,13 @@ jobs:
           name: wireway-native-debug-apk
           path: native-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      # Every green build refreshes the permanent download link:
+      # https://github.com/AbuEmron/Wireway/releases/download/android-test-430d3a2/wireway-pro.apk
+      - name: Publish APK to the rolling test release
+        if: github.ref == 'refs/heads/feature/native-android'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp native-android/app/build/outputs/apk/debug/app-debug.apk wireway-pro.apk
+          gh release upload android-test-430d3a2 wireway-pro.apk --clobber -R "$GITHUB_REPOSITORY"
