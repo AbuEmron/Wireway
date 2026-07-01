@@ -29,6 +29,12 @@ interface QuoteRepository {
     suspend fun deleteQuote(userId: String, quoteId: String): Result<Unit>
 
     /** Marks an invoice paid/unpaid (sets invoice_paid, paid_at, status). */
+    /**
+     * Marks an estimate accepted with a typed client signature (same fields the
+     * web accept page writes: sig_name / sig_date / signed_at + status).
+     */
+    suspend fun markAccepted(userId: String, quoteId: String, signedName: String): Result<QuoteDetail>
+
     suspend fun setInvoicePaid(userId: String, quoteId: String, paid: Boolean): Result<QuoteDetail>
 
     /** Sets (or clears) an invoice's due date. */

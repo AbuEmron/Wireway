@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -25,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +47,7 @@ import com.wirewaypro.app.domain.model.QuoteLineItem
 import com.wirewaypro.app.domain.model.RateMode
 import com.wirewaypro.app.ui.components.ConfirmDialog
 import com.wirewaypro.app.ui.components.DetailScaffold
+import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.InfoRow
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.StatusChip
@@ -71,6 +74,7 @@ fun QuoteDetailScreen(
 
     var confirmDelete by remember { mutableStateOf(false) }
     var editDueDate by remember { mutableStateOf(false) }
+    var acceptOpen by remember { mutableStateOf(false) }
 
     com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::load)
     LaunchedEffect(state.deleted) { if (state.deleted) onBack() }
@@ -136,6 +140,30 @@ fun QuoteDetailScreen(
                             modifier = Modifier.weight(1f),
                         ) {
                             Text("Due date")
+                        }
+                    }
+                }
+            }
+
+            if (!quote.isInvoice) {
+                SectionCard(title = "Acceptance") {
+                    if (quote.sigName != null) {
+                        InfoRow("Accepted by", quote.sigName!!)
+                        quote.signedAt?.let { InfoRow("On", Format.date(it.take(10))) }
+                        quote.depositDue?.let { dep -> InfoRow("Deposit due now", Format.money(dep)) }
+                    } else {
+                        Text(
+                            "Client ready to go? Have them accept right on your phone \u2014 it stamps their name, the date and the time onto this estimate.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.padding(top = 10.dp))
+                        Button(
+                            onClick = { acceptOpen = true },
+                            enabled = !state.busy,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Client accepts \u2014 sign in person")
                         }
                     }
                 }
@@ -238,6 +266,32 @@ fun QuoteDetailScreen(
             message = "This permanently deletes this record.",
             onConfirm = { confirmDelete = false; viewModel.delete() },
             onDismiss = { confirmDelete = false },
+        )
+    }
+
+    if (acceptOpen) {
+        var signedName by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { acceptOpen = false },
+            title = { Text("Accept this estimate") },
+            text = {
+                Column {
+                    Text(
+                        "By signing, " + (state.quote?.clientName ?: "the client") +
+                            " agrees to the work and price in this estimate" +
+                            (state.quote?.depositDue?.let { ", with a deposit of " + Format.money(it) + " due now." } ?: "."),
+                    )
+                    Spacer(Modifier.padding(top = 10.dp))
+                    FormField(signedName, { signedName = it }, "Client's full name (signature)")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.acceptInPerson(signedName); acceptOpen = false },
+                    enabled = signedName.trim().length >= 2,
+                ) { Text("Accept estimate") }
+            },
+            dismissButton = { TextButton(onClick = { acceptOpen = false }) { Text("Cancel") } },
         )
     }
 

@@ -89,6 +89,19 @@ class QuoteDetailViewModel @Inject constructor(
         }
     }
 
+    /** In-person acceptance: typed client signature marks the estimate accepted. */
+    fun acceptInPerson(name: String) {
+        val userId = auth.currentUserId() ?: return
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        _state.update { it.copy(busy = true, error = null) }
+        viewModelScope.launch {
+            quoteRepository.markAccepted(userId, quoteId, trimmed)
+                .onSuccess { updated -> _state.update { it.copy(busy = false, quote = updated) } }
+                .onFailure { e -> _state.update { it.copy(busy = false, error = e.message ?: "Couldn't record the acceptance.") } }
+        }
+    }
+
     fun delete() {
         val userId = auth.currentUserId() ?: return
         viewModelScope.launch {

@@ -50,7 +50,7 @@ object QuotePdfGenerator {
         drawTotals(state, quote)
         drawNotes(state, quote)
         drawTerms(state)
-        drawSignature(state, business)
+        drawSignature(state, business, quote)
         drawFooter(state)
 
         doc.finishPage(state.page)
@@ -162,9 +162,25 @@ object QuotePdfGenerator {
         s.y += 8f
     }
 
-    private fun drawSignature(s: PageState, business: BusinessInfo?) {
+    private fun drawSignature(s: PageState, business: BusinessInfo?, q: QuoteDetail? = null) {
         s.ensure(70f)
         val who = business?.name?.takeIf { it.isNotBlank() } ?: "the contractor"
+        // Already accepted: print the recorded acceptance instead of blank lines.
+        val sig = q?.sigName?.takeIf { it.isNotBlank() }
+        if (sig != null) {
+            val date = q.signedAt?.take(10)
+            wrap(
+                "Accepted by $sig" + (date?.let { " on $it" } ?: "") +
+                    " \u2014 signature recorded in person in Wireway Pro.",
+                paint(INK, 10f),
+                RIGHT - MARGIN,
+            ).forEach { line ->
+                s.canvas.drawText(line, MARGIN, s.y + 11f, paint(INK, 10f, bold = true))
+                s.y += 14f
+            }
+            s.y += 10f
+            return
+        }
         wrap(
             "By signing below, you authorize $who to proceed with the work described above.",
             paint(INK, 10f),

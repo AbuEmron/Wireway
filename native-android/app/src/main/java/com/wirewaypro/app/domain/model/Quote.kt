@@ -75,6 +75,9 @@ data class QuoteDetail(
     val taxRate: Double?,
     /** Whole-percent deposit required to accept this estimate (null/0 = none). */
     val depositPercent: Int? = null,
+    /** Typed client signature (in-person or web accept) + when it happened. */
+    val sigName: String? = null,
+    val signedAt: String? = null,
     val rateMode: RateMode,
     // Display merge of catalog `entries` + `custom_items` (read-only screens).
     val lineItems: List<QuoteLineItem>,

@@ -298,6 +298,23 @@ class QuoteRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun markAccepted(
+        userId: String,
+        quoteId: String,
+        signedName: String,
+    ): Result<QuoteDetail> = runCatching {
+        val payload = buildJsonObject {
+            put("status", "accepted")
+            put("sig_name", signedName)
+            put("sig_date", java.time.LocalDate.now().toString())
+            put("signed_at", Instant.now().toString())
+        }
+        quotes().update(payload) {
+            filter { eq("id", quoteId); eq("user_id", userId) }
+            select()
+        }.decodeSingle<QuoteDto>().toDetail()
+    }
+
     override suspend fun setInvoicePaid(
         userId: String,
         quoteId: String,
