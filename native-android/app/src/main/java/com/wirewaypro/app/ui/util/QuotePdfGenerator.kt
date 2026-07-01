@@ -268,6 +268,15 @@ object QuotePdfGenerator {
         s.canvas.drawText("TOTAL", labelX, s.y + 14f, paint(INK, 13f, bold = true, align = Paint.Align.RIGHT))
         s.canvas.drawText(money(q.total), RIGHT, s.y + 14f, paint(ACCENT, 14f, bold = true, align = Paint.Align.RIGHT))
         s.y += 28f
+        if (!q.isInvoice) {
+            q.depositDue?.let { dep ->
+                s.canvas.drawText(
+                    "Deposit due on acceptance (${q.depositPercent}%): ${money(dep)}",
+                    RIGHT, s.y + 6f, paint(MUTED, 10f, align = Paint.Align.RIGHT),
+                )
+                s.y += 20f
+            }
+        }
     }
 
     private fun drawNotes(s: PageState, q: QuoteDetail) {

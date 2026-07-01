@@ -73,6 +73,7 @@ data class QuoteBuilderUiState(
     val clientBuysAll: Boolean = false,   // true = client supplies materials (labor only)
     val taxEnabled: Boolean = false,
     val taxRatePct: String = "8",
+    val depositPct: String = "",   // whole % of total due to accept ("" = none)
     val invoiceDueDate: String = "",
     val invoicePaid: Boolean = false,
     val catalogItems: List<CatalogEntryUi> = emptyList(),
@@ -174,6 +175,7 @@ class QuoteBuilderViewModel @Inject constructor(
         clientBuysAll = clientBuysAll,
         taxEnabled = taxEnabled,
         taxRatePct = taxRatePct,
+        depositPct = depositPct,
         invoiceDueDate = invoiceDueDate,
         invoicePaid = invoicePaid,
         catalogItems = catalogItems.map { DraftCatalogEntry(it.serviceId, it.qty, it.variantIdx, it.clientBuys) },
@@ -198,6 +200,7 @@ class QuoteBuilderViewModel @Inject constructor(
                 clientBuysAll = d.clientBuysAll,
                 taxEnabled = d.taxEnabled,
                 taxRatePct = d.taxRatePct,
+                depositPct = d.depositPct,
                 invoiceDueDate = d.invoiceDueDate,
                 invoicePaid = d.invoicePaid,
                 catalogItems = d.catalogItems.map { CatalogEntryUi(it.serviceId, it.qty, it.variantIdx, it.clientBuys) },
@@ -261,6 +264,7 @@ class QuoteBuilderViewModel @Inject constructor(
                 clientBuysAll = q.clientBuysAll,
                 taxEnabled = q.taxEnabled,
                 taxRatePct = pctText(q.taxRate ?: 0.08),
+                depositPct = q.depositPercent?.takeIf { it > 0 }?.toString().orEmpty(),
                 invoiceDueDate = q.invoiceDueDate.orEmpty(),
                 invoicePaid = q.invoicePaid,
                 catalogItems = q.catalogEntries.map { e ->
@@ -357,6 +361,7 @@ class QuoteBuilderViewModel @Inject constructor(
         return s.jobName.ifBlank { null }?.let { "$it — $base" } ?: base
     }
     fun setTaxRatePct(v: String) = _state.update { it.copy(taxRatePct = v) }
+    fun setDepositPct(v: String) = _state.update { it.copy(depositPct = v) }
     fun setInvoiceMode(v: Boolean) = _state.update { it.copy(isInvoice = v) }
     fun setInvoiceDueDate(v: String) = _state.update { it.copy(invoiceDueDate = v) }
     fun setInvoicePaid(v: Boolean) = _state.update { it.copy(invoicePaid = v) }
@@ -461,6 +466,7 @@ class QuoteBuilderViewModel @Inject constructor(
             rateMode = s.rateMode,
             taxEnabled = s.taxEnabled,
             taxRate = s.taxRatePct.toD() / 100.0,
+            depositPercent = s.depositPct.trim().toDoubleOrNull()?.let { kotlin.math.round(it).toInt() }?.coerceIn(0, 100)?.takeIf { it > 0 },
             invoiceMode = s.isInvoice,
             invoiceDueDate = s.invoiceDueDate.ifBlank { null },
             invoicePaid = s.invoicePaid,

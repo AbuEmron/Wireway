@@ -186,6 +186,12 @@ fun QuoteDetailScreen(
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
+                if (!quote.isInvoice) {
+                    quote.depositDue?.let { dep ->
+                        Spacer(Modifier.padding(top = 6.dp))
+                        InfoRow("Deposit to accept (${quote.depositPercent}%)", Format.money(dep))
+                    }
+                }
                 if (quote.rateMode == RateMode.HOURLY) {
                     Spacer(Modifier.padding(top = 6.dp))
                     Text(

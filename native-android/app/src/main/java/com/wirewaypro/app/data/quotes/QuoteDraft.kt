@@ -27,6 +27,7 @@ data class QuoteDraft(
     val clientBuysAll: Boolean = false,
     val taxEnabled: Boolean = false,
     val taxRatePct: String = "8",
+    val depositPct: String = "",
     val invoiceDueDate: String = "",
     val invoicePaid: Boolean = false,
     val catalogItems: List<DraftCatalogEntry> = emptyList(),

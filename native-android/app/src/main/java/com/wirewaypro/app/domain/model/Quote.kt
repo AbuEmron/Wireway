@@ -73,6 +73,8 @@ data class QuoteDetail(
     val markup: Double?,
     val hourlyRate: Double?,
     val taxRate: Double?,
+    /** Whole-percent deposit required to accept this estimate (null/0 = none). */
+    val depositPercent: Int? = null,
     val rateMode: RateMode,
     // Display merge of catalog `entries` + `custom_items` (read-only screens).
     val lineItems: List<QuoteLineItem>,
@@ -80,7 +82,13 @@ data class QuoteDetail(
     val customItems: List<QuoteCustomItem>,
     // The editable catalog selections (parsed from `entries`), for the builder.
     val catalogEntries: List<QuoteCatalogEntry>,
-)
+) {
+    /** Deposit due on acceptance ([depositPercent] of the headline total). */
+    val depositDue: Double?
+        get() = depositPercent?.takeIf { it > 0 }?.let { pct ->
+            total?.let { MoneyMath.round2(it * pct / 100.0) }
+        }
+}
 
 /**
  * A selected catalog service — the `entries` JSON shape the web app writes,
@@ -125,6 +133,7 @@ data class QuoteInput(
     val rateMode: RateMode,     // whole-quote pricing mode (flat catalog vs hourly)
     val taxEnabled: Boolean,
     val taxRate: Double,        // fraction, e.g. 0.08
+    val depositPercent: Int?,   // whole percent required to accept (null = none)
     val invoiceMode: Boolean,   // true = invoice, false = estimate
     val invoiceDueDate: String?,
     val invoicePaid: Boolean,

@@ -169,6 +169,8 @@ class QuoteRepositoryImpl @Inject constructor(
             put("invoice_paid", input.invoicePaid)
             put("tax_enabled", input.taxEnabled)
             put("tax_rate", input.taxRate)
+            // deposit_percent is an INTEGER column — whole percent or null.
+            put("deposit_percent", input.depositPercent)
             put("entries", entriesJson)
             put("custom_items", customItemsJson)
             put("total_material", totals.totalMaterial)

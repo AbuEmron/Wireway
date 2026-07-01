@@ -239,6 +239,18 @@ fun QuoteBuilderScreen(
                     Spacer(Modifier.padding(top = 10.dp))
                     FormField(state.taxRatePct, viewModel::setTaxRatePct, "Tax rate %", keyboardType = KeyboardType.Number)
                 }
+                if (!state.isInvoice) {
+                    Spacer(Modifier.padding(top = 12.dp))
+                    FormField(state.depositPct, viewModel::setDepositPct, "Deposit % to accept (optional)", keyboardType = KeyboardType.Number)
+                    val dep = state.depositPct.trim().toDoubleOrNull()
+                    if (dep != null && dep > 0) {
+                        Text(
+                            "Client pays " + Format.money(previewDeposit(dep, totals.headlineTotal(state.rateMode, hourlyRate, state.taxEnabled, taxRate))) + " up front to accept.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 Spacer(Modifier.padding(top = 12.dp))
                 OutlinedButton(onClick = { showAdvisor = true }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Outlined.AutoAwesome, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
@@ -574,3 +586,7 @@ private fun TotalRow(label: String, value: String) {
 /** "12.0" -> "12", "12.5" -> "12.5" for the estimated-hours display. */
 private fun hoursText(h: Double): String =
     if (h % 1.0 == 0.0) h.toLong().toString() else String.format("%.1f", h)
+
+/** Whole-% deposit preview of a headline total, rounded to cents. */
+private fun previewDeposit(pct: Double, total: Double): Double =
+    kotlin.math.round(total * pct) / 100.0
