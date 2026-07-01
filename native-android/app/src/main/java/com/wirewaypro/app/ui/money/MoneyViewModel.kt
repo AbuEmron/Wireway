@@ -25,7 +25,8 @@ data class MoneyUiState(
     val error: String? = null,
     val exporting: Boolean = false,
     val csvExport: String? = null, // one-shot: non-null when ready for the share sheet
-    val qbExport: String? = null,  // one-shot: QuickBooks CSV ready for the share sheet
+    val qbExport: String? = null,
+    val taxExport: String? = null,  // one-shot: QuickBooks CSV ready for the share sheet
 )
 
 @HiltViewModel
@@ -90,4 +91,17 @@ class MoneyViewModel @Inject constructor(
     }
 
     fun qbConsumed() = _state.update { it.copy(qbExport = null) }
+
+    /** Builds the tax-ready P&L summary CSV and hands it to the share sheet. */
+    fun exportTaxSummary() {
+        val userId = auth.currentUserId() ?: return
+        _state.update { it.copy(exporting = true) }
+        viewModelScope.launch {
+            moneyRepository.buildTaxSummaryCsv(userId, year)
+                .onSuccess { csv -> _state.update { it.copy(exporting = false, taxExport = csv) } }
+                .onFailure { _state.update { it.copy(exporting = false, error = "Couldn't build the tax summary.") } }
+        }
+    }
+
+    fun taxConsumed() = _state.update { it.copy(taxExport = null) }
 }

@@ -75,6 +75,11 @@ fun MoneyScreen(
         shareCsv(context, "wireway-quickbooks-${viewModel.year}", "Wireway ${viewModel.year} — QuickBooks import", csv)
         viewModel.qbConsumed()
     }
+    LaunchedEffect(state.taxExport) {
+        val csv = state.taxExport ?: return@LaunchedEffect
+        shareCsv(context, "wireway-tax-pnl-${viewModel.year}", "Wireway ${viewModel.year} — tax-ready P&L", csv)
+        viewModel.taxConsumed()
+    }
 
     Scaffold(
         topBar = {
@@ -119,6 +124,7 @@ fun MoneyScreen(
                     exporting = state.exporting,
                     onExportCsv = viewModel::exportCsv,
                     onExportQuickBooks = viewModel::exportQuickBooks,
+                    onExportTaxSummary = viewModel::exportTaxSummary,
                 )
             }
         }
@@ -135,6 +141,7 @@ private fun MoneyContent(
     exporting: Boolean,
     onExportCsv: () -> Unit,
     onExportQuickBooks: () -> Unit,
+    onExportTaxSummary: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -218,6 +225,19 @@ private fun MoneyContent(
                 onClick = onExportQuickBooks,
                 enabled = !exporting,
                 modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.size(10.dp))
+            GradientButton(
+                text = "Tax-ready P&L (CSV)",
+                onClick = onExportTaxSummary,
+                enabled = !exporting,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.size(8.dp))
+            Text(
+                "Tax-ready P&L: income and every expense category month by month, with net profit — one sheet for your tax preparer.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
