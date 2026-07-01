@@ -1,5 +1,8 @@
 package com.wirewaypro.app.data.offline
 
+import com.wirewaypro.app.data.local.ClientDao
+import com.wirewaypro.app.data.local.JobDao
+import com.wirewaypro.app.data.local.JobDrawDao
 import com.wirewaypro.app.data.local.QuoteDao
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -32,6 +35,9 @@ class SyncManager @Inject constructor(
     private val queue: OfflineQueue,
     private val network: NetworkMonitor,
     private val quoteDao: QuoteDao,
+    private val jobDao: JobDao,
+    private val clientDao: ClientDao,
+    private val jobDrawDao: JobDrawDao,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true }
@@ -83,16 +89,24 @@ class SyncManager @Inject constructor(
     }
 
     /**
-     * Mirror a queued push's outcome into the Room source of truth. Only quotes
-     * are Room-backed today (expenses still live in the queue alone), so this is
-     * a no-op for other tables until they migrate.
+     * Mirror a queued push's outcome into the Room source of truth, routed by
+     * table. Room-backed tables reflect success (mark synced, or hard-delete a
+     * pushed tombstone) and terminal failure (mark error, never silently drop).
+     * Tables with no local mirror yet (e.g. expenses) fall through as no-ops.
      */
-    private suspend fun reflectSuccess(item: QueuedSave) {
-        if (item.table != "quotes") return
-        if (item.mode == "delete") quoteDao.hardDelete(item.id) else quoteDao.markSynced(item.id)
+    private suspend fun reflectSuccess(item: QueuedSave) = when (item.table) {
+        "quotes" -> if (item.mode == "delete") quoteDao.hardDelete(item.id) else quoteDao.markSynced(item.id)
+        "jobs" -> if (item.mode == "delete") jobDao.hardDelete(item.id) else jobDao.markSynced(item.id)
+        "clients" -> if (item.mode == "delete") clientDao.hardDelete(item.id) else clientDao.markSynced(item.id)
+        "job_draws" -> if (item.mode == "delete") jobDrawDao.hardDelete(item.id) else jobDrawDao.markSynced(item.id)
+        else -> Unit
     }
 
-    private suspend fun reflectError(item: QueuedSave) {
-        if (item.table == "quotes") quoteDao.markError(item.id)
+    private suspend fun reflectError(item: QueuedSave) = when (item.table) {
+        "quotes" -> quoteDao.markError(item.id)
+        "jobs" -> jobDao.markError(item.id)
+        "clients" -> clientDao.markError(item.id)
+        "job_draws" -> jobDrawDao.markError(item.id)
+        else -> Unit
     }
 }
