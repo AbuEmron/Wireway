@@ -8,6 +8,7 @@ import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.model.QuoteSummary
 import com.wirewaypro.app.domain.repository.QuoteRepository
 import com.wirewaypro.app.domain.util.IsoDate
+import com.wirewaypro.app.data.local.QuoteDao
 import com.wirewaypro.app.data.offline.NetworkMonitor
 import com.wirewaypro.app.data.offline.OfflineQueue
 import com.wirewaypro.app.data.offline.QueuedSave
@@ -17,6 +18,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Count
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
@@ -35,31 +37,56 @@ class QuoteRepositoryImpl @Inject constructor(
     private val client: SupabaseClient,
     private val queue: OfflineQueue,
     private val network: NetworkMonitor,
+    private val dao: QuoteDao,
 ) : QuoteRepository {
 
     private fun quotes() = client.postgrest.from("quotes")
 
-    private suspend fun fetchSummaries(userId: String): List<QuoteSummary> =
-        quotes()
-            .select(Columns.list(*QUOTE_LIST_COLUMNS.toTypedArray())) {
+    /**
+     * Reconciles the local cache with Supabase. Best-effort: if the network is
+     * down (or a read fails) the local rows are left untouched, so reads still
+     * return the last-known data offline. Pulls FULL rows (not the slim list
+     * projection) so the detail screen and offline edits have everything.
+     *
+     * Phase 0 read-through has no local-only writes yet, so reconciliation is a
+     * straight mirror: upsert every server row and drop locals the server no
+     * longer has. The last-write-wins guard for pending local edits arrives with
+     * write-through in the next commit.
+     */
+    private suspend fun refresh(userId: String) {
+        if (!network.isOnline()) return
+        val rows = quotes()
+            .select {
                 filter { eq("user_id", userId) }
                 order("created_at", Order.DESCENDING)
                 limit(200)
             }
             .decodeList<QuoteDto>()
-            .map { it.toSummary() }
+        val now = System.currentTimeMillis()
+        dao.upsertAll(rows.map { it.toEntity(userId, updatedAt = now) })
+        // Prune rows deleted on another device.
+        val serverIds = rows.mapTo(HashSet()) { it.id }
+        dao.allIds(userId).forEach { id -> if (id !in serverIds) dao.hardDelete(id) }
+    }
 
-    override suspend fun getEstimates(userId: String): Result<List<QuoteSummary>> =
-        runCatching { fetchSummaries(userId).filter { !it.isInvoice } }
+    override suspend fun getEstimates(userId: String): Result<List<QuoteSummary>> = runCatching {
+        runCatching { refresh(userId) } // offline → fall through to the cache
+        dao.observeEstimates(userId).first().map { it.toSummary() }
+    }
 
-    override suspend fun getInvoices(userId: String): Result<List<QuoteSummary>> =
-        runCatching { fetchSummaries(userId).filter { it.isInvoice } }
+    override suspend fun getInvoices(userId: String): Result<List<QuoteSummary>> = runCatching {
+        runCatching { refresh(userId) }
+        dao.observeInvoices(userId).first().map { it.toSummary() }
+    }
 
     override suspend fun getQuote(quoteId: String): Result<QuoteDetail> = runCatching {
-        quotes()
-            .select { filter { eq("id", quoteId) } }
-            .decodeSingleOrNull<QuoteDto>()
-            ?.toDetail()
+        // Cached locally → read-through (works offline). Not cached yet (e.g. a
+        // deep link before any list load) → fall back to a direct server read.
+        dao.getById(quoteId)?.takeIf { !it.deleted }?.toDetail()
+            ?: quotes()
+                .select { filter { eq("id", quoteId) } }
+                .decodeSingleOrNull<QuoteDto>()
+                ?.toDetail()
             ?: error("Quote not found.")
     }
 
