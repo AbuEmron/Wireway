@@ -17,6 +17,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -43,6 +44,7 @@ import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.model.QuoteDetail
+import com.wirewaypro.app.domain.model.QuoteExpiry
 import com.wirewaypro.app.domain.model.QuoteLineItem
 import com.wirewaypro.app.domain.model.RateMode
 import com.wirewaypro.app.ui.components.ConfirmDialog
@@ -54,6 +56,7 @@ import com.wirewaypro.app.ui.components.StatusChip
 import com.wirewaypro.app.ui.components.WirewayDatePickerDialog
 import com.wirewaypro.app.ui.util.Format
 import java.io.File
+import java.time.LocalDate
 
 /**
  * Read + light-write detail for a `quotes` row. Used for BOTH estimates and
@@ -252,6 +255,18 @@ fun QuoteDetailScreen(
                 Text("Material Pull List")
             }
 
+            // Follow-up nudge for an open (unaccepted) estimate — a stale bid that
+            // never gets a reminder is a lost job.
+            if (!quote.isInvoice && quote.sigName == null) {
+                OutlinedButton(
+                    onClick = { shareFollowUp(context, quote) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Outlined.Send, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Follow up with client")
+                }
+            }
+
             quote.notes?.takeIf { it.isNotBlank() }?.let { notes ->
                 SectionCard(title = "Notes") {
                     Text(notes, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
@@ -380,6 +395,41 @@ private fun sharePayLink(context: Context, quoteId: String, quoteNumber: String?
         }
         context.startActivity(
             Intent.createChooser(intent, "Share pay link").apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
+        )
+    }
+}
+
+/**
+ * Opens the share sheet with a friendly, pre-filled follow-up the contractor can
+ * send (text/email) to nudge a client toward accepting an open estimate. Tailors
+ * the validity line to whether the estimate is still valid or already lapsed, and
+ * includes the public quote link so the client can accept in one tap.
+ */
+private fun shareFollowUp(context: Context, quote: QuoteDetail) {
+    runCatching {
+        val hi = quote.clientName?.takeIf { it.isNotBlank() }?.let { "Hi $it, " } ?: "Hi, "
+        val num = quote.quoteNumber?.takeIf { it.isNotBlank() }?.let { " #$it" } ?: ""
+        val job = quote.jobName?.takeIf { it.isNotBlank() }?.let { " for $it" } ?: ""
+        val total = quote.total?.let { " (${Format.money(it)})" } ?: ""
+
+        val validThrough = runCatching { LocalDate.parse(quote.createdAt?.take(10)) }
+            .getOrNull()?.plusDays(QuoteExpiry.VALID_DAYS)
+        val validity = when {
+            validThrough == null -> ""
+            validThrough.isBefore(LocalDate.now()) ->
+                " It expired on ${Format.date(validThrough.toString())}, but I'd be glad to refresh it for you."
+            else -> " It's valid through ${Format.date(validThrough.toString())}."
+        }
+
+        val url = "https://www.wireway.cc/quote/${quote.id}"
+        val text = "${hi}just following up on your estimate$num$job$total.$validity " +
+            "You can review and accept it here:\n$url\n\nHappy to answer any questions — thanks!"
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        context.startActivity(
+            Intent.createChooser(intent, "Follow up").apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
         )
     }
 }
