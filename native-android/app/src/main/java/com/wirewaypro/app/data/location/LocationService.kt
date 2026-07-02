@@ -15,6 +15,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,25 +40,46 @@ class LocationService @Inject constructor(
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
 
-    /** Current location reverse-geocoded to a "City, ST" area, or null. */
+    /**
+     * Current location reverse-geocoded to a "City, ST" area, or null.
+     *
+     * Requests a FRESH high-accuracy fix each call so it tracks the device as it
+     * moves (never a stale cached city). Only if that times out does it fall back
+     * to the last-known location, which is labeled "(approx.)" so the user knows
+     * it may be off.
+     */
     suspend fun currentArea(): LocationArea? {
         if (!hasPermission()) return null
-        val location = runCatching { requestLocation() }.getOrNull() ?: return null
+        val fresh = runCatching { freshLocation() }.getOrNull()
+        val location = fresh ?: runCatching { lastKnownLocation() }.getOrNull() ?: return null
+        val approximate = fresh == null
         val label = withContext(Dispatchers.IO) { reverseGeocode(location.latitude, location.longitude) }
+        val base = label ?: "your area"
         return LocationArea(
-            label = label ?: "your area",
+            label = if (approximate) "$base (approx.)" else base,
             latitude = location.latitude,
             longitude = location.longitude,
         )
     }
 
+    /** A fresh high-accuracy GPS fix, or null if none arrives within the timeout. */
     @SuppressLint("MissingPermission") // guarded by hasPermission()
-    private suspend fun requestLocation(): Location? = suspendCancellableCoroutine { cont ->
-        val cts = CancellationTokenSource()
-        fused.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token)
+    private suspend fun freshLocation(): Location? = withTimeoutOrNull(FRESH_FIX_TIMEOUT_MS) {
+        suspendCancellableCoroutine { cont ->
+            val cts = CancellationTokenSource()
+            fused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
+                .addOnSuccessListener { loc -> if (cont.isActive) cont.resume(loc) }
+                .addOnFailureListener { if (cont.isActive) cont.resume(null) }
+            cont.invokeOnCancellation { cts.cancel() }
+        }
+    }
+
+    /** Last-known cached fix — only used as a labeled fallback when a fresh fix times out. */
+    @SuppressLint("MissingPermission") // guarded by hasPermission()
+    private suspend fun lastKnownLocation(): Location? = suspendCancellableCoroutine { cont ->
+        fused.lastLocation
             .addOnSuccessListener { loc -> if (cont.isActive) cont.resume(loc) }
             .addOnFailureListener { if (cont.isActive) cont.resume(null) }
-        cont.invokeOnCancellation { cts.cancel() }
     }
 
     @Suppress("DEPRECATION") // the async Geocoder API is API 33+; the sync call runs off the main thread
@@ -70,4 +92,9 @@ class LocationService @Inject constructor(
                 listOfNotNull(city, state).joinToString(", ").ifBlank { null }
             }
     }.getOrNull()
+
+    private companion object {
+        /** How long to wait for a fresh GPS fix before falling back to last-known. */
+        const val FRESH_FIX_TIMEOUT_MS = 10_000L
+    }
 }
