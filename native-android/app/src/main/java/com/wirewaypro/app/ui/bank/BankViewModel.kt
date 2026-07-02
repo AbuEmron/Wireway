@@ -59,8 +59,20 @@ class BankViewModel @Inject constructor(
         viewModelScope.launch {
             plaidService.createLinkToken()
                 .onSuccess { token -> _state.update { it.copy(linking = false, pendingLinkToken = token) } }
-                // Always show the REAL reason — never a generic "check your plan" string.
-                .onFailure { e -> _state.update { it.copy(linking = false, error = e.message ?: e.toString()) } }
+                .onFailure { e -> _state.update { it.copy(linking = false, error = friendlyLinkError(e.message ?: e.toString())) } }
+        }
+    }
+
+    private fun friendlyLinkError(raw: String): String {
+        val lower = raw.lowercase()
+        return when {
+            "not configured" in lower || "503" in lower ->
+                "Bank connections aren't switched on yet — the server is missing its Plaid keys."
+            "sign in" in lower || "401" in lower ->
+                "Your session expired. Sign out and back in, then try again."
+            "package" in lower || "android" in lower || "not allowed" in lower || "500" in lower ->
+                "Couldn't start the secure bank login. This app may still need to be approved with our bank provider (Plaid). Details: $raw"
+            else -> "Couldn't connect a bank. $raw"
         }
     }
 
