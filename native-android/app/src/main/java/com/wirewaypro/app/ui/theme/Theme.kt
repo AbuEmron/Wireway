@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
@@ -116,10 +117,13 @@ fun WirewayTheme(
     }
 
     val families = remember { BrandFonts.resolve(context) }
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = wirewayTypography(families.display, families.body),
-        shapes = WirewayShapes,
-        content = content,
-    )
+    val extendedColors = if (dark) DarkExtendedColors else LightExtendedColors
+    CompositionLocalProvider(LocalExtendedColors provides extendedColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = wirewayTypography(families.display, families.body),
+            shapes = WirewayShapes,
+            content = content,
+        )
+    }
 }
