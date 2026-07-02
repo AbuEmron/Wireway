@@ -5,7 +5,6 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,7 +41,6 @@ import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -133,20 +131,30 @@ fun AppDrawerContent(
 
 @Composable
 private fun DrawerHeader() {
-    Box(
+    // Sizes to its content (no fixed height) so the logo + title + tagline lockup
+    // never clips, and the brand gradient always covers the whole header. Text
+    // wraps freely rather than truncating on narrow drawers.
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(132.dp)
             .drawBehind { drawRect(brush = BrandGradients.primary) }
-            .padding(20.dp),
-        contentAlignment = Alignment.BottomStart,
+            .padding(horizontal = 20.dp)
+            .padding(top = 24.dp, bottom = 20.dp),
     ) {
-        Column {
-            WirewayLogomark(size = 52.dp)
-            Spacer(Modifier.height(10.dp))
-            Text("Wireway Pro", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-            Text("Electrical estimator", color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodySmall)
-        }
+        WirewayLogomark(size = 48.dp)
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = "Wireway Pro",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = "Electrical estimator",
+            color = Color.White.copy(alpha = 0.85f),
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 
