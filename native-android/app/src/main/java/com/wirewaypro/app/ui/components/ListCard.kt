@@ -32,6 +32,7 @@ fun ListCard(
     footerStart: String? = null,
     status: String? = null,
     trailingChip: (@Composable () -> Unit)? = null,
+    footerBadge: (@Composable () -> Unit)? = null,
 ) {
     Card(
         modifier = modifier
@@ -71,7 +72,7 @@ fun ListCard(
                 )
             }
 
-            if (footerStart != null || status != null || trailingChip != null) {
+            if (footerStart != null || status != null || trailingChip != null || footerBadge != null) {
                 Spacer(Modifier.padding(top = 10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -87,6 +88,7 @@ fun ListCard(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        footerBadge?.invoke()
                         trailingChip?.invoke()
                         if (status != null) StatusChip(status = status)
                     }

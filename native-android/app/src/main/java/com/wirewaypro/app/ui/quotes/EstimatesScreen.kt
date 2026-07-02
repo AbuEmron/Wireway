@@ -15,14 +15,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wirewaypro.app.domain.model.QuoteExpiry
 import com.wirewaypro.app.domain.model.QuoteSummary
 import com.wirewaypro.app.domain.model.SyncState
+import com.wirewaypro.app.ui.components.ExpiryChip
 import com.wirewaypro.app.ui.components.ListCard
 import com.wirewaypro.app.ui.components.RefreshableList
 import com.wirewaypro.app.ui.components.SyncBanner
 import com.wirewaypro.app.ui.components.SyncStateChip
 import com.wirewaypro.app.ui.components.TabTopBar
 import com.wirewaypro.app.ui.util.Format
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,6 +82,8 @@ internal fun QuoteRow(quote: QuoteSummary, onClick: () -> Unit) {
         .joinToString("  ·  ")
         .ifBlank { null }
 
+    val expiry = QuoteExpiry.of(quote, LocalDate.now())
+
     ListCard(
         title = title,
         onClick = onClick,
@@ -88,6 +93,11 @@ internal fun QuoteRow(quote: QuoteSummary, onClick: () -> Unit) {
         status = quote.status,
         trailingChip = if (quote.syncState != SyncState.SYNCED) {
             { SyncStateChip(quote.syncState) }
+        } else {
+            null
+        },
+        footerBadge = if (expiry != null) {
+            { ExpiryChip(expiry) }
         } else {
             null
         },
