@@ -88,8 +88,31 @@ class PlaidService @Inject constructor(
             .map { it.toDomain() }
     }
 
+    /** Institutions the user has linked (drives the Bank screen's connected state). */
+    suspend fun getLinkedInstitutions(userId: String): Result<List<String>> = runCatching {
+        client.postgrest.from("plaid_items")
+            .select { filter { eq("user_id", userId) } }
+            .decodeList<LinkedItemDto>()
+            .map { it.institutionName?.takeIf { n -> n.isNotBlank() } ?: "Bank" }
+    }
+
+    /**
+     * Returns a valid access token, briefly waiting for the persisted session to
+     * finish restoring. Right after the app returns from an external activity
+     * (e.g. the Plaid Link flow) the process may have been recreated and the
+     * Supabase session may still be loading — without this wait the token
+     * exchange would abort as "not signed in" and the bank link would never save.
+     */
+    private suspend fun awaitAccessToken(): String {
+        repeat(20) {
+            client.auth.currentSessionOrNull()?.accessToken?.let { return it }
+            kotlinx.coroutines.delay(250)
+        }
+        error("Not signed in.")
+    }
+
     private suspend fun apiPost(path: String, body: JsonObject?): JsonObject {
-        val token = client.auth.currentSessionOrNull()?.accessToken ?: error("Not signed in.")
+        val token = awaitAccessToken()
         val response = http.post("$BASE_URL$path") {
             header("Authorization", "Bearer $token")
             contentType(ContentType.Application.Json)
@@ -112,6 +135,11 @@ class PlaidService @Inject constructor(
         private const val BASE_URL = "https://www.wireway.cc"
     }
 }
+
+@Serializable
+private data class LinkedItemDto(
+    @SerialName("institution_name") val institutionName: String? = null,
+)
 
 @Serializable
 private data class PlaidTxnDto(

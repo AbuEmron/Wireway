@@ -21,6 +21,8 @@ data class BankUiState(
     val linking: Boolean = false,
     val status: String? = null,
     val pendingLinkToken: String? = null, // one-shot: the screen launches Plaid Link with it
+    val connected: Boolean = false,
+    val institutions: List<String> = emptyList(),
 ) {
     val isEmpty: Boolean get() = transactions.isEmpty()
 }
@@ -47,6 +49,8 @@ class BankViewModel @Inject constructor(
         }
         _state.update { it.copy(isLoading = !isRefresh && it.transactions.isEmpty(), isRefreshing = isRefresh, error = null) }
         viewModelScope.launch {
+            plaidService.getLinkedInstitutions(userId)
+                .onSuccess { list -> _state.update { it.copy(connected = list.isNotEmpty(), institutions = list) } }
             plaidService.getTransactions(userId)
                 .onSuccess { txns -> _state.update { it.copy(isLoading = false, isRefreshing = false, transactions = txns, error = null) } }
                 .onFailure { e -> _state.update { it.copy(isLoading = false, isRefreshing = false, error = e.message ?: e.toString()) } }
@@ -90,7 +94,15 @@ class BankViewModel @Inject constructor(
                 .onFailure { e -> _state.update { it.copy(linking = false, error = e.message ?: e.toString()) }; return@launch }
             _state.update { it.copy(status = "Syncing transactions…") }
             val synced = plaidService.sync().getOrDefault(0)
-            _state.update { it.copy(linking = false, status = "Synced $synced transactions") }
+            val name = institutionName?.takeIf { it.isNotBlank() }
+            _state.update {
+                it.copy(
+                    linking = false,
+                    connected = true,
+                    institutions = (it.institutions + listOfNotNull(name)).distinct(),
+                    status = "Connected. Synced $synced transactions.",
+                )
+            }
             refresh()
         }
     }
