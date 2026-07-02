@@ -201,6 +201,18 @@ fun ProfileEditScreen(
                 )
             }
 
+            SectionCard(title = "Client financing (pay over time)") {
+                FormField(state.financingLink, viewModel::setFinancingLink, "Financing application link (optional)")
+                Spacer(Modifier.padding(top = 8.dp))
+                Text(
+                    "Offering monthly payments helps clients say yes to bigger jobs. Sign up with a financing partner " +
+                        "(e.g. Wisetack), paste your application link here, and your proposals will invite clients to apply. " +
+                        "Leave blank if you don't offer financing.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             SectionCard(title = "Notifications") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

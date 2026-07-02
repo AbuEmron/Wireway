@@ -32,6 +32,8 @@ data class ProfileEditUiState(
     val hourlyRate: String = "",
     val flatRate: String = "",
     val reviewLink: String = "",
+    /** The contractor's client-financing application link; "" = financing not offered. */
+    val financingLink: String = "",
     /** Proposal accent color as "#RRGGBB"; "" = default brand blue. */
     val brandColor: String = "",
     val rateSuggestion: RateBand? = null,
@@ -69,9 +71,10 @@ class ProfileEditViewModel @Inject constructor(
             val hourly = settingsPrefs.defaultHourlyRate.first()
             val flat = settingsPrefs.defaultFlatRate.first()
             val review = settingsPrefs.reviewLink.first()
+            val financing = settingsPrefs.financingLink.first()
             val brand = settingsPrefs.brandColorHex.first()
             val profile = profileRepository.getProfile(userId).getOrNull()
-            apply(profile, notify, hourly, flat, review, brand)
+            apply(profile, notify, hourly, flat, review, brand, financing)
             // Cache the region's typical rate so new quotes can default to it offline.
             cacheRegionalRate(RegionalLaborRates.forState(RegionalLaborRates.detectState(profile?.companyAddress)))
         }
@@ -84,10 +87,11 @@ class ProfileEditViewModel @Inject constructor(
         }
     }
 
-    private fun apply(p: UserProfile?, notify: Boolean, hourly: Double, flat: Double, review: String = "", brand: String = "") = _state.update {
+    private fun apply(p: UserProfile?, notify: Boolean, hourly: Double, flat: Double, review: String = "", brand: String = "", financing: String = "") = _state.update {
         it.copy(
             isLoading = false,
             brandColor = brand,
+            financingLink = financing,
             fullName = p?.fullName.orEmpty(),
             companyName = p?.companyName.orEmpty(),
             companyPhone = p?.companyPhone.orEmpty(),
@@ -138,6 +142,7 @@ class ProfileEditViewModel @Inject constructor(
     }
     fun setFlatRate(v: String) = _state.update { it.copy(flatRate = v) }
     fun setReviewLink(v: String) = _state.update { it.copy(reviewLink = v) }
+    fun setFinancingLink(v: String) = _state.update { it.copy(financingLink = v) }
     /** "" clears the custom accent (back to the default brand blue). */
     fun setBrandColor(hex: String) = _state.update { it.copy(brandColor = hex) }
     fun setNotifications(v: Boolean) = _state.update { it.copy(notificationsEnabled = v) }
@@ -169,6 +174,7 @@ class ProfileEditViewModel @Inject constructor(
             settingsPrefs.setDefaultHourlyRate(s.hourlyRate.toDoubleOrNull()?.takeIf { it > 0 } ?: rateFallback)
             settingsPrefs.setDefaultFlatRate(s.flatRate.toDoubleOrNull()?.takeIf { it > 0 } ?: 0.0)
             settingsPrefs.setReviewLink(s.reviewLink)
+            settingsPrefs.setFinancingLink(s.financingLink)
             settingsPrefs.setBrandColor(s.brandColor)
             profileRepository.saveProfile(userId, input)
                 .onSuccess { _state.update { it.copy(isSaving = false, saved = true) } }

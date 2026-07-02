@@ -44,6 +44,7 @@ object QuotePdfGenerator {
         business: BusinessInfo? = null,
         logo: Bitmap? = null,
         accent: Int? = null,
+        financingLink: String? = null,
     ): File? = runCatching {
         val doc = PdfDocument()
         val state = PageState(doc, accent ?: ACCENT)
@@ -54,6 +55,11 @@ object QuotePdfGenerator {
         drawClient(state, quote)
         drawLineItems(state, quote)
         drawTotals(state, quote)
+        // Only for estimates the client hasn't yet accepted, and only when the
+        // contractor supplied a real financing link (never faked).
+        if (!quote.isInvoice) {
+            financingLink?.takeIf { it.isNotBlank() }?.let { drawFinancing(state, it) }
+        }
         drawNotes(state, quote)
         drawTerms(state)
         drawSignature(state, business, quote)
@@ -153,6 +159,21 @@ object QuotePdfGenerator {
             rule(s)
             s.y += 14f
         }
+    }
+
+    private fun drawFinancing(s: PageState, link: String) {
+        s.ensure(48f)
+        s.canvas.drawText("FINANCING AVAILABLE", MARGIN, s.y + 10f, paint(s.accent, 9f, bold = true))
+        s.y += 18f
+        val p = paint(INK, 10f)
+        val text = "Prefer to spread this out? Flexible monthly payment options are available " +
+            "for this project — apply in minutes here: $link"
+        wrap(text, p, RIGHT - MARGIN).forEach { line ->
+            s.ensure(14f)
+            s.canvas.drawText(line, MARGIN, s.y + 10f, p)
+            s.y += 14f
+        }
+        s.y += 10f
     }
 
     private fun drawTerms(s: PageState) {

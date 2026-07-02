@@ -33,6 +33,7 @@ class SettingsPrefs @Inject constructor(
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val reviewLinkKey = stringPreferencesKey("review_link")
     private val brandColorKey = stringPreferencesKey("brand_color_hex")
+    private val financingLinkKey = stringPreferencesKey("financing_link")
 
     val notificationsEnabled: Flow<Boolean> =
         context.settingsDataStore.data.map { it[notificationsKey] ?: true }
@@ -102,6 +103,19 @@ class SettingsPrefs @Inject constructor(
 
     suspend fun setBrandColor(hex: String) {
         context.settingsDataStore.edit { it[brandColorKey] = hex.trim() }
+    }
+
+    /**
+     * The contractor's client-financing application link from their own financing
+     * partner (e.g. Wisetack). "" = not offered. When set, proposals invite the
+     * client to apply for pay-over-time — surfaced only because the contractor
+     * supplied a real partner link, never faked.
+     */
+    val financingLink: Flow<String> =
+        context.settingsDataStore.data.map { it[financingLinkKey] ?: "" }
+
+    suspend fun setFinancingLink(link: String) {
+        context.settingsDataStore.edit { it[financingLinkKey] = link.trim() }
     }
 
     /** Persist the light/dark preference (store the [ThemeMode] enum name). */

@@ -211,7 +211,11 @@ class QuoteDetailViewModel @Inject constructor(
             val accent = settingsPrefs.brandColorHex.first().takeIf { it.isNotBlank() }?.let { hex ->
                 runCatching { android.graphics.Color.parseColor(hex) }.getOrNull()
             }
-            val file = withContext(Dispatchers.IO) { QuotePdfGenerator.generate(appContext, quote, business, logo, accent) }
+            // The contractor's own financing-partner link, surfaced on estimates only when set.
+            val financingLink = settingsPrefs.financingLink.first().takeIf { it.isNotBlank() }
+            val file = withContext(Dispatchers.IO) {
+                QuotePdfGenerator.generate(appContext, quote, business, logo, accent, financingLink)
+            }
             if (file == null) {
                 _state.update { it.copy(exportingPdf = false, error = "Couldn't build the PDF.") }
             } else {
