@@ -8,11 +8,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +41,19 @@ import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.GradientButton
 import com.wirewaypro.app.ui.components.SaveTopBar
 import com.wirewaypro.app.ui.components.SectionCard
+
+/** Default proposal accent (matches QuotePdfGenerator's built-in blue). */
+private const val DEFAULT_ACCENT_HEX = "#3AA9FF"
+
+/** A tasteful set of professional proposal accents the contractor can pick from. */
+private val ProposalAccentColors = listOf(
+    DEFAULT_ACCENT_HEX, // brand blue (default)
+    "#3A57E8",          // deep blue
+    "#7B4DF0",          // purple
+    "#22C55E",          // green
+    "#F5A524",          // amber
+    "#E5484D",          // red
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,6 +133,34 @@ fun ProfileEditScreen(
                     enabled = !state.uploadingLogo,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+
+            SectionCard(title = "Proposal accent color") {
+                Text(
+                    "Sets the accent on your quote & invoice PDFs — match your brand.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.padding(top = 12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ProposalAccentColors.forEach { hex ->
+                        val selected = state.brandColor.equals(hex, ignoreCase = true) ||
+                            (state.brandColor.isBlank() && hex == DEFAULT_ACCENT_HEX)
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color(android.graphics.Color.parseColor(hex)))
+                                .border(
+                                    width = if (selected) 3.dp else 1.dp,
+                                    color = if (selected) MaterialTheme.colorScheme.onBackground
+                                    else MaterialTheme.colorScheme.outlineVariant,
+                                    shape = CircleShape,
+                                )
+                                .clickable { viewModel.setBrandColor(hex) },
+                        )
+                    }
+                }
             }
 
             SectionCard(title = "Baseline rates (your starting point)") {

@@ -38,9 +38,15 @@ object QuotePdfGenerator {
             "of work require a written change order. Permits and inspection fees are included " +
             "unless otherwise noted. Warranty: one (1) year on workmanship from date of completion."
 
-    fun generate(context: Context, quote: QuoteDetail, business: BusinessInfo? = null, logo: Bitmap? = null): File? = runCatching {
+    fun generate(
+        context: Context,
+        quote: QuoteDetail,
+        business: BusinessInfo? = null,
+        logo: Bitmap? = null,
+        accent: Int? = null,
+    ): File? = runCatching {
         val doc = PdfDocument()
-        val state = PageState(doc)
+        val state = PageState(doc, accent ?: ACCENT)
         state.start()
 
         drawHeader(state, quote)
@@ -65,7 +71,7 @@ object QuotePdfGenerator {
     }.getOrNull()
 
     // ── Page bookkeeping ───────────────────────────────────────────────────────
-    private class PageState(val doc: PdfDocument) {
+    private class PageState(val doc: PdfDocument, val accent: Int) {
         lateinit var page: PdfDocument.Page
         lateinit var canvas: Canvas
         var y = MARGIN
@@ -100,7 +106,7 @@ object QuotePdfGenerator {
     // ── Sections ───────────────────────────────────────────────────────────────
     private fun drawHeader(s: PageState, q: QuoteDetail) {
         s.canvas.drawText("WIREWAY", MARGIN, s.y + 22f, paint(INK, 24f, bold = true))
-        s.canvas.drawText("PRO", MARGIN + 118f, s.y + 22f, paint(ACCENT, 16f, bold = true))
+        s.canvas.drawText("PRO", MARGIN + 118f, s.y + 22f, paint(s.accent, 16f, bold = true))
 
         val kind = if (q.isInvoice) "INVOICE" else "ESTIMATE"
         s.canvas.drawText(kind, RIGHT, s.y + 14f, paint(MUTED, 12f, bold = true, align = Paint.Align.RIGHT))
@@ -282,7 +288,7 @@ object QuotePdfGenerator {
         s.canvas.drawLine(labelX, s.y, RIGHT, s.y, paint(HAIR, 1f).apply { strokeWidth = 1f })
         s.y += 12f
         s.canvas.drawText("TOTAL", labelX, s.y + 14f, paint(INK, 13f, bold = true, align = Paint.Align.RIGHT))
-        s.canvas.drawText(money(q.total), RIGHT, s.y + 14f, paint(ACCENT, 14f, bold = true, align = Paint.Align.RIGHT))
+        s.canvas.drawText(money(q.total), RIGHT, s.y + 14f, paint(s.accent, 14f, bold = true, align = Paint.Align.RIGHT))
         s.y += 28f
         if (!q.isInvoice) {
             q.depositDue?.let { dep ->

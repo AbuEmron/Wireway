@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
@@ -15,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -41,6 +43,7 @@ class QuoteDetailViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val quoteRepository: QuoteRepository,
     private val profileRepository: ProfileRepository,
+    private val settingsPrefs: SettingsPrefs,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -130,7 +133,11 @@ class QuoteDetailViewModel @Inject constructor(
                     }.getOrNull()
                 }
             }
-            val file = withContext(Dispatchers.IO) { QuotePdfGenerator.generate(appContext, quote, business, logo) }
+            // Contractor's chosen proposal accent color (blank/invalid → default brand blue).
+            val accent = settingsPrefs.brandColorHex.first().takeIf { it.isNotBlank() }?.let { hex ->
+                runCatching { android.graphics.Color.parseColor(hex) }.getOrNull()
+            }
+            val file = withContext(Dispatchers.IO) { QuotePdfGenerator.generate(appContext, quote, business, logo, accent) }
             if (file == null) {
                 _state.update { it.copy(exportingPdf = false, error = "Couldn't build the PDF.") }
             } else {

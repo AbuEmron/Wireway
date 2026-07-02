@@ -32,6 +32,7 @@ class SettingsPrefs @Inject constructor(
     private val regionalRateKey = doublePreferencesKey("regional_default_rate")
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val reviewLinkKey = stringPreferencesKey("review_link")
+    private val brandColorKey = stringPreferencesKey("brand_color_hex")
 
     val notificationsEnabled: Flow<Boolean> =
         context.settingsDataStore.data.map { it[notificationsKey] ?: true }
@@ -89,6 +90,18 @@ class SettingsPrefs @Inject constructor(
 
     suspend fun setReviewLink(link: String) {
         context.settingsDataStore.edit { it[reviewLinkKey] = link.trim() }
+    }
+
+    /**
+     * Contractor's chosen proposal accent color as a "#RRGGBB" hex string; "" =
+     * the default brand blue. Rendered into quote/invoice PDFs so proposals carry
+     * the shop's brand.
+     */
+    val brandColorHex: Flow<String> =
+        context.settingsDataStore.data.map { it[brandColorKey] ?: "" }
+
+    suspend fun setBrandColor(hex: String) {
+        context.settingsDataStore.edit { it[brandColorKey] = hex.trim() }
     }
 
     /** Persist the light/dark preference (store the [ThemeMode] enum name). */

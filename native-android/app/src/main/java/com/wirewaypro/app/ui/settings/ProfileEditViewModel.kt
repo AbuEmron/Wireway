@@ -32,6 +32,8 @@ data class ProfileEditUiState(
     val hourlyRate: String = "",
     val flatRate: String = "",
     val reviewLink: String = "",
+    /** Proposal accent color as "#RRGGBB"; "" = default brand blue. */
+    val brandColor: String = "",
     val rateSuggestion: RateBand? = null,
     val notificationsEnabled: Boolean = true,
     val logoUrl: String = "",
@@ -67,8 +69,9 @@ class ProfileEditViewModel @Inject constructor(
             val hourly = settingsPrefs.defaultHourlyRate.first()
             val flat = settingsPrefs.defaultFlatRate.first()
             val review = settingsPrefs.reviewLink.first()
+            val brand = settingsPrefs.brandColorHex.first()
             val profile = profileRepository.getProfile(userId).getOrNull()
-            apply(profile, notify, hourly, flat, review)
+            apply(profile, notify, hourly, flat, review, brand)
             // Cache the region's typical rate so new quotes can default to it offline.
             cacheRegionalRate(RegionalLaborRates.forState(RegionalLaborRates.detectState(profile?.companyAddress)))
         }
@@ -81,9 +84,10 @@ class ProfileEditViewModel @Inject constructor(
         }
     }
 
-    private fun apply(p: UserProfile?, notify: Boolean, hourly: Double, flat: Double, review: String = "") = _state.update {
+    private fun apply(p: UserProfile?, notify: Boolean, hourly: Double, flat: Double, review: String = "", brand: String = "") = _state.update {
         it.copy(
             isLoading = false,
+            brandColor = brand,
             fullName = p?.fullName.orEmpty(),
             companyName = p?.companyName.orEmpty(),
             companyPhone = p?.companyPhone.orEmpty(),
@@ -134,6 +138,8 @@ class ProfileEditViewModel @Inject constructor(
     }
     fun setFlatRate(v: String) = _state.update { it.copy(flatRate = v) }
     fun setReviewLink(v: String) = _state.update { it.copy(reviewLink = v) }
+    /** "" clears the custom accent (back to the default brand blue). */
+    fun setBrandColor(hex: String) = _state.update { it.copy(brandColor = hex) }
     fun setNotifications(v: Boolean) = _state.update { it.copy(notificationsEnabled = v) }
 
     fun save() {
@@ -163,6 +169,7 @@ class ProfileEditViewModel @Inject constructor(
             settingsPrefs.setDefaultHourlyRate(s.hourlyRate.toDoubleOrNull()?.takeIf { it > 0 } ?: rateFallback)
             settingsPrefs.setDefaultFlatRate(s.flatRate.toDoubleOrNull()?.takeIf { it > 0 } ?: 0.0)
             settingsPrefs.setReviewLink(s.reviewLink)
+            settingsPrefs.setBrandColor(s.brandColor)
             profileRepository.saveProfile(userId, input)
                 .onSuccess { _state.update { it.copy(isSaving = false, saved = true) } }
                 .onFailure { _state.update { it.copy(isSaving = false, error = "Couldn't save your profile. Try again.") } }
