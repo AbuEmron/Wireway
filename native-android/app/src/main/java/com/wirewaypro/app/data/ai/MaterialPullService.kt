@@ -62,7 +62,9 @@ class MaterialPullService @Inject constructor(
         }
 
         val body = buildJsonObject {
-            put("max_tokens", 4096)
+            // Generous budget (the backend caps at 8192) so a full web-searched
+            // pull list closes its JSON instead of truncating mid-object.
+            put("max_tokens", 8192)
             put("web_search", true)
             put("system", systemPrompt())
             putJsonArray("messages") {
@@ -82,13 +84,12 @@ class MaterialPullService @Inject constructor(
         }
         val raw = response.claudeBodyOrThrow(json)
         val text = extractText(raw).ifBlank { raw }
-        parse(text) ?: error("The AI returned an unexpected response. [${text.take(180)}]")
+        // Clean failure state — never dump the raw model text at the user.
+        parse(text) ?: error("Couldn't read the price list — tap Try Again.")
     }
 
     private fun parse(text: String): PullListResult? {
-        val cleaned = text.replace("```json", "").replace("```", "")
-        val objText = balancedBlock(cleaned, '{', '}') ?: return null
-        val root = runCatching { json.parseToJsonElement(objText).jsonObject }.getOrNull() ?: return null
+        val root = extractJsonRoot(text) ?: return null
         val sectionsArr = root["sections"] as? JsonArray ?: return null
 
         val sections = sectionsArr.mapNotNull { el ->
@@ -144,8 +145,29 @@ class MaterialPullService @Inject constructor(
             .orEmpty()
     }.getOrDefault("")
 
-    private fun balancedBlock(s: String, open: Char, close: Char): String? {
-        val start = s.indexOf(open)
+    /**
+     * Robustly pull the pull-list JSON object out of a model reply even when it's
+     * wrapped in preamble/narration ("Key findings: …") or markdown fences. Scans
+     * each '{' as a candidate start and returns the first balanced, parseable block
+     * that actually carries "sections" — tolerant of leading prose and stray braces.
+     */
+    private fun extractJsonRoot(text: String): JsonObject? {
+        val cleaned = text.replace("```json", "").replace("```", "")
+        var from = 0
+        while (true) {
+            val start = cleaned.indexOf('{', from)
+            if (start == -1) return null
+            balancedBlock(cleaned, '{', '}', start)?.let { block ->
+                runCatching { json.parseToJsonElement(block).jsonObject }.getOrNull()
+                    ?.takeIf { it["sections"] is JsonArray }
+                    ?.let { return it }
+            }
+            from = start + 1
+        }
+    }
+
+    private fun balancedBlock(s: String, open: Char, close: Char, from: Int = 0): String? {
+        val start = s.indexOf(open, from)
         if (start == -1) return null
         var depth = 0
         var inStr = false
@@ -187,7 +209,13 @@ class MaterialPullService @Inject constructor(
         7. Consolidate shared consumables (wire nuts, staples, tape) into a final section "Consumables & Rough-In".
         8. In "notes" (1-3 sentences): state that these prices are live-searched estimates to confirm in the cart and roughly how current they are; flag anything client-supplied; name items better bought at a local electrical distributor than big-box (CED, Graybar, Rexel, Platt, WESCO, Border States, City Electric, etc. — they often beat big-box on wire and breakers but need a trade account); and any bulk-buy savings. If live prices were hard to find for this area, say so plainly.
 
-        Respond ONLY with JSON, no markdown fences:
+        OUTPUT FORMAT — CRITICAL (the app parses your reply as JSON, nothing else):
+        - Do your web searches first, then make your FINAL reply ONLY the JSON object below.
+        - Your reply must START with '{' and END with '}'. Absolutely nothing before or after it.
+        - Do NOT write any preamble, narration, reasoning, "Key findings", running commentary, summaries, bullet lists, or markdown fences. Put anything you want to tell the contractor inside the "notes" field.
+        - Keep the JSON compact (no pretty-printing) so the whole object fits in one reply and is never cut off. Any text outside the JSON, or a cut-off object, breaks the app.
+
+        The JSON shape:
         {"sections":[{"service":"...","items":[{"name":"...","spec":"...","qty":1,"unit":"ea","price":0.00,"bestStore":"Home Depot","prices":[{"store":"Home Depot","price":0.00},{"store":"Lowe's","price":0.00}],"live":true}]}],"notes":"..."}
     """.trimIndent()
 
