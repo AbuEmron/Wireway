@@ -4,8 +4,10 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wirewaypro.app.data.prefs.DEFAULT_HOURLY_RATE
 import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.domain.model.QuoteDetail
+import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
@@ -31,6 +33,7 @@ data class QuoteDetailUiState(
     val deleted: Boolean = false,
     val exportingPdf: Boolean = false,
     val pdfToShare: File? = null, // one-shot: non-null when ready for the share sheet
+    val createdInvoiceId: String? = null, // one-shot: id of the invoice just created from this estimate
 )
 
 /**
@@ -113,6 +116,54 @@ class QuoteDetailViewModel @Inject constructor(
                 .onFailure { _state.update { it.copy(error = "Couldn't delete this record.") } }
         }
     }
+
+    /**
+     * Creates a NEW invoice from this estimate (a fresh `quotes` row with
+     * invoice_mode = true), copying the line items and pricing. The estimate is
+     * left untouched, so the contractor keeps the original bid and now has an
+     * invoice to send — closing the estimate → get-paid loop.
+     */
+    fun convertToInvoice() {
+        val userId = auth.currentUserId() ?: run {
+            _state.update { it.copy(error = "Session expired.") }
+            return
+        }
+        val quote = _state.value.quote ?: return
+        if (quote.isInvoice) return
+
+        _state.update { it.copy(busy = true, error = null) }
+        viewModelScope.launch {
+            quoteRepository.saveQuote(userId, quote.toInput(asInvoice = true))
+                .onSuccess { created -> _state.update { it.copy(busy = false, createdInvoiceId = created.id) } }
+                .onFailure { _state.update { it.copy(busy = false, error = "Couldn't create the invoice. Try again.") } }
+        }
+    }
+
+    fun createdInvoiceConsumed() = _state.update { it.copy(createdInvoiceId = null) }
+
+    /** Maps this record to a fresh [QuoteInput] (new id + number) as an estimate or invoice. */
+    private fun QuoteDetail.toInput(asInvoice: Boolean) = QuoteInput(
+        id = null,
+        quoteNumber = null, // generate a fresh WW-YYYY-NNN
+        clientName = clientName,
+        clientEmail = clientEmail,
+        clientPhone = clientPhone,
+        jobName = jobName,
+        notes = notes,
+        markup = markup ?: 0.30,
+        hourlyRate = hourlyRate ?: DEFAULT_HOURLY_RATE,
+        rateMode = rateMode,
+        taxEnabled = taxEnabled,
+        taxRate = taxRate ?: 0.0,
+        depositPercent = depositPercent,
+        invoiceMode = asInvoice,
+        invoiceDueDate = null,
+        invoicePaid = false,
+        showMaterials = showMaterials,
+        clientBuysAll = clientBuysAll,
+        catalogEntries = catalogEntries,
+        customItems = customItems,
+    )
 
     /** Render the quote to a PDF off the main thread, then hand it to the screen. */
     fun exportPdf() {

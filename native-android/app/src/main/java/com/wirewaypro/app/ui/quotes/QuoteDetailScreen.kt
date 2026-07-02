@@ -17,6 +17,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.AlertDialog
@@ -68,6 +69,7 @@ fun QuoteDetailScreen(
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
     onPullList: (String) -> Unit = {},
+    onOpenInvoice: (String) -> Unit = {},
     viewModel: QuoteDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -83,6 +85,9 @@ fun QuoteDetailScreen(
     LaunchedEffect(state.deleted) { if (state.deleted) onBack() }
     LaunchedEffect(state.pdfToShare) {
         state.pdfToShare?.let { sharePdf(context, it); viewModel.pdfConsumed() }
+    }
+    LaunchedEffect(state.createdInvoiceId) {
+        state.createdInvoiceId?.let { onOpenInvoice(it); viewModel.createdInvoiceConsumed() }
     }
 
     DetailScaffold(
@@ -253,6 +258,18 @@ fun QuoteDetailScreen(
             ) {
                 Icon(Icons.Outlined.ShoppingCart, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text("Material Pull List")
+            }
+
+            // Estimate → get-paid: spin up an invoice from this bid (keeps the estimate).
+            if (!quote.isInvoice) {
+                OutlinedButton(
+                    onClick = viewModel::convertToInvoice,
+                    enabled = !state.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Outlined.ReceiptLong, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Convert to invoice")
+                }
             }
 
             // Follow-up nudge for an open (unaccepted) estimate — a stale bid that

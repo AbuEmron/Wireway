@@ -311,6 +311,12 @@ fun DashboardScreen(
                     onBack = { navController.popBackStack() },
                     onEdit = { id -> navController.navigate(DashDest.quoteBuilder(id = id)) },
                     onPullList = { id -> navController.navigate(DashDest.pullList(id)) },
+                    onOpenInvoice = { id ->
+                        // Replace the estimate detail with the new invoice's detail.
+                        navController.navigate(DashDest.invoiceDetail(id)) {
+                            popUpTo(DashDest.ESTIMATE_DETAIL) { inclusive = true }
+                        }
+                    },
                 )
             }
             composable(DashDest.INVOICE_DETAIL, arguments = idArg) {
