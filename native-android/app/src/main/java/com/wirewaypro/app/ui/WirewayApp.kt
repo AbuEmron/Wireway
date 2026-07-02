@@ -15,14 +15,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wirewaypro.app.domain.model.AuthState
 import com.wirewaypro.app.ui.auth.LoginScreen
+import com.wirewaypro.app.ui.auth.SignUpScreen
+import com.wirewaypro.app.ui.auth.WelcomeScreen
 import com.wirewaypro.app.ui.dashboard.DashboardScreen
 import com.wirewaypro.app.ui.navigation.Routes
 
 /**
  * Root composable. Owns the top-level NavHost and keeps it in sync with the
  * Supabase session: a fresh sign-in jumps to the dashboard, a sign-out (or
- * expiry) returns to login. The persisted session means a returning user lands
- * straight on the dashboard.
+ * expiry) returns to the signed-out Welcome screen. The persisted session means
+ * a returning user lands straight on the dashboard, skipping the auth flow.
  */
 @Composable
 fun WirewayApp(
@@ -41,11 +43,12 @@ fun WirewayApp(
     }
 
     val isAuthed = authState is AuthState.Authenticated
-    val startRoute = if (isAuthed) Routes.DASHBOARD else Routes.LOGIN
+    val startRoute = if (isAuthed) Routes.DASHBOARD else Routes.WELCOME
 
-    // React to auth transitions that happen while the app is open.
+    // React to auth transitions that happen while the app is open. Signed-out
+    // users land on Welcome (the auth entry point); Login/Sign Up branch off it.
     LaunchedEffect(isAuthed) {
-        val target = if (isAuthed) Routes.DASHBOARD else Routes.LOGIN
+        val target = if (isAuthed) Routes.DASHBOARD else Routes.WELCOME
         navController.navigate(target) {
             popUpTo(navController.graph.id) { inclusive = true }
             launchSingleTop = true
@@ -53,9 +56,34 @@ fun WirewayApp(
     }
 
     NavHost(navController = navController, startDestination = startRoute) {
+        composable(Routes.WELCOME) {
+            WelcomeScreen(
+                onGetStarted = { navController.navigate(Routes.SIGNUP) },
+                onSignIn = { navController.navigate(Routes.LOGIN) },
+            )
+        }
         composable(Routes.LOGIN) {
-            // Navigation away happens via the auth-state effect above.
-            LoginScreen()
+            LoginScreen(
+                // Toggle to Sign Up, replacing Login so Back returns to Welcome.
+                onCreateAccount = {
+                    navController.navigate(Routes.SIGNUP) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
+            // A successful sign-in routes to the dashboard via the auth-state effect.
+        }
+        composable(Routes.SIGNUP) {
+            SignUpScreen(
+                // Toggle to Login, replacing Sign Up so Back returns to Welcome.
+                onNavigateToLogin = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.SIGNUP) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
         composable(Routes.DASHBOARD) {
             BiometricGate(onUsePassword = sessionViewModel::signOut) {

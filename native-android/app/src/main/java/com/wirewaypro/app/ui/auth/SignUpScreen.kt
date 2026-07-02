@@ -9,12 +9,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.MarkEmailRead
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -26,8 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,18 +43,22 @@ import com.wirewaypro.app.ui.components.WirewayLogoBadge
 import com.wirewaypro.app.ui.theme.BrandGradients
 
 /**
- * Email/password sign-in against Supabase gotrue, restyled to the brand. A gradient
- * logo badge anchors the screen, the brand tagline sets the tone, and the primary
- * CTA is the gradient sign-in button. Loading + error states are driven by
- * [LoginViewModel]; a successful sign-in routes to the dashboard via the session
- * observer. [onCreateAccount] toggles across to the Sign Up screen.
+ * Account creation against Supabase, mirroring the web sign-up: full name, email
+ * and password (≥ 8 chars). On success we either fall through to the dashboard
+ * (session created) or, when the project requires email confirmation, swap the
+ * form for a "check your email" panel that routes back to sign-in.
  */
 @Composable
-fun LoginScreen(
-    onCreateAccount: () -> Unit = {},
-    viewModel: LoginViewModel = hiltViewModel(),
+fun SignUpScreen(
+    onNavigateToLogin: () -> Unit,
+    viewModel: SignUpViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    if (state.confirmationRequired) {
+        ConfirmationPanel(email = state.email, onGoToLogin = onNavigateToLogin)
+        return
+    }
 
     Column(
         modifier = Modifier
@@ -60,39 +70,47 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(40.dp))
 
-        // Logo badge over a soft radial brand glow.
         Box(contentAlignment = Alignment.Center) {
             Box(
                 modifier = Modifier
-                    .height(140.dp)
+                    .height(130.dp)
                     .fillMaxWidth()
                     .drawBehind { drawRect(brush = BrandGradients.glow, alpha = 0.5f) },
             )
-            WirewayLogoBadge(size = 84.dp)
+            WirewayLogoBadge(size = 76.dp)
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(16.dp))
         Text(
-            text = "WIREWAY",
-            style = MaterialTheme.typography.displayMedium.copy(letterSpacing = 2.sp),
+            text = "Create your account",
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Text(
-            text = "Electrical estimating · Powered by Precision",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Medium,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = "Sign in to your contractor workspace",
+            text = "Start estimating in minutes — no credit card required.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(36.dp))
+        Spacer(Modifier.height(28.dp))
+
+        OutlinedTextField(
+            value = state.fullName,
+            onValueChange = viewModel::onNameChange,
+            label = { Text("Full name") },
+            singleLine = true,
+            enabled = !state.isSubmitting,
+            shape = RoundedCornerShape(16.dp),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Next,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(14.dp))
 
         OutlinedTextField(
             value = state.email,
@@ -113,6 +131,7 @@ fun LoginScreen(
             value = state.password,
             onValueChange = viewModel::onPasswordChange,
             label = { Text("Password") },
+            supportingText = { Text("At least 8 characters") },
             singleLine = true,
             enabled = !state.isSubmitting,
             shape = RoundedCornerShape(16.dp),
@@ -121,12 +140,12 @@ fun LoginScreen(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done,
             ),
-            keyboardActions = KeyboardActions(onDone = { viewModel.signIn() }),
+            keyboardActions = KeyboardActions(onDone = { viewModel.signUp() }),
             modifier = Modifier.fillMaxWidth(),
         )
 
         if (state.error != null) {
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
                 text = state.error!!,
                 style = MaterialTheme.typography.bodyMedium,
@@ -134,23 +153,79 @@ fun LoginScreen(
             )
         }
 
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(24.dp))
         GradientButton(
-            text = "Sign in",
-            onClick = viewModel::signIn,
+            text = "Create account",
+            onClick = viewModel::signUp,
             enabled = state.canSubmit,
             loading = state.isSubmitting,
             modifier = Modifier.fillMaxWidth(),
         )
 
         Spacer(Modifier.height(10.dp))
-        TextButton(onClick = onCreateAccount, enabled = !state.isSubmitting) {
+        TextButton(onClick = onNavigateToLogin, enabled = !state.isSubmitting) {
             Text(
-                text = "New to Wireway? Create an account",
+                text = "Already have an account? Sign in",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(32.dp))
+    }
+}
+
+/**
+ * Shown after a successful sign-up when the account still needs email
+ * confirmation — mirrors the web app's "Check your email to confirm" message.
+ */
+@Composable
+private fun ConfirmationPanel(
+    email: String,
+    onGoToLogin: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .height(120.dp)
+                    .fillMaxWidth()
+                    .drawBehind { drawRect(brush = BrandGradients.glow, alpha = 0.5f) },
+            )
+            Icon(
+                imageVector = Icons.Outlined.MarkEmailRead,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(64.dp),
+            )
+        }
+
+        Spacer(Modifier.height(20.dp))
+        Text(
+            text = "Check your email",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = "We sent a confirmation link to $email. Confirm your account, then sign in.",
+            style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 22.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(32.dp))
+        GradientButton(
+            text = "Go to sign in",
+            onClick = onGoToLogin,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }

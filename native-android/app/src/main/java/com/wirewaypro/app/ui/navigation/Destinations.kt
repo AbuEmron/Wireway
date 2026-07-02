@@ -9,7 +9,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 /** Top-level navigation graph routes. */
 object Routes {
+    /** Signed-out landing screen — the auth graph's entry point. */
+    const val WELCOME = "welcome"
     const val LOGIN = "login"
+    const val SIGNUP = "signup"
     const val DASHBOARD = "dashboard"
 }
 
