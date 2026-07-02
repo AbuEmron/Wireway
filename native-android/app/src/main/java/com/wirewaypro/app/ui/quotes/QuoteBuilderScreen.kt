@@ -233,6 +233,14 @@ fun QuoteBuilderScreen(
                     FormField(state.markupPct, viewModel::setMarkupPct, "Markup %", Modifier.weight(1f), KeyboardType.Number)
                     FormField(state.hourlyRate, viewModel::setHourlyRate, "Hourly $", Modifier.weight(1f), KeyboardType.Number)
                 }
+                state.rateHint?.let { hint ->
+                    Spacer(Modifier.padding(top = 6.dp))
+                    Text(
+                        hint,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Spacer(Modifier.padding(top = 12.dp))
                 SwitchRow("Charge sales tax (on materials)", state.taxEnabled, viewModel::setTaxEnabled)
                 if (state.taxEnabled) {

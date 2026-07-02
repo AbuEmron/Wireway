@@ -7,6 +7,7 @@ import com.wirewaypro.app.data.ai.AiService
 import com.wirewaypro.app.data.ai.PricingAdvisorService
 import com.wirewaypro.app.data.ai.TakeoffHandoff
 import com.wirewaypro.app.data.location.LocationService
+import com.wirewaypro.app.data.prefs.DEFAULT_HOURLY_RATE
 import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.data.quotes.DraftCatalogEntry
 import com.wirewaypro.app.data.quotes.DraftCustomItem
@@ -21,6 +22,7 @@ import com.wirewaypro.app.domain.model.PricingRecommendation
 import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.model.QuoteTotals
 import com.wirewaypro.app.domain.model.RateMode
+import com.wirewaypro.app.domain.pricing.DefaultRate
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -69,6 +71,8 @@ data class QuoteBuilderUiState(
     val notes: String = "",
     val markupPct: String = "30",
     val hourlyRate: String = "85",
+    /** One-line note on where the seeded default rate came from (approximate, edit me). */
+    val rateHint: String? = null,
     val rateMode: RateMode = RateMode.FLAT,
     val clientBuysAll: Boolean = false,   // true = client supplies materials (labor only)
     val taxEnabled: Boolean = false,
@@ -149,15 +153,24 @@ class QuoteBuilderViewModel @Inject constructor(
         }
     }
 
-    /** A new quote may have been seeded by the AI takeoff screen; also prefill the rate. */
+    /**
+     * A new quote may have been seeded by the AI takeoff screen; also prefill the
+     * rate. The default rate is resolved offline: the contractor's saved rate if
+     * set, otherwise their regional typical band, otherwise a national starting
+     * point — never the blind $85. [rateHint] tells the user where it came from.
+     */
     private suspend fun seedNewQuote() {
         takeoffHandoff.take()?.takeIf { it.isNotEmpty() }?.let { entries ->
             _state.update { s ->
                 s.copy(catalogItems = entries.map { CatalogEntryUi(it.serviceId, numText(it.qty), it.variantIdx, it.clientBuys) })
             }
         }
-        val baseline = settingsPrefs.defaultHourlyRate.first()
-        if (baseline > 0) _state.update { it.copy(hourlyRate = numText(baseline)) }
+        val resolved = DefaultRate.resolve(
+            personalRate = settingsPrefs.rawDefaultHourlyRate.first(),
+            regionalTypical = settingsPrefs.regionalDefaultRate.first(),
+            national = DEFAULT_HOURLY_RATE,
+        )
+        _state.update { it.copy(hourlyRate = numText(resolved.rate), rateHint = resolved.hint) }
     }
 
     /** Current form → serializable draft snapshot. */
@@ -284,7 +297,7 @@ class QuoteBuilderViewModel @Inject constructor(
     fun setJobName(v: String) = _state.update { it.copy(jobName = v) }
     fun setNotes(v: String) = _state.update { it.copy(notes = v) }
     fun setMarkupPct(v: String) = _state.update { it.copy(markupPct = v) }
-    fun setHourlyRate(v: String) = _state.update { it.copy(hourlyRate = v) }
+    fun setHourlyRate(v: String) = _state.update { it.copy(hourlyRate = v, rateHint = null) }
     fun setRateMode(v: RateMode) = _state.update { it.copy(rateMode = v) }
     /** Hourly sub-option: true = "Just labor" (client supplies materials). */
     fun setClientBuysAll(v: Boolean) = _state.update { it.copy(clientBuysAll = v) }
@@ -329,6 +342,7 @@ class QuoteBuilderViewModel @Inject constructor(
                 rateMode = rec.mode,
                 hourlyRate = if (rec.mode == RateMode.HOURLY && (rec.recommendedRate ?: 0.0) > 0)
                     numText(rec.recommendedRate!!) else s.hourlyRate,
+                rateHint = null,
                 advice = null,
             )
         }

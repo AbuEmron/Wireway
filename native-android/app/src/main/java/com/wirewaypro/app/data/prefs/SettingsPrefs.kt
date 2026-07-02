@@ -29,6 +29,7 @@ class SettingsPrefs @Inject constructor(
     private val notificationsKey = booleanPreferencesKey("notifications_enabled")
     private val hourlyRateKey = doublePreferencesKey("default_hourly_rate")
     private val flatRateKey = doublePreferencesKey("default_flat_rate")
+    private val regionalRateKey = doublePreferencesKey("regional_default_rate")
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val reviewLinkKey = stringPreferencesKey("review_link")
 
@@ -43,9 +44,27 @@ class SettingsPrefs @Inject constructor(
     val defaultHourlyRate: Flow<Double> =
         context.settingsDataStore.data.map { it[hourlyRateKey] ?: DEFAULT_HOURLY_RATE }
 
+    /**
+     * The contractor's hourly rate ONLY if they've explicitly set one — null when
+     * unset (no [DEFAULT_HOURLY_RATE] fallback). Lets new-quote seeding tell a real
+     * saved rate apart from the national default so it can fall back to a regional
+     * rate instead of a blind $85.
+     */
+    val rawDefaultHourlyRate: Flow<Double?> =
+        context.settingsDataStore.data.map { it[hourlyRateKey] }
+
     /** Contractor's typical flat-rate baseline (e.g. a service-call minimum). 0 = unset. */
     val defaultFlatRate: Flow<Double> =
         context.settingsDataStore.data.map { it[flatRateKey] ?: 0.0 }
+
+    /**
+     * Cached typical billed rate for the contractor's region (derived offline from
+     * their company address via [com.wirewaypro.app.domain.pricing.RegionalLaborRates]).
+     * 0 = unknown. New quotes use this when the contractor hasn't set a personal
+     * rate, so a first estimate opens location-aware instead of a flat national $85.
+     */
+    val regionalDefaultRate: Flow<Double> =
+        context.settingsDataStore.data.map { it[regionalRateKey] ?: 0.0 }
 
     suspend fun setNotificationsEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { it[notificationsKey] = enabled }
@@ -57,6 +76,11 @@ class SettingsPrefs @Inject constructor(
 
     suspend fun setDefaultFlatRate(rate: Double) {
         context.settingsDataStore.edit { it[flatRateKey] = rate }
+    }
+
+    /** Cache the region's typical billed rate (0 to clear). */
+    suspend fun setRegionalDefaultRate(rate: Double) {
+        context.settingsDataStore.edit { it[regionalRateKey] = rate }
     }
 
     /** Public review link (Google Business, Yelp, ...) used in review requests. */

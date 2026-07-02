@@ -69,6 +69,15 @@ class ProfileEditViewModel @Inject constructor(
             val review = settingsPrefs.reviewLink.first()
             val profile = profileRepository.getProfile(userId).getOrNull()
             apply(profile, notify, hourly, flat, review)
+            // Cache the region's typical rate so new quotes can default to it offline.
+            cacheRegionalRate(RegionalLaborRates.forState(RegionalLaborRates.detectState(profile?.companyAddress)))
+        }
+    }
+
+    /** Persist the region's typical billed rate for offline use by the quote builder. */
+    private fun cacheRegionalRate(band: RateBand?) {
+        viewModelScope.launch {
+            settingsPrefs.setRegionalDefaultRate(band?.typical?.toDouble() ?: 0.0)
         }
     }
 
@@ -111,8 +120,10 @@ class ProfileEditViewModel @Inject constructor(
     fun setCompanyPhone(v: String) = _state.update { it.copy(companyPhone = v) }
     fun setCompanyEmail(v: String) = _state.update { it.copy(companyEmail = v) }
     fun setCompanyLicense(v: String) = _state.update { it.copy(companyLicense = v) }
-    fun setCompanyAddress(v: String) = _state.update {
-        it.copy(companyAddress = v, rateSuggestion = RegionalLaborRates.forState(RegionalLaborRates.detectState(v)))
+    fun setCompanyAddress(v: String) {
+        val band = RegionalLaborRates.forState(RegionalLaborRates.detectState(v))
+        _state.update { it.copy(companyAddress = v, rateSuggestion = band) }
+        cacheRegionalRate(band)
     }
     fun setCompanyWebsite(v: String) = _state.update { it.copy(companyWebsite = v) }
     fun setHourlyRate(v: String) = _state.update { it.copy(hourlyRate = v) }
@@ -141,10 +152,15 @@ class ProfileEditViewModel @Inject constructor(
             companyAddress = s.companyAddress.ifBlank { null },
             companyWebsite = s.companyWebsite.ifBlank { null },
         )
+        // A blank hourly rate falls back to the region's typical band (from the
+        // address) instead of a flat national $85, so entering an address alone
+        // yields a location-aware default rate.
+        val rateFallback = s.rateSuggestion?.typical?.toDouble() ?: DEFAULT_HOURLY_RATE
+
         _state.update { it.copy(isSaving = true, error = null) }
         viewModelScope.launch {
             settingsPrefs.setNotificationsEnabled(s.notificationsEnabled)
-            settingsPrefs.setDefaultHourlyRate(s.hourlyRate.toDoubleOrNull()?.takeIf { it > 0 } ?: DEFAULT_HOURLY_RATE)
+            settingsPrefs.setDefaultHourlyRate(s.hourlyRate.toDoubleOrNull()?.takeIf { it > 0 } ?: rateFallback)
             settingsPrefs.setDefaultFlatRate(s.flatRate.toDoubleOrNull()?.takeIf { it > 0 } ?: 0.0)
             settingsPrefs.setReviewLink(s.reviewLink)
             profileRepository.saveProfile(userId, input)
