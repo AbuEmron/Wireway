@@ -34,6 +34,7 @@ data class QuoteDetailUiState(
     val exportingPdf: Boolean = false,
     val pdfToShare: File? = null, // one-shot: non-null when ready for the share sheet
     val createdInvoiceId: String? = null, // one-shot: id of the invoice just created from this estimate
+    val duplicatedId: String? = null, // one-shot: id of the copy just created ("same as last job")
 )
 
 /**
@@ -140,6 +141,28 @@ class QuoteDetailViewModel @Inject constructor(
     }
 
     fun createdInvoiceConsumed() = _state.update { it.copy(createdInvoiceId = null) }
+
+    /**
+     * "Same as last job" — creates a fresh draft copy of this record (same kind,
+     * new id + number) with the line items and pricing carried over, so the
+     * contractor can tweak the client/details instead of rebuilding from scratch.
+     */
+    fun duplicate() {
+        val userId = auth.currentUserId() ?: run {
+            _state.update { it.copy(error = "Session expired.") }
+            return
+        }
+        val quote = _state.value.quote ?: return
+
+        _state.update { it.copy(busy = true, error = null) }
+        viewModelScope.launch {
+            quoteRepository.saveQuote(userId, quote.toInput(asInvoice = quote.isInvoice))
+                .onSuccess { created -> _state.update { it.copy(busy = false, duplicatedId = created.id) } }
+                .onFailure { _state.update { it.copy(busy = false, error = "Couldn't duplicate. Try again.") } }
+        }
+    }
+
+    fun duplicatedConsumed() = _state.update { it.copy(duplicatedId = null) }
 
     /** Maps this record to a fresh [QuoteInput] (new id + number) as an estimate or invoice. */
     private fun QuoteDetail.toInput(asInvoice: Boolean) = QuoteInput(

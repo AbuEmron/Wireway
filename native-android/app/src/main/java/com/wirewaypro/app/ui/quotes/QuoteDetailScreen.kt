@@ -13,6 +13,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Payments
@@ -88,6 +89,10 @@ fun QuoteDetailScreen(
     }
     LaunchedEffect(state.createdInvoiceId) {
         state.createdInvoiceId?.let { onOpenInvoice(it); viewModel.createdInvoiceConsumed() }
+    }
+    LaunchedEffect(state.duplicatedId) {
+        // Open the fresh copy in the builder so the contractor can tweak it.
+        state.duplicatedId?.let { onEdit(it); viewModel.duplicatedConsumed() }
     }
 
     DetailScaffold(
@@ -258,6 +263,16 @@ fun QuoteDetailScreen(
             ) {
                 Icon(Icons.Outlined.ShoppingCart, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text("Material Pull List")
+            }
+
+            // "Same as last job" — copy this record into a fresh editable draft.
+            OutlinedButton(
+                onClick = viewModel::duplicate,
+                enabled = !state.busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Text("Duplicate ${kind.lowercase()}")
             }
 
             // Estimate → get-paid: spin up an invoice from this bid (keeps the estimate).
