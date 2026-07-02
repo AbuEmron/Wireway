@@ -23,6 +23,12 @@ import androidx.compose.ui.unit.dp
  * canonical loading / error / empty / content states. The empty + error states
  * still fill the viewport so the pull gesture works when there are no rows.
  *
+ * Screens can opt into premium states by passing [skeleton] (a shimmer placeholder
+ * shown while first-loading, top-aligned so it mirrors the real list) and/or
+ * [emptyContent] / [errorContent] (branded [EmptyState]/[ErrorState] with a CTA).
+ * Left null, the plain spinner + centered message are used — so existing callers are
+ * untouched.
+ *
  * @param isEmpty whether the underlying data set is empty (drives state choice).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,6 +43,9 @@ fun RefreshableList(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     verticalSpacing: androidx.compose.ui.unit.Dp = 12.dp,
+    skeleton: (@Composable () -> Unit)? = null,
+    emptyContent: (@Composable () -> Unit)? = null,
+    errorContent: (@Composable (String) -> Unit)? = null,
     listContent: LazyListScope.() -> Unit,
 ) {
     PullToRefreshBox(
@@ -51,21 +60,29 @@ fun RefreshableList(
         ) {
             when {
                 isLoading && isEmpty -> item {
-                    FullViewportBox { CircularProgressIndicator() }
+                    if (skeleton != null) skeleton() else FullViewportBox { CircularProgressIndicator() }
                 }
 
                 error != null && isEmpty -> item {
-                    FullViewportBox {
-                        CenteredMessage(
-                            title = error,
-                            subtitle = "Pull down to retry.",
-                        )
+                    if (errorContent != null) {
+                        FullViewportBox { errorContent(error) }
+                    } else {
+                        FullViewportBox {
+                            CenteredMessage(
+                                title = error,
+                                subtitle = "Pull down to retry.",
+                            )
+                        }
                     }
                 }
 
                 isEmpty -> item {
-                    FullViewportBox {
-                        CenteredMessage(title = emptyMessage, subtitle = null)
+                    if (emptyContent != null) {
+                        FullViewportBox { emptyContent() }
+                    } else {
+                        FullViewportBox {
+                            CenteredMessage(title = emptyMessage, subtitle = null)
+                        }
                     }
                 }
 

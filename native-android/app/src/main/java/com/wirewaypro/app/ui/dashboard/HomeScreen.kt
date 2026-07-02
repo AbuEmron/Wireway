@@ -40,11 +40,9 @@ import androidx.compose.material.icons.outlined.TrendingDown
 import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material.icons.outlined.WorkspacePremium
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -58,11 +56,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.model.MoneySnapshot
-import com.wirewaypro.app.ui.components.NavRow
+import com.wirewaypro.app.ui.components.ErrorState
 import com.wirewaypro.app.ui.components.SectionEyebrow
+import com.wirewaypro.app.ui.components.ShimmerBox
 import com.wirewaypro.app.ui.components.StatCard
 import com.wirewaypro.app.ui.components.WirewayWordmark
 import com.wirewaypro.app.ui.components.animatedCount
+import com.wirewaypro.app.ui.components.shimmer
 import com.wirewaypro.app.ui.theme.BrandGradients
 import com.wirewaypro.app.ui.theme.BrandGreen
 import com.wirewaypro.app.ui.util.Format
@@ -129,12 +129,12 @@ fun HomeScreen(
         )
 
         if (state.error != null && state.profile == null) {
-            Text(
-                text = state.error!!,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            ErrorState(
+                title = "Couldn't load your dashboard",
+                message = state.error!!,
+                actionLabel = "Try again",
+                onAction = viewModel::loadHome,
             )
-            TextButton(onClick = viewModel::loadHome) { Text("Retry") }
         }
 
         val snap = state.snapshot
@@ -151,13 +151,17 @@ fun HomeScreen(
 
         // ── This month ────────────────────────────────────────────────────────
         SectionEyebrow("This month", modifier = Modifier.padding(top = 4.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            StatCard(label = "Spent", value = Format.money(snap?.spent ?: 0.0), icon = Icons.Outlined.TrendingDown, accent = MaterialTheme.colorScheme.secondary, modifier = Modifier.weight(1f))
-            StatCard(label = "Real profit", value = Format.money(snap?.realProfit ?: 0.0), icon = Icons.Outlined.TrendingUp, accent = if ((snap?.realProfit ?: 0.0) >= 0) BrandGreen else MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            StatCard(label = if (state.jobCount == 1L) "Scheduled job" else "Scheduled jobs", value = state.jobCount?.toString() ?: "\u2014", icon = Icons.Outlined.Work, modifier = Modifier.weight(1f))
-            StatCard(label = "Won this month", value = Format.money(snap?.won ?: 0.0), icon = Icons.Outlined.Savings, accent = MaterialTheme.colorScheme.secondary, modifier = Modifier.weight(1f))
+        if (state.isLoading && snap == null) {
+            StatGridSkeleton()
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                StatCard(label = "Spent", value = Format.money(snap?.spent ?: 0.0), icon = Icons.Outlined.TrendingDown, accent = MaterialTheme.colorScheme.secondary, modifier = Modifier.weight(1f))
+                StatCard(label = "Real profit", value = Format.money(snap?.realProfit ?: 0.0), icon = Icons.Outlined.TrendingUp, accent = if ((snap?.realProfit ?: 0.0) >= 0) BrandGreen else MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                StatCard(label = if (state.jobCount == 1L) "Scheduled job" else "Scheduled jobs", value = state.jobCount?.toString() ?: "\u2014", icon = Icons.Outlined.Work, modifier = Modifier.weight(1f))
+                StatCard(label = "Won this month", value = Format.money(snap?.won ?: 0.0), icon = Icons.Outlined.Savings, accent = MaterialTheme.colorScheme.secondary, modifier = Modifier.weight(1f))
+            }
         }
 
         // Non-Elite: one upgrade nudge for AI Takeoff (monetization).
@@ -233,6 +237,33 @@ private fun QuickAction(label: String, icon: ImageVector, modifier: Modifier = M
     }
 }
 
+/** Two rows of shimmering stat tiles shown while the month's snapshot loads. */
+@Composable
+private fun StatGridSkeleton() {
+    val cardColor = MaterialTheme.colorScheme.surface
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        repeat(2) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                repeat(2) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .drawBehind { drawRect(cardColor) }
+                            .padding(16.dp),
+                    ) {
+                        ShimmerBox(width = 36.dp, height = 36.dp, shape = RoundedCornerShape(12.dp))
+                        Spacer(Modifier.height(12.dp))
+                        ShimmerBox(width = 84.dp, height = 20.dp)
+                        Spacer(Modifier.height(6.dp))
+                        ShimmerBox(width = 56.dp, height = 12.dp)
+                    }
+                }
+            }
+        }
+    }
+}
+
 /**
  * The gradient hero: an animated blue→purple panel showing the money collected this
  * month, counting up on load. Tapping it opens the Money dashboard.
@@ -273,7 +304,19 @@ private fun HeroCard(
             )
             Spacer(Modifier.height(10.dp))
             if (isLoading) {
-                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(34.dp))
+                // A white translucent placeholder shaped like the hero figure — reads
+                // as "loading your money" without a jarring spinner on the gradient.
+                Box(
+                    modifier = Modifier
+                        .size(width = 200.dp, height = 46.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .drawBehind { drawRect(Color.White.copy(alpha = 0.18f)) }
+                        .shimmer(
+                            shape = RoundedCornerShape(12.dp),
+                            baseColor = Color.White.copy(alpha = 0.18f),
+                            highlightColor = Color.White.copy(alpha = 0.40f),
+                        ),
+                )
             } else {
                 Text(
                     text = Format.money(shown),

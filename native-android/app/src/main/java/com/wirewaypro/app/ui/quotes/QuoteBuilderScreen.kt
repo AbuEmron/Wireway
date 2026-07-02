@@ -59,8 +59,10 @@ import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.RateMode
 import com.wirewaypro.app.ui.components.DateField
 import com.wirewaypro.app.ui.components.FormField
+import com.wirewaypro.app.ui.components.GlassCard
 import com.wirewaypro.app.ui.components.SaveTopBar
 import com.wirewaypro.app.ui.components.SectionCard
+import com.wirewaypro.app.ui.components.SectionHeader
 import com.wirewaypro.app.ui.util.Format
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -293,7 +295,10 @@ fun QuoteBuilderScreen(
                 }
             }
 
-            SectionCard(title = "Totals") {
+            // The number the electrician actually hands over — lifted onto the
+            // premium glass surface so it's unmistakably the headline of the screen.
+            GlassCard {
+                SectionHeader("Totals")
                 val headline = totals.headlineTotal(state.rateMode, hourlyRate, state.taxEnabled, taxRate)
                 if (state.rateMode == RateMode.HOURLY) {
                     TotalRow("Estimated time", "${hoursText(totals.totalHours)} hrs")

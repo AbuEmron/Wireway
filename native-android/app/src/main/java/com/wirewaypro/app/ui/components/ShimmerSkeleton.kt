@@ -7,7 +7,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -81,4 +83,40 @@ fun ShimmerBox(
             )
             .shimmer(shape),
     )
+}
+
+/**
+ * A stack of shimmering card placeholders shaped like [ListCard] rows — the premium
+ * "first load" state for a list. Reads as the list arriving rather than a lone
+ * spinner spinning in the middle of an empty screen.
+ */
+@Composable
+fun ListCardSkeleton(
+    rows: Int = 5,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.layout.Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement =
+            androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+    ) {
+        repeat(rows) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(androidx.compose.material3.MaterialTheme.colorScheme.surface)
+                    .padding(16.dp),
+            ) {
+                androidx.compose.foundation.layout.Column(
+                    verticalArrangement =
+                        androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+                ) {
+                    ShimmerBox(width = 180.dp, height = 16.dp)
+                    ShimmerBox(width = 120.dp, height = 12.dp)
+                    ShimmerBox(width = 90.dp, height = 12.dp)
+                }
+            }
+        }
+    }
 }
