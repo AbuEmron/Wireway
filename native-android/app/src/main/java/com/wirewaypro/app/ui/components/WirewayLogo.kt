@@ -28,7 +28,7 @@ fun WirewayLogomark(
     size: Dp = 28.dp,
 ) {
     Image(
-        painter = painterResource(R.drawable.ic_wireway_logo),
+        painter = painterResource(R.drawable.wireway_icon),
         contentDescription = "Wireway",
         modifier = modifier.size(size),
     )
@@ -43,26 +43,11 @@ fun WirewayLogoBadge(
     modifier: Modifier = Modifier,
     size: Dp = 44.dp,
 ) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .drawBehind {
-                val r = this.size.minDimension * 0.28f
-                drawRoundRect(
-                    brush = Brush.linearGradient(
-                        colors = listOf(Color(0xFF1B2647), Color(0xFF0E1630), Color(0xFF070B18)),
-                        start = Offset.Zero,
-                        end = Offset(this.size.width, this.size.height),
-                    ),
-                    cornerRadius = CornerRadius(r, r),
-                )
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Image(
-            painter = painterResource(R.drawable.ic_wireway_logo),
-            contentDescription = "Wireway",
-            modifier = Modifier.size(size * 0.84f),
-        )
-    }
+    // The brand icon PNG already carries its own rounded blue background, so it
+    // renders directly here and matches the launcher icon exactly.
+    Image(
+        painter = painterResource(R.drawable.wireway_icon),
+        contentDescription = "Wireway",
+        modifier = modifier.size(size),
+    )
 }

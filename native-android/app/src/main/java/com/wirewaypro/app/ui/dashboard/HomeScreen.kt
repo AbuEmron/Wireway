@@ -117,7 +117,7 @@ fun HomeScreen(
 
         val name = state.profile?.fullName ?: state.profile?.email?.substringBefore("@") ?: "there"
         Text(
-            text = "Welcome back, $name",
+            text = "${greeting()}, $name",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -137,91 +137,98 @@ fun HomeScreen(
             TextButton(onClick = viewModel::loadHome) { Text("Retry") }
         }
 
-        // ── Stat grid ────────────────────────────────────────────────────────
         val snap = state.snapshot
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            StatCard(
-                label = "Spent",
-                value = Format.money(snap?.spent ?: 0.0),
-                icon = Icons.Outlined.TrendingDown,
-                accent = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.weight(1f),
-            )
-            StatCard(
-                label = "Real profit",
-                value = Format.money(snap?.realProfit ?: 0.0),
-                icon = Icons.Outlined.TrendingUp,
-                accent = if ((snap?.realProfit ?: 0.0) >= 0) BrandGreen else MaterialTheme.colorScheme.error,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            StatCard(
-                label = if (state.jobCount == 1L) "Scheduled job" else "Scheduled jobs",
-                value = state.jobCount?.toString() ?: "—",
-                icon = Icons.Outlined.Work,
-                modifier = Modifier.weight(1f),
-            )
-            StatCard(
-                label = "Won this month",
-                value = Format.money(snap?.won ?: 0.0),
-                icon = Icons.Outlined.Savings,
-                accent = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.weight(1f),
-            )
-        }
-
-        // ── Start fast (no AI) ────────────────────────────────────────────────
-        // Job templates are the fast path to an estimate without AI — free to all.
-        SectionEyebrow("Start fast", modifier = Modifier.padding(top = 4.dp))
-        AiHeroCard(
-            icon = Icons.Outlined.Bolt,
-            title = "Job Templates",
-            subtitle = "Panel swap, EV charger, can-lights & more — a pre-filled estimate in one tap",
-            onClick = onOpenAssemblies,
-        )
-
-        // ── Estimate with AI ─────────────────────────────────────────────────
-        // AI Takeoff is an Elite-tier feature; non-Elite users see it as a locked
-        // upsell that routes to the Subscription screen.
         val isElite = state.profile?.isElite == true
-        SectionEyebrow("Estimate with AI", modifier = Modifier.padding(top = 4.dp))
-        AiHeroCard(
-            icon = Icons.Outlined.AutoAwesome,
-            title = "AI Quote Builder",
-            subtitle = "Describe the job in plain English — get a full estimate in seconds",
-            onClick = onOpenAiQuoteBuilder,
-        )
-        AiHeroCard(
-            icon = Icons.Outlined.PhotoCamera,
-            title = "AI Takeoff",
-            subtitle = if (isElite) {
-                "Snap or upload a plan photo/PDF — AI reads it and builds the estimate"
-            } else {
-                "Unlock AI plan takeoff from a photo or PDF with Elite"
-            },
-            onClick = if (isElite) onOpenTakeoff else onOpenSubscription,
-            locked = !isElite,
+
+        // ── Quick actions — the core money loop, one tap away ─────────────────
+        SectionEyebrow("Quick actions")
+        QuickActions(
+            onTemplates = onOpenAssemblies,
+            onAiQuote = onOpenAiQuoteBuilder,
+            onTakeoff = if (isElite) onOpenTakeoff else onOpenSubscription,
+            onMoney = onOpenMoney,
         )
 
-        // ── Browse ───────────────────────────────────────────────────────────
-        SectionEyebrow("Browse", modifier = Modifier.padding(top = 4.dp))
-        NavRow(label = "Jobs", icon = Icons.Outlined.Work, onClick = onOpenJobs, modifier = Modifier.fillMaxWidth())
-        NavRow(label = "Clients", icon = Icons.Outlined.Groups, onClick = onOpenClients, modifier = Modifier.fillMaxWidth())
-        NavRow(label = "Expenses & receipts", icon = Icons.Outlined.ReceiptLong, onClick = onOpenExpenses, modifier = Modifier.fillMaxWidth())
-        NavRow(label = "Mileage", icon = Icons.Outlined.DirectionsCar, onClick = onOpenMileage, modifier = Modifier.fillMaxWidth())
-        NavRow(label = "Time tracking", icon = Icons.Outlined.Schedule, onClick = onOpenTimeTracking, modifier = Modifier.fillMaxWidth())
-        NavRow(label = "NEC code reference", icon = Icons.Outlined.MenuBook, onClick = onOpenNec, modifier = Modifier.fillMaxWidth())
-        NavRow(label = "Load advisor", icon = Icons.Outlined.Bolt, onClick = onOpenLoadAdvisor, modifier = Modifier.fillMaxWidth())
-        NavRow(label = "Money", icon = Icons.Outlined.Payments, onClick = onOpenMoney, modifier = Modifier.fillMaxWidth())
-        NavRow(label = "Bank", icon = Icons.Outlined.AccountBalance, onClick = onOpenBank, modifier = Modifier.fillMaxWidth())
-        NavRow(label = "Subscription", icon = Icons.Outlined.WorkspacePremium, onClick = onOpenSubscription, modifier = Modifier.fillMaxWidth())
+        // ── This month ────────────────────────────────────────────────────────
+        SectionEyebrow("This month", modifier = Modifier.padding(top = 4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            StatCard(label = "Spent", value = Format.money(snap?.spent ?: 0.0), icon = Icons.Outlined.TrendingDown, accent = MaterialTheme.colorScheme.secondary, modifier = Modifier.weight(1f))
+            StatCard(label = "Real profit", value = Format.money(snap?.realProfit ?: 0.0), icon = Icons.Outlined.TrendingUp, accent = if ((snap?.realProfit ?: 0.0) >= 0) BrandGreen else MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            StatCard(label = if (state.jobCount == 1L) "Scheduled job" else "Scheduled jobs", value = state.jobCount?.toString() ?: "\u2014", icon = Icons.Outlined.Work, modifier = Modifier.weight(1f))
+            StatCard(label = "Won this month", value = Format.money(snap?.won ?: 0.0), icon = Icons.Outlined.Savings, accent = MaterialTheme.colorScheme.secondary, modifier = Modifier.weight(1f))
+        }
 
-        Spacer(Modifier.height(4.dp))
+        // Non-Elite: one upgrade nudge for AI Takeoff (monetization).
+        if (!isElite) {
+            SectionEyebrow("Unlock more", modifier = Modifier.padding(top = 4.dp))
+            AiHeroCard(
+                icon = Icons.Outlined.PhotoCamera,
+                title = "AI Takeoff",
+                subtitle = "Snap a plan photo or PDF \u2014 AI reads it and builds the estimate. Included with Elite.",
+                onClick = onOpenSubscription,
+                locked = true,
+            )
+        }
+    }
+}
+
+private fun greeting(): String {
+    val h = java.time.LocalTime.now().hour
+    return when {
+        h < 12 -> "Good morning"
+        h < 17 -> "Good afternoon"
+        else -> "Good evening"
+    }
+}
+
+/** The core-loop shortcuts row: gradient icon tiles for the money loop. */
+@Composable
+private fun QuickActions(
+    onTemplates: () -> Unit,
+    onAiQuote: () -> Unit,
+    onTakeoff: () -> Unit,
+    onMoney: () -> Unit,
+) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        QuickAction("Templates", Icons.Outlined.Bolt, Modifier.weight(1f), onTemplates)
+        QuickAction("AI quote", Icons.Outlined.AutoAwesome, Modifier.weight(1f), onAiQuote)
+        QuickAction("AI takeoff", Icons.Outlined.PhotoCamera, Modifier.weight(1f), onTakeoff)
+        QuickAction("Money", Icons.Outlined.Payments, Modifier.weight(1f), onMoney)
+    }
+}
+
+@Composable
+private fun QuickAction(label: String, icon: ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .drawBehind {
+                    drawRoundRect(
+                        brush = BrandGradients.primary,
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(18.dp.toPx(), 18.dp.toPx()),
+                        alpha = 0.16f,
+                    )
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        }
+        Spacer(Modifier.height(6.dp))
         Text(
-            text = "Your Estimates and Invoices live in the bottom tabs.",
-            style = MaterialTheme.typography.bodyMedium,
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
         )
     }
 }

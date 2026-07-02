@@ -52,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.wirewaypro.app.ui.navigation.DashDest
+import com.wirewaypro.app.ui.components.WirewayLogomark
 import com.wirewaypro.app.ui.navigation.HomeTab
 import com.wirewaypro.app.ui.theme.BrandGradients
 
@@ -141,15 +142,7 @@ private fun DrawerHeader() {
         contentAlignment = Alignment.BottomStart,
     ) {
         Column {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .drawBehind { drawRect(color = Color.White.copy(alpha = 0.22f)) },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("W", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
-            }
+            WirewayLogomark(size = 52.dp)
             Spacer(Modifier.height(10.dp))
             Text("Wireway Pro", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             Text("Electrical estimator", color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodySmall)
