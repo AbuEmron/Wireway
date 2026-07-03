@@ -5,28 +5,29 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoLibrary
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -39,6 +40,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,7 +53,10 @@ import com.wirewaypro.app.domain.model.QuoteCalculator
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.TakeoffSuggestion
 import com.wirewaypro.app.ui.components.BackTopBar
+import com.wirewaypro.app.ui.components.ErrorState
+import com.wirewaypro.app.ui.components.GradientButton
 import com.wirewaypro.app.ui.components.SectionCard
+import com.wirewaypro.app.ui.components.ShimmerBox
 import com.wirewaypro.app.ui.expenses.CameraCapture
 import com.wirewaypro.app.ui.util.Format
 
@@ -113,61 +119,75 @@ fun TakeoffScreen(
                     keyboardOptions = KeyboardOptions.Default,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Spacer(Modifier.padding(top = 10.dp))
-                Text(
-                    if (state.attachmentLabel != null) "" else mode.attachHint,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.padding(top = 6.dp))
                 if (state.attachmentLabel != null) {
+                    Spacer(Modifier.padding(top = 10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(state.attachmentLabel!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
                         TextButton(onClick = viewModel::clearAttachment) { Text("Remove") }
                     }
                 } else {
+                    Spacer(Modifier.padding(top = 10.dp))
+                    Text(
+                        mode.attachHint,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.padding(top = 8.dp))
+                    // Labeled tiles, not bare icons — readable in sunlight, big enough
+                    // for a gloved tap, and no guessing which glyph means what.
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = {
-                                val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                                if (granted) showCamera = true else cameraPermission.launch(Manifest.permission.CAMERA)
-                            },
+                        AttachTile(
+                            icon = Icons.Outlined.PhotoCamera,
+                            label = "Camera",
                             modifier = Modifier.weight(1f),
                         ) {
-                            Icon(Icons.Outlined.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
+                            val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                            if (granted) showCamera = true else cameraPermission.launch(Manifest.permission.CAMERA)
                         }
-                        OutlinedButton(
-                            onClick = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        AttachTile(
+                            icon = Icons.Outlined.PhotoLibrary,
+                            label = "Gallery",
                             modifier = Modifier.weight(1f),
                         ) {
-                            Icon(Icons.Outlined.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                            pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         }
-                        OutlinedButton(
-                            onClick = { pickPdf.launch("application/pdf") },
+                        AttachTile(
+                            icon = Icons.Outlined.Description,
+                            label = "PDF",
                             modifier = Modifier.weight(1f),
                         ) {
-                            Icon(Icons.Outlined.Description, contentDescription = "PDF", modifier = Modifier.size(18.dp))
+                            pickPdf.launch("application/pdf")
                         }
                     }
                 }
                 Spacer(Modifier.padding(top = 12.dp))
-                Button(
+                GradientButton(
+                    text = if (state.isAnalyzing) "Analyzing…" else "Analyze",
                     onClick = viewModel::analyze,
-                    enabled = !state.isAnalyzing,
+                    loading = state.isAnalyzing,
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    if (state.isAnalyzing) {
-                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                        Spacer(Modifier.padding(start = 8.dp))
-                        Text("Analyzing…")
-                    } else {
-                        Text("Analyze")
-                    }
+                )
+            }
+
+            // While the AI reads the plan, sketch the result cards it's about to fill —
+            // progress you can see, not a frozen screen.
+            if (state.isAnalyzing && state.result == null) {
+                SectionCard(title = "Reading the plans…") {
+                    ShimmerBox(width = 220.dp, height = 14.dp)
+                    Spacer(Modifier.height(10.dp))
+                    ShimmerBox(width = 280.dp, height = 14.dp)
+                    Spacer(Modifier.height(10.dp))
+                    ShimmerBox(width = 180.dp, height = 14.dp)
                 }
             }
 
             state.error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                ErrorState(
+                    title = "Analysis didn't go through",
+                    message = it,
+                    actionLabel = "Try again",
+                    onAction = viewModel::analyze,
+                )
             }
 
             state.result?.let { result ->
@@ -208,9 +228,11 @@ fun TakeoffScreen(
                         }
                     }
 
-                    Button(onClick = viewModel::applyToEstimate, modifier = Modifier.fillMaxWidth()) {
-                        Text("Create estimate from selection")
-                    }
+                    GradientButton(
+                        text = "Create estimate from selection",
+                        onClick = viewModel::applyToEstimate,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                     Text(
                         "Amounts preview at the $${PREVIEW_RATE.toInt()}/hr base rate; adjust your rate in the builder.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -219,6 +241,34 @@ fun TakeoffScreen(
                 }
             }
         }
+    }
+}
+
+/** A 64dp outlined icon+label tile for the attach row — one obvious tap per source. */
+@Composable
+private fun AttachTile(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Column(
+        modifier = modifier
+            .height(64.dp)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            .clip(shape)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
