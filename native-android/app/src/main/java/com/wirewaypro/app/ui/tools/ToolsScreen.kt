@@ -10,8 +10,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.CompareArrows
 import androidx.compose.material.icons.outlined.Cable
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Thermostat
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.runtime.Composable
@@ -34,6 +36,8 @@ fun ToolsScreen(
     onConduitFill: () -> Unit,
     onBoxFill: () -> Unit,
     onDerating: () -> Unit,
+    onMaterialDb: () -> Unit,
+    onLaborCalc: () -> Unit,
     onNec: () -> Unit,
     onLoadAdvisor: () -> Unit,
 ) {
@@ -52,6 +56,10 @@ fun ToolsScreen(
             NavRow("Conduit fill", Icons.Outlined.Straighten, onConduitFill, subtitle = "Ch. 9 Tables 1/4/5 — fill % + min conduit")
             NavRow("Box fill", Icons.Outlined.Inbox, onBoxFill, subtitle = "314.16 — is the box big enough?")
             NavRow("Derating", Icons.Outlined.Thermostat, onDerating, subtitle = "Ambient + bundling ampacity correction")
+
+            SectionEyebrow("Database & pricing", modifier = Modifier.padding(top = Spacing.sm))
+            NavRow("Material database", Icons.Outlined.Category, onMaterialDb, subtitle = "Residential catalog — material, labor, hours, NEC")
+            NavRow("Labor calculator", Icons.Outlined.Schedule, onLaborCalc, subtitle = "Hours × rate, with offline regional rate bands")
 
             SectionEyebrow("Reference", modifier = Modifier.padding(top = Spacing.sm))
             NavRow("NEC code reference", Icons.Outlined.MenuBook, onNec, subtitle = "Residential articles, rules, common violations")

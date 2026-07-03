@@ -71,6 +71,8 @@ import com.wirewaypro.app.ui.takeoff.TakeoffScreen
 import com.wirewaypro.app.ui.tools.BoxFillCalcScreen
 import com.wirewaypro.app.ui.tools.ConduitFillCalcScreen
 import com.wirewaypro.app.ui.tools.DeratingCalcScreen
+import com.wirewaypro.app.ui.tools.LaborCalcScreen
+import com.wirewaypro.app.ui.tools.MaterialDatabaseScreen
 import com.wirewaypro.app.ui.tools.ToolsScreen
 import com.wirewaypro.app.ui.tools.VoltageDropCalcScreen
 import com.wirewaypro.app.ui.tools.WireSizeCalcScreen
@@ -268,6 +270,8 @@ fun DashboardScreen(
                     onConduitFill = { navController.navigate(DashDest.CALC_CONDUIT_FILL) },
                     onBoxFill = { navController.navigate(DashDest.CALC_BOX_FILL) },
                     onDerating = { navController.navigate(DashDest.CALC_DERATING) },
+                    onMaterialDb = { navController.navigate(DashDest.MATERIAL_DB) },
+                    onLaborCalc = { navController.navigate(DashDest.LABOR_CALC) },
                     onNec = { navController.navigate(DashDest.NEC) },
                     onLoadAdvisor = { navController.navigate(DashDest.LOAD_ADVISOR) },
                 )
@@ -286,6 +290,12 @@ fun DashboardScreen(
             }
             composable(DashDest.CALC_DERATING) {
                 DeratingCalcScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.MATERIAL_DB) {
+                MaterialDatabaseScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.LABOR_CALC) {
+                LaborCalcScreen(onBack = { navController.popBackStack() })
             }
             composable(DashDest.TAKEOFF) {
                 TakeoffScreen(

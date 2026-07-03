@@ -48,6 +48,8 @@ object DashDest {
     const val CALC_CONDUIT_FILL = "calc_conduit_fill"
     const val CALC_BOX_FILL = "calc_box_fill"
     const val CALC_DERATING = "calc_derating"
+    const val MATERIAL_DB = "material_db"
+    const val LABOR_CALC = "labor_calc"
     const val MONEY = "money"
     const val TAKEOFF = "takeoff"
     const val AI_QUOTE_BUILDER = "ai_quote_builder"

@@ -95,6 +95,10 @@ object RegionalLaborRates {
         "WY" to StateWage("Wyoming", 30.0),
     )
 
+    /** Every state's suggested billed-rate band, sorted by state name (for pickers). */
+    fun allStates(): List<RateBand> =
+        states.keys.mapNotNull { forState(it) }.sortedBy { it.stateName }
+
     /** The suggested billed-rate band for a state code, or null if unknown. */
     fun forState(code: String?): RateBand? {
         val c = code?.trim()?.uppercase() ?: return null
