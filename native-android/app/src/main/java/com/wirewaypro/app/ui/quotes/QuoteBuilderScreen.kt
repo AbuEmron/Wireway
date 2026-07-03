@@ -1,7 +1,9 @@
 package com.wirewaypro.app.ui.quotes
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -90,6 +93,28 @@ fun QuoteBuilderScreen(
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
         if (granted) viewModel.useMyLocation() else locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    // Voice → scope (job-walk layer 1): the system recognizer transcribes and
+    // the text lands in Notes for review — deterministic capture, no AI pricing.
+    val dictateScope = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            ?.firstOrNull()
+            ?.takeIf { it.isNotBlank() }
+            ?.let(viewModel::appendScopeNote)
+    }
+
+    fun startDictation() {
+        runCatching {
+            dictateScope.launch(
+                Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Talk through the job — what you saw, what it needs")
+                },
+            )
+        }.onFailure { viewModel.dictationUnavailable() }
     }
 
     LaunchedEffect(state.saved) { if (state.saved) onClose() }
@@ -297,6 +322,14 @@ fun QuoteBuilderScreen(
                 Spacer(Modifier.padding(top = 10.dp))
                 FormField(state.notes, viewModel::setNotes, "Notes", singleLine = false)
                 Spacer(Modifier.padding(top = 8.dp))
+                OutlinedButton(
+                    onClick = { startDictation() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Outlined.Mic, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Dictate scope — talk the job walk")
+                }
+                Spacer(Modifier.padding(top = 6.dp))
                 OutlinedButton(
                     onClick = viewModel::draftNotes,
                     enabled = !state.draftingNotes,

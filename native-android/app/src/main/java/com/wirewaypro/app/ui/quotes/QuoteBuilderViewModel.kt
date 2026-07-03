@@ -381,6 +381,16 @@ class QuoteBuilderViewModel @Inject constructor(
     fun setClientPhone(v: String) = _state.update { it.copy(clientPhone = v) }
     fun setJobName(v: String) = _state.update { it.copy(jobName = v) }
     fun setNotes(v: String) = _state.update { it.copy(notes = v) }
+
+    /** Voice-dictated scope lands appended to Notes — reviewable, never auto-priced. */
+    fun appendScopeNote(text: String) = _state.update {
+        val body = text.trim()
+        it.copy(notes = if (it.notes.isBlank()) body else it.notes.trimEnd() + "\n" + body)
+    }
+
+    /** The device has no speech recognizer — say so instead of failing silently. */
+    fun dictationUnavailable() =
+        _state.update { it.copy(error = "Voice input isn't available on this device — type the scope instead.") }
     fun setMarkupPct(v: String) = _state.update { it.copy(markupPct = v) }
     fun setHourlyRate(v: String) = _state.update { it.copy(hourlyRate = v, rateHint = null) }
     fun setRateMode(v: RateMode) = _state.update { it.copy(rateMode = v) }
