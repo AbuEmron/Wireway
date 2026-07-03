@@ -2,6 +2,7 @@ package com.wirewaypro.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wirewaypro.app.data.offline.isConnectivityError
 import com.wirewaypro.app.data.prefs.DEFAULT_HOURLY_RATE
 import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.domain.model.ProfileInput
@@ -40,6 +41,10 @@ data class ProfileEditUiState(
     val notificationsEnabled: Boolean = true,
     val logoUrl: String = "",
     val uploadingLogo: Boolean = false,
+    /** Why the last logo upload failed (real cause, not a generic shrug). */
+    val logoError: String? = null,
+    /** True when the failed image is still held in memory and can be re-sent. */
+    val logoRetryAvailable: Boolean = false,
     val error: String? = null,
     val saved: Boolean = false,
 ) {
@@ -108,14 +113,48 @@ class ProfileEditViewModel @Inject constructor(
         )
     }
 
+    /** The last picked logo, kept so a failed upload can be retried without re-picking. */
+    private var pendingLogo: Pair<ByteArray, String?>? = null
+
     /** Uploads a picked business-logo image and stores its URL on the profile. */
-    fun uploadLogo(bytes: ByteArray) {
-        val userId = auth.currentUserId() ?: return
-        _state.update { it.copy(uploadingLogo = true, error = null) }
+    fun uploadLogo(bytes: ByteArray, mimeType: String?) {
+        pendingLogo = bytes to mimeType
+        val userId = auth.currentUserId()
+        if (userId == null) {
+            _state.update { it.copy(logoError = "Session expired — sign in again to upload.", logoRetryAvailable = true) }
+            return
+        }
+        _state.update { it.copy(uploadingLogo = true, logoError = null) }
         viewModelScope.launch {
-            profileRepository.uploadLogo(userId, bytes)
-                .onSuccess { url -> _state.update { it.copy(uploadingLogo = false, logoUrl = url) } }
-                .onFailure { _state.update { it.copy(uploadingLogo = false, error = "Couldn't upload the logo. Try again.") } }
+            profileRepository.uploadLogo(userId, bytes, mimeType)
+                .onSuccess { url ->
+                    pendingLogo = null
+                    _state.update { it.copy(uploadingLogo = false, logoUrl = url, logoError = null, logoRetryAvailable = false) }
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(uploadingLogo = false, logoError = logoErrorMessage(e), logoRetryAvailable = true)
+                    }
+                }
+        }
+    }
+
+    /** Re-sends the last picked image after a failure. */
+    fun retryLogoUpload() {
+        pendingLogo?.let { (bytes, mime) -> uploadLogo(bytes, mime) }
+    }
+
+    /** Turn the raw failure into something the contractor can act on. */
+    private fun logoErrorMessage(e: Throwable): String {
+        val m = e.message.orEmpty()
+        return when {
+            isConnectivityError(e) ->
+                "You're offline — logo upload needs a connection. Retry when you're back online."
+            "row-level security" in m || "403" in m || "401" in m || "Unauthorized" in m.lowercase() ->
+                "The server refused the upload (storage permissions). Sign out and back in, then retry."
+            "413" in m || "too large" in m.lowercase() ->
+                "That image is too large — pick a smaller one."
+            else -> "Logo upload failed: ${m.ifBlank { "unknown error" }}"
         }
     }
 

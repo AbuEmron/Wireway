@@ -69,7 +69,7 @@ fun ProfileEditScreen(
     val pickLogo = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             val bytes = runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
-            if (bytes != null) viewModel.uploadLogo(bytes)
+            if (bytes != null) viewModel.uploadLogo(bytes, context.contentResolver.getType(uri))
         }
     }
 
@@ -133,6 +133,17 @@ fun ProfileEditScreen(
                     enabled = !state.uploadingLogo,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                state.logoError?.let { message ->
+                    Spacer(Modifier.padding(top = 8.dp))
+                    Text(
+                        message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    if (state.logoRetryAvailable && !state.uploadingLogo) {
+                        TextButton(onClick = viewModel::retryLogoUpload) { Text("Retry upload") }
+                    }
+                }
             }
 
             SectionCard(title = "Proposal accent color") {

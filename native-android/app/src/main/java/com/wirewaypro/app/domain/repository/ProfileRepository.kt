@@ -18,8 +18,10 @@ interface ProfileRepository {
     suspend fun saveProfile(userId: String, input: ProfileInput): Result<UserProfile>
 
     /**
-     * Uploads a business logo image to the shared `logos` bucket, saves its public
-     * URL to `profiles.logo_url`, and returns that URL (cache-busted).
+     * Uploads a business logo image to the shared `logos` bucket (owner-folder
+     * key `<uid>/logo.<ext>`, authenticated), saves its public URL to
+     * `profiles.logo_url`, and returns that URL (cache-busted). [mimeType] picks
+     * the stored extension/content type; null falls back to PNG.
      */
-    suspend fun uploadLogo(userId: String, bytes: ByteArray): Result<String>
+    suspend fun uploadLogo(userId: String, bytes: ByteArray, mimeType: String?): Result<String>
 }

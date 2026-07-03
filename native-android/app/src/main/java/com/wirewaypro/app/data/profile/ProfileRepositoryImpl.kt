@@ -4,10 +4,12 @@ import com.wirewaypro.app.domain.model.ProfileInput
 import com.wirewaypro.app.domain.model.UserProfile
 import com.wirewaypro.app.domain.repository.ProfileRepository
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Count
 import io.github.jan.supabase.storage.storage
+import io.ktor.http.ContentType
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import javax.inject.Inject
@@ -73,11 +75,31 @@ class ProfileRepositoryImpl @Inject constructor(
                 .toDomain()
         }
 
-    override suspend fun uploadLogo(userId: String, bytes: ByteArray): Result<String> =
+    override suspend fun uploadLogo(userId: String, bytes: ByteArray, mimeType: String?): Result<String> =
         runCatching {
-            val path = "$userId/logo.png"
+            // The logos bucket is owner-folder RLS: writes require the user's JWT
+            // and the first path segment must be their uid. Guard the session up
+            // front so an expired login reads as "sign in again", not a bare 403.
+            if (client.auth.currentSessionOrNull() == null) {
+                error("Your session expired — sign in again, then retry the upload.")
+            }
+            val ext = when (mimeType?.lowercase()) {
+                "image/jpeg", "image/jpg" -> "jpg"
+                "image/webp" -> "webp"
+                else -> "png"
+            }
+            val path = "$userId/logo.$ext"
             val bucket = client.storage.from("logos")
-            bucket.upload(path, bytes) { upsert = true }
+            bucket.upload(path, bytes) {
+                upsert = true
+                contentType = ContentType.parse(mimeType?.takeIf { it.startsWith("image/") } ?: "image/png")
+            }
+            // A re-upload with a different format leaves the old object behind —
+            // clear stale siblings (best-effort; delete may be disallowed by policy).
+            runCatching {
+                val stale = listOf("png", "jpg", "webp").filter { it != ext }.map { "$userId/logo.$it" }
+                bucket.delete(stale)
+            }
             // Cache-bust so a replaced logo shows immediately on PDFs / customer pages.
             val url = "${bucket.publicUrl(path)}?v=${System.currentTimeMillis()}"
             client.postgrest.from("profiles")
