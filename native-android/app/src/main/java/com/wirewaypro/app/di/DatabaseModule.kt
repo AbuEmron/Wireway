@@ -7,6 +7,7 @@ import com.wirewaypro.app.data.local.JobDao
 import com.wirewaypro.app.data.local.JobDrawDao
 import com.wirewaypro.app.data.local.OverrideDao
 import com.wirewaypro.app.data.local.QuoteDao
+import com.wirewaypro.app.data.local.QuotePhotoDao
 import com.wirewaypro.app.data.local.QuoteDraftDao
 import com.wirewaypro.app.data.local.WirewayDatabase
 import dagger.Module
@@ -34,6 +35,7 @@ object DatabaseModule {
                 WirewayDatabase.MIGRATION_1_2,
                 WirewayDatabase.MIGRATION_2_3,
                 WirewayDatabase.MIGRATION_3_4,
+                WirewayDatabase.MIGRATION_4_5,
             )
             .fallbackToDestructiveMigration()
             .build()
@@ -55,4 +57,7 @@ object DatabaseModule {
 
     @Provides
     fun provideOverrideDao(db: WirewayDatabase): OverrideDao = db.overrideDao()
+
+    @Provides
+    fun provideQuotePhotoDao(db: WirewayDatabase): QuotePhotoDao = db.quotePhotoDao()
 }

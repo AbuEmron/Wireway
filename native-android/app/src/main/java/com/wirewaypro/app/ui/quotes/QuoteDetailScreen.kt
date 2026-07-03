@@ -9,9 +9,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
@@ -40,11 +50,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import com.wirewaypro.app.data.local.QuotePhotoEntity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.model.QuoteDetail
@@ -86,6 +101,26 @@ fun QuoteDetailScreen(
     var confirmDelete by remember { mutableStateOf(false) }
     var editDueDate by remember { mutableStateOf(false) }
     var acceptOpen by remember { mutableStateOf(false) }
+
+    // Job-walk site photos: capture or pick, stored on-device with the quote.
+    var cameraUri by remember { mutableStateOf<Uri?>(null) }
+    val takeSitePhoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        cameraUri?.let { if (ok) viewModel.addPhoto(it) }
+        cameraUri = null
+    }
+    fun launchSiteCamera() {
+        runCatching {
+            val uri = newSitePhotoUri(context)
+            cameraUri = uri
+            takeSitePhoto.launch(uri)
+        }
+    }
+    val siteCameraPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) launchSiteCamera() }
+    val pickSitePhoto = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri -> uri?.let(viewModel::addPhoto) }
 
     com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::load)
     LaunchedEffect(state.deleted) { if (state.deleted) onBack() }
@@ -254,6 +289,48 @@ fun QuoteDetailScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+
+            // Job-walk site photos (flagship layer 1): snap while you walk, and
+            // they ride with the record — on this phone — for the bid and crew.
+            SectionCard(title = "Site photos") {
+                Text(
+                    if (state.photos.isEmpty()) "Snap the panel, the runs, the problem areas — photos stay with this ${kind.lowercase()} on your phone."
+                    else "${state.photos.size} photo${if (state.photos.size == 1) "" else "s"} on this ${kind.lowercase()} (stored on this phone).",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (state.photos.isNotEmpty()) {
+                    Spacer(Modifier.padding(top = 10.dp))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(state.photos, key = { it.id }) { photo ->
+                            SitePhotoThumb(photo = photo, onRemove = { viewModel.removePhoto(photo) })
+                        }
+                    }
+                }
+                Spacer(Modifier.padding(top = 10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                                PackageManager.PERMISSION_GRANTED
+                            if (granted) launchSiteCamera() else siteCameraPermission.launch(Manifest.permission.CAMERA)
+                        },
+                        enabled = !state.addingPhoto,
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Camera") }
+                    OutlinedButton(
+                        onClick = {
+                            pickSitePhoto.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                ),
+                            )
+                        },
+                        enabled = !state.addingPhoto,
+                        modifier = Modifier.weight(1f),
+                    ) { Text(if (state.addingPhoto) "Adding…" else "Gallery") }
                 }
             }
 
@@ -538,6 +615,40 @@ private fun sharePdf(context: Context, file: File) {
         context.startActivity(
             Intent.createChooser(intent, "Share PDF").apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
         )
+    }
+}
+
+/** A fresh FileProvider uri in cache/receipts for a camera capture (copied on attach). */
+private fun newSitePhotoUri(context: Context): Uri {
+    val dir = File(context.cacheDir, "receipts").apply { mkdirs() }
+    val file = File(dir, "site-${System.currentTimeMillis()}.jpg")
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+@Composable
+private fun SitePhotoThumb(photo: QuotePhotoEntity, onRemove: () -> Unit) {
+    val bitmap = remember(photo.path) {
+        runCatching {
+            BitmapFactory.decodeFile(photo.path, BitmapFactory.Options().apply { inSampleSize = 2 })
+                ?.asImageBitmap()
+        }.getOrNull()
+    }
+    if (bitmap != null) {
+        Box {
+            Image(
+                bitmap = bitmap,
+                contentDescription = "Site photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(96.dp).clip(MaterialTheme.shapes.small),
+            )
+            IconButton(onClick = onRemove, modifier = Modifier.align(Alignment.TopEnd).size(28.dp)) {
+                Icon(
+                    Icons.Outlined.Delete,
+                    contentDescription = "Remove photo",
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
     }
 }
 

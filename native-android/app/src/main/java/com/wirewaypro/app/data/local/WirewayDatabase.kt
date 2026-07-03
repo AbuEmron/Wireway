@@ -22,8 +22,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ClientEntity::class,
         JobDrawEntity::class,
         OverrideEntity::class,
+        QuotePhotoEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class WirewayDatabase : RoomDatabase() {
@@ -33,6 +34,7 @@ abstract class WirewayDatabase : RoomDatabase() {
     abstract fun clientDao(): ClientDao
     abstract fun jobDrawDao(): JobDrawDao
     abstract fun overrideDao(): OverrideDao
+    abstract fun quotePhotoDao(): QuotePhotoDao
 
     companion object {
         const val NAME = "wireway.db"
@@ -101,6 +103,21 @@ abstract class WirewayDatabase : RoomDatabase() {
                 )
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_quote_overrides_quoteId` ON `quote_overrides` (`quoteId`)",
+                )
+            }
+        }
+
+        /** v4 → v5: add job-walk site photos (additive). */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `quote_photos` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`quoteId` TEXT NOT NULL, `path` TEXT NOT NULL, " +
+                        "`atMillis` INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_quote_photos_quoteId` ON `quote_photos` (`quoteId`)",
                 )
             }
         }

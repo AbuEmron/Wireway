@@ -43,6 +43,7 @@ class QuoteRepositoryImpl @Inject constructor(
     private val dao: QuoteDao,
     private val draftStore: QuoteDraftStore,
     private val overrideTrail: OverrideTrail,
+    private val photoStore: QuotePhotoStore,
 ) : QuoteRepository {
 
     private fun quotes() = client.postgrest.from("quotes")
@@ -294,6 +295,7 @@ class QuoteRepositoryImpl @Inject constructor(
                 dao.hardDelete(quoteId)
                 draftStore.clear(quoteId)
                 overrideTrail.clear(quoteId)
+                photoStore.clearFor(quoteId)
                 return@runCatching
             } catch (e: Exception) {
                 if (!isConnectivityError(e)) throw e
@@ -317,6 +319,7 @@ class QuoteRepositoryImpl @Inject constructor(
         )
         draftStore.clear(quoteId)
         overrideTrail.clear(quoteId)
+        photoStore.clearFor(quoteId)
     }
 
     override suspend fun markAccepted(

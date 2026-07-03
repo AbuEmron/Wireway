@@ -5,10 +5,13 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.entitlements.TierService
+import android.net.Uri
 import com.wirewaypro.app.data.local.OverrideEntity
+import com.wirewaypro.app.data.local.QuotePhotoEntity
 import com.wirewaypro.app.data.prefs.DEFAULT_HOURLY_RATE
 import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.data.quotes.OverrideTrail
+import com.wirewaypro.app.data.quotes.QuotePhotoStore
 import com.wirewaypro.app.domain.financing.FinancingOffer
 import com.wirewaypro.app.domain.financing.FinancingSetup
 import com.wirewaypro.app.domain.model.QuoteDetail
@@ -53,6 +56,9 @@ data class QuoteDetailUiState(
     val financingError: String? = null,
     /** Manual-override audit trail: seeded/calculated values the contractor changed. */
     val overrides: List<OverrideEntity> = emptyList(),
+    /** Job-walk site photos attached to this quote (on-device). */
+    val photos: List<QuotePhotoEntity> = emptyList(),
+    val addingPhoto: Boolean = false,
 )
 
 /**
@@ -69,6 +75,7 @@ class QuoteDetailViewModel @Inject constructor(
     private val tierService: TierService,
     private val financingRepository: FinancingRepository,
     private val overrideTrail: OverrideTrail,
+    private val photoStore: QuotePhotoStore,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -158,8 +165,35 @@ class QuoteDetailViewModel @Inject constructor(
                         st.copy(isLoading = false, error = if (st.quote == null) "Couldn't load this record." else st.error)
                     }
                 }
-            // The manual-override audit trail rides along (local, instant).
-            _state.update { it.copy(overrides = overrideTrail.forQuote(quoteId)) }
+            // The manual-override audit trail and site photos ride along (local, instant).
+            _state.update {
+                it.copy(
+                    overrides = overrideTrail.forQuote(quoteId),
+                    photos = photoStore.forQuote(quoteId),
+                )
+            }
+        }
+    }
+
+    /** Attach a job-walk photo (camera capture or gallery pick). */
+    fun addPhoto(uri: Uri) {
+        _state.update { it.copy(addingPhoto = true) }
+        viewModelScope.launch {
+            val added = photoStore.add(quoteId, uri)
+            _state.update {
+                it.copy(
+                    addingPhoto = false,
+                    photos = if (added != null) it.photos + added else it.photos,
+                    error = if (added == null) "Couldn't read that photo — try again." else it.error,
+                )
+            }
+        }
+    }
+
+    fun removePhoto(photo: QuotePhotoEntity) {
+        viewModelScope.launch {
+            photoStore.remove(photo)
+            _state.update { it.copy(photos = it.photos.filterNot { p -> p.id == photo.id }) }
         }
     }
 
