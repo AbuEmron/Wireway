@@ -5,8 +5,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.entitlements.TierService
+import com.wirewaypro.app.data.local.OverrideEntity
 import com.wirewaypro.app.data.prefs.DEFAULT_HOURLY_RATE
 import com.wirewaypro.app.data.prefs.SettingsPrefs
+import com.wirewaypro.app.data.quotes.OverrideTrail
 import com.wirewaypro.app.domain.financing.FinancingOffer
 import com.wirewaypro.app.domain.financing.FinancingSetup
 import com.wirewaypro.app.domain.model.QuoteDetail
@@ -49,6 +51,8 @@ data class QuoteDetailUiState(
     val financingOffer: FinancingOffer? = null,
     val financingBusy: Boolean = false,
     val financingError: String? = null,
+    /** Manual-override audit trail: seeded/calculated values the contractor changed. */
+    val overrides: List<OverrideEntity> = emptyList(),
 )
 
 /**
@@ -64,6 +68,7 @@ class QuoteDetailViewModel @Inject constructor(
     private val settingsPrefs: SettingsPrefs,
     private val tierService: TierService,
     private val financingRepository: FinancingRepository,
+    private val overrideTrail: OverrideTrail,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -153,6 +158,8 @@ class QuoteDetailViewModel @Inject constructor(
                         st.copy(isLoading = false, error = if (st.quote == null) "Couldn't load this record." else st.error)
                     }
                 }
+            // The manual-override audit trail rides along (local, instant).
+            _state.update { it.copy(overrides = overrideTrail.forQuote(quoteId)) }
         }
     }
 

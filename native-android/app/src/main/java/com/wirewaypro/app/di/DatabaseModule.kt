@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.wirewaypro.app.data.local.ClientDao
 import com.wirewaypro.app.data.local.JobDao
 import com.wirewaypro.app.data.local.JobDrawDao
+import com.wirewaypro.app.data.local.OverrideDao
 import com.wirewaypro.app.data.local.QuoteDao
 import com.wirewaypro.app.data.local.QuoteDraftDao
 import com.wirewaypro.app.data.local.WirewayDatabase
@@ -29,7 +30,11 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): WirewayDatabase =
         Room.databaseBuilder(context, WirewayDatabase::class.java, WirewayDatabase.NAME)
-            .addMigrations(WirewayDatabase.MIGRATION_1_2, WirewayDatabase.MIGRATION_2_3)
+            .addMigrations(
+                WirewayDatabase.MIGRATION_1_2,
+                WirewayDatabase.MIGRATION_2_3,
+                WirewayDatabase.MIGRATION_3_4,
+            )
             .fallbackToDestructiveMigration()
             .build()
 
@@ -47,4 +52,7 @@ object DatabaseModule {
 
     @Provides
     fun provideJobDrawDao(db: WirewayDatabase): JobDrawDao = db.jobDrawDao()
+
+    @Provides
+    fun provideOverrideDao(db: WirewayDatabase): OverrideDao = db.overrideDao()
 }

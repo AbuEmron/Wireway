@@ -355,6 +355,27 @@ fun QuoteBuilderScreen(
                 }
             }
 
+            // Deterministic sanity checks (doctrine: rules off the templates,
+            // never an AI hunch). Advisory only — they never block a save.
+            val sanityFlags = viewModel.sanityFlags
+            if (sanityFlags.isNotEmpty()) {
+                GlassCard {
+                    SectionHeader("Heads-up")
+                    sanityFlags.forEach { flag ->
+                        Text(
+                            "•  ${flag.message}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
+                    Text(
+                        "Rule-based checks that show their work — advisory only, never a blocker.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
             if (state.error != null) {
                 Text(state.error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }

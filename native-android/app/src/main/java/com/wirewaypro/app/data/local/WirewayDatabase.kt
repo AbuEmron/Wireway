@@ -21,8 +21,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         JobEntity::class,
         ClientEntity::class,
         JobDrawEntity::class,
+        OverrideEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class WirewayDatabase : RoomDatabase() {
@@ -31,6 +32,7 @@ abstract class WirewayDatabase : RoomDatabase() {
     abstract fun jobDao(): JobDao
     abstract fun clientDao(): ClientDao
     abstract fun jobDrawDao(): JobDrawDao
+    abstract fun overrideDao(): OverrideDao
 
     companion object {
         const val NAME = "wireway.db"
@@ -84,6 +86,22 @@ abstract class WirewayDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_job_draws_jobId` ON `job_draws` (`jobId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_job_draws_userId` ON `job_draws` (`userId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_job_draws_syncStatus` ON `job_draws` (`syncStatus`)")
+            }
+        }
+
+        /** v3 → v4: add the manual-override audit trail (additive). */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `quote_overrides` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`quoteId` TEXT NOT NULL, `field` TEXT NOT NULL, " +
+                        "`original` REAL NOT NULL, `overridden` REAL NOT NULL, " +
+                        "`atMillis` INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_quote_overrides_quoteId` ON `quote_overrides` (`quoteId`)",
+                )
             }
         }
     }

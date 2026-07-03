@@ -236,6 +236,27 @@ fun QuoteDetailScreen(
                 }
             }
 
+            // Manual-override audit trail (doctrine): calculated/seeded numbers
+            // the contractor changed, kept so the estimate stays defensible.
+            if (state.overrides.isNotEmpty()) {
+                SectionCard(title = "Adjusted from calculated") {
+                    state.overrides.forEach { o ->
+                        val hours = o.field.startsWith("Labor hrs") || o.field.startsWith("Qty")
+                        InfoRow(
+                            o.field,
+                            if (hours) "${trimNum(o.original)} → ${trimNum(o.overridden)}"
+                            else "${Format.money(o.original)} → ${Format.money(o.overridden)}",
+                        )
+                    }
+                    Spacer(Modifier.padding(top = 6.dp))
+                    Text(
+                        "Recorded automatically when a calculated number was changed — your call, on the record.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
             SectionCard(title = "Totals") {
                 if (quote.rateMode == RateMode.HOURLY) {
                     InfoRow("Pricing", if (quote.clientBuysAll) "Hourly · just labor" else "Hourly · labor + materials")

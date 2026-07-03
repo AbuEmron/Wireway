@@ -12,8 +12,10 @@ import com.wirewaypro.app.data.prefs.DEFAULT_HOURLY_RATE
 import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.data.quotes.DraftCatalogEntry
 import com.wirewaypro.app.data.quotes.DraftCustomItem
+import com.wirewaypro.app.data.quotes.OverrideTrail
 import com.wirewaypro.app.data.quotes.QuoteDraft
 import com.wirewaypro.app.data.quotes.QuoteDraftStore
+import com.wirewaypro.app.domain.audit.OverrideAudit
 import com.wirewaypro.app.domain.catalog.Catalog
 import com.wirewaypro.app.domain.model.FreeLimits
 import com.wirewaypro.app.domain.model.QuoteCalculator
@@ -28,6 +30,8 @@ import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.pricing.DefaultRate
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
+import com.wirewaypro.app.domain.validation.EstimateSanity
+import com.wirewaypro.app.domain.validation.SanityFlag
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -111,8 +115,17 @@ class QuoteBuilderViewModel @Inject constructor(
     private val draftStore: QuoteDraftStore,
     private val takeoffHandoff: TakeoffHandoff,
     private val tierService: TierService,
+    private val overrideTrail: OverrideTrail,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    /**
+     * The derived numbers this session was seeded with (resolved default rate,
+     * template labor, takeoff quantities). Diffed against the saved values to
+     * record the manual-override audit trail — empty on plain edits, where the
+     * starting values are the contractor's own, not calculations.
+     */
+    private var derivedBaseline: List<OverrideAudit.Derived> = emptyList()
 
     private val quoteId: String? =
         savedStateHandle.get<String>(ARG_ID)?.takeIf { it.isNotBlank() }
@@ -170,6 +183,7 @@ class QuoteBuilderViewModel @Inject constructor(
      * point — never the blind $85. [rateHint] tells the user where it came from.
      */
     private suspend fun seedNewQuote() {
+        val derived = mutableListOf<OverrideAudit.Derived>()
         // Rate first: template custom lines price their labor from it below.
         val resolved = DefaultRate.resolve(
             personalRate = settingsPrefs.rawDefaultHourlyRate.first(),
@@ -177,10 +191,15 @@ class QuoteBuilderViewModel @Inject constructor(
             national = DEFAULT_HOURLY_RATE,
         )
         _state.update { it.copy(hourlyRate = numText(resolved.rate), rateHint = resolved.hint) }
+        derived += OverrideAudit.Derived("rate:hourly", "Hourly rate", resolved.rate)
 
         takeoffHandoff.take()?.takeIf { it.isNotEmpty() }?.let { entries ->
             _state.update { s ->
                 s.copy(catalogItems = entries.map { CatalogEntryUi(it.serviceId, numText(it.qty), it.variantIdx, it.clientBuys) })
+            }
+            entries.forEach { e ->
+                val label = Catalog.service(e.serviceId)?.label ?: e.serviceId
+                derived += OverrideAudit.Derived("catalog-qty:${e.serviceId}", "Qty — $label", e.qty)
             }
         }
         // Commercial/industrial template lines: labor priced at the contractor's
@@ -200,7 +219,29 @@ class QuoteBuilderViewModel @Inject constructor(
                     },
                 )
             }
+            customs.forEach { c ->
+                val seededCost = Math.round(c.laborHours * resolved.rate).toDouble()
+                derived += OverrideAudit.Derived("labor-hours:${c.label.trim().lowercase()}", "Labor hrs — ${c.label}", c.laborHours)
+                derived += OverrideAudit.Derived("labor-cost:${c.label.trim().lowercase()}", "Labor — ${c.label}", seededCost)
+            }
         }
+        derivedBaseline = derived
+    }
+
+    /** The saved values for every derived key, for the override diff. */
+    private fun savedDerivedValues(): Map<String, Double> {
+        val s = _state.value
+        val m = mutableMapOf<String, Double>()
+        m["rate:hourly"] = s.hourlyRate.toD()
+        s.catalogItems.forEach { m["catalog-qty:${it.serviceId}"] = it.qty.toD() }
+        s.items.forEach { item ->
+            val key = item.label.trim().lowercase()
+            if (key.isNotBlank()) {
+                m["labor-hours:$key"] = item.laborHours.toD()
+                m["labor-cost:$key"] = item.laborCost.toD()
+            }
+        }
+        return m
     }
 
     /** Current form → serializable draft snapshot. */
@@ -262,6 +303,20 @@ class QuoteBuilderViewModel @Inject constructor(
             taxRate = _state.value.taxRatePct.toD() / 100.0,
             hourlyRate = currentHourlyRate(),
             clientBuysAll = _state.value.clientBuysAll,
+        )
+
+    /**
+     * Deterministic heads-ups on the current form (missing permit line,
+     * fat-fingered quantity, unpriced labor…) — pure rules off the template
+     * library, recomputed live like [previewTotals]. Advisory, never blocking.
+     */
+    val sanityFlags: List<SanityFlag>
+        get() = EstimateSanity.check(
+            catalogEntries = currentCatalogEntries(),
+            customItems = currentItems(),
+            totals = previewTotals,
+            clientBuysAll = _state.value.clientBuysAll,
+            depositPercent = _state.value.depositPct.trim().toDoubleOrNull()?.let { kotlin.math.round(it).toInt() },
         )
 
     private fun currentHourlyRate(): Double = _state.value.hourlyRate.toD().takeIf { it > 0 } ?: 85.0
@@ -534,12 +589,19 @@ class QuoteBuilderViewModel @Inject constructor(
                 }
             }
             quoteRepository.saveQuote(userId, input)
-                .onSuccess {
+                .onSuccess { savedQuote ->
                     // The quote is now persisted for real — stop autosaving FIRST
                     // (a debounced write landing after the clear would resurrect
                     // the draft and pre-fill the next new estimate), then drop it.
                     autosaveJob?.cancel()
                     draftStore.clear(draftKey)
+                    // Audit trail: any seeded/calculated number the contractor
+                    // changed is recorded (original → override), never blocked.
+                    overrideTrail.record(
+                        savedQuote.id,
+                        OverrideAudit.diff(derivedBaseline, savedDerivedValues()),
+                        System.currentTimeMillis(),
+                    )
                     _state.update { it.copy(isSaving = false, saved = true) }
                 }
                 .onFailure { _state.update { it.copy(isSaving = false, error = "Couldn't save. Try again.") } }
