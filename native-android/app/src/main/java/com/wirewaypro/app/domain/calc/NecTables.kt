@@ -28,9 +28,15 @@ enum class TempRating(val label: String, val celsius: Int) {
 }
 
 /**
- * The residential / light-commercial conductor set, smallest area first. Each carries
- * its Table 8 circular-mil area and Table 5 THHN/THWN-2 cross-sectional area so the
+ * The conductor set, smallest area first — residential sizes through the
+ * commercial/industrial feeder range (kcmil to 1000). Each carries its Table 8
+ * circular-mil area and Table 5 THHN/THWN-2 cross-sectional area so the
  * conduit-fill and voltage-drop calculators share one definition.
+ *
+ * NOTE: sizes above 500 kcmil intentionally have no Table 310.16 rows yet
+ * (see [AmpacityTable]) — the ampacity/derating tools list only sizes whose
+ * ampacities are transcribed and table-verified; conduit fill and voltage drop
+ * work from the exact areas below.
  */
 enum class Awg(
     val label: String,
@@ -51,8 +57,16 @@ enum class Awg(
     AWG3_0("3/0 AWG", 167_800, 0.2679),
     AWG4_0("4/0 AWG", 211_600, 0.3237),
     KCMIL250("250 kcmil", 250_000, 0.3970),
+    KCMIL300("300 kcmil", 300_000, 0.4608),
     KCMIL350("350 kcmil", 350_000, 0.5242),
+    KCMIL400("400 kcmil", 400_000, 0.5863),
     KCMIL500("500 kcmil", 500_000, 0.7073),
+    KCMIL600("600 kcmil", 600_000, 0.8676),
+    KCMIL700("700 kcmil", 700_000, 0.9887),
+    KCMIL750("750 kcmil", 750_000, 1.0496),
+    KCMIL800("800 kcmil", 800_000, 1.1085),
+    KCMIL900("900 kcmil", 900_000, 1.2311),
+    KCMIL1000("1000 kcmil", 1_000_000, 1.3478),
 }
 
 /**
