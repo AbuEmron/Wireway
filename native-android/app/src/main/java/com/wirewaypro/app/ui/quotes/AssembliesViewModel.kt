@@ -7,6 +7,7 @@ import com.wirewaypro.app.data.entitlements.TierService
 import com.wirewaypro.app.domain.catalog.Assemblies
 import com.wirewaypro.app.domain.catalog.Assembly
 import com.wirewaypro.app.domain.catalog.AssemblySector
+import com.wirewaypro.app.domain.catalog.JobWalk
 import com.wirewaypro.app.domain.model.Tier
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,5 +49,33 @@ class AssembliesViewModel @Inject constructor(
     fun seed(assembly: Assembly) {
         handoff.put(assembly.toCatalogEntries())
         if (assembly.customItems.isNotEmpty()) handoff.putCustom(assembly.customItems)
+    }
+
+    // ── Job walk: pick an area template per room/system, build ONE estimate ────
+
+    /** Selected template ids, in pick order (insertion-ordered set). */
+    private val _walk = MutableStateFlow<Set<String>>(emptySet())
+    val walk: StateFlow<Set<String>> = _walk.asStateFlow()
+
+    fun toggleWalk(assembly: Assembly) {
+        _walk.value = _walk.value.let { if (assembly.id in it) it - assembly.id else it + assembly.id }
+    }
+
+    fun clearWalk() {
+        _walk.value = emptySet()
+    }
+
+    private fun walkAssemblies(): List<Assembly> = _walk.value.mapNotNull(Assemblies::byId)
+
+    /** The walk needs the highest tier any picked area needs. */
+    fun requiredWalkTier(): Tier =
+        if (walkAssemblies().any { it.sector == AssemblySector.COMMERCIAL_INDUSTRIAL }) Tier.ELITE else Tier.PRO
+
+    /** Merge every picked area into one estimate seed (JobWalk rules) and hand it off. */
+    fun seedWalk() {
+        val merged = JobWalk.merge(walkAssemblies())
+        handoff.put(merged.entries)
+        if (merged.customItems.isNotEmpty()) handoff.putCustom(merged.customItems)
+        clearWalk()
     }
 }

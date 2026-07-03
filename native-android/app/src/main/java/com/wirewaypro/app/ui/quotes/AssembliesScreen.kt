@@ -57,6 +57,7 @@ fun AssembliesScreen(
     var query by remember { mutableStateOf("") }
     val q = query.trim().lowercase()
     val tier by viewModel.tier.collectAsStateWithLifecycle()
+    val walk by viewModel.walk.collectAsStateWithLifecycle()
 
     var detail by remember { mutableStateOf<Assembly?>(null) }
     detail?.let { assembly ->
@@ -64,10 +65,15 @@ fun AssembliesScreen(
             assembly = assembly,
             tier = tier,
             requiredTier = viewModel.requiredTier(assembly),
+            inWalk = assembly.id in walk,
             onStart = {
                 viewModel.seed(assembly)
                 detail = null
                 onPicked()
+            },
+            onToggleWalk = {
+                viewModel.toggleWalk(assembly)
+                detail = null
             },
             onUpgrade = {
                 detail = null
@@ -81,6 +87,32 @@ fun AssembliesScreen(
 
     Scaffold(
         topBar = { BackTopBar(title = "Job Templates", onBack = onBack) },
+        bottomBar = {
+            // The job walk in progress: areas picked while walking the job,
+            // built into ONE estimate. Deterministic merge — no AI in this path.
+            if (walk.isNotEmpty()) {
+                androidx.compose.material3.Surface(tonalElevation = 3.dp) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        GradientButton(
+                            text = "Build one estimate (${walk.size} ${if (walk.size == 1) "area" else "areas"})",
+                            onClick = {
+                                if (tier?.atLeast(viewModel.requiredWalkTier()) == true) {
+                                    viewModel.seedWalk()
+                                    onPicked()
+                                } else {
+                                    onOpenSubscription()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                        androidx.compose.material3.TextButton(onClick = viewModel::clearWalk) { Text("Clear") }
+                    }
+                }
+            }
+        },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             FormField(
@@ -141,7 +173,9 @@ private fun TemplateDetailSheet(
     assembly: Assembly,
     tier: Tier?,
     requiredTier: Tier,
+    inWalk: Boolean,
     onStart: () -> Unit,
+    onToggleWalk: () -> Unit,
     onUpgrade: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -198,6 +232,12 @@ private fun TemplateDetailSheet(
             )
 
             Spacer(Modifier.height(10.dp))
+            // Walking the job? Collect this area and keep browsing — the pinned
+            // bar below builds every picked area into one estimate.
+            androidx.compose.material3.OutlinedButton(onClick = onToggleWalk, modifier = Modifier.fillMaxWidth()) {
+                Text(if (inWalk) "Remove from job walk" else "Add to job walk — quote several areas as one")
+            }
+            Spacer(Modifier.height(2.dp))
             val allowed = tier?.atLeast(requiredTier)
             when (allowed) {
                 true -> GradientButton(text = "Start this estimate", onClick = onStart)
