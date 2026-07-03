@@ -53,14 +53,14 @@ class OfflineQueue @Inject constructor(
     }
 
     suspend fun enqueue(save: QueuedSave) {
-        mutate { current -> current.filterNot { it.id == save.id } + save }
+        mutate { current -> QueueOps.enqueue(current, save) }
         // Ask WorkManager to flush as soon as the network is back — survives the
         // app being closed, unlike the in-process SyncManager connectivity watcher.
         SyncScheduler.requestSync(context)
     }
 
     suspend fun remove(id: String) = mutate { current ->
-        current.filterNot { it.id == id }
+        QueueOps.remove(current, id)
     }
 
     suspend fun bumpAttempts(id: String): Int {

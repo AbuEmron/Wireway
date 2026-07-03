@@ -41,6 +41,7 @@ class QuoteRepositoryImpl @Inject constructor(
     private val queue: OfflineQueue,
     private val network: NetworkMonitor,
     private val dao: QuoteDao,
+    private val draftStore: QuoteDraftStore,
 ) : QuoteRepository {
 
     private fun quotes() = client.postgrest.from("quotes")
@@ -275,14 +276,30 @@ class QuoteRepositoryImpl @Inject constructor(
         if (network.isOnline()) {
             try {
                 quotes().delete { filter { eq("id", quoteId); eq("user_id", userId) } }
+                // PostgREST deletes are fire-and-forget (0 rows affected is still
+                // 2xx) — confirm the row is gone so a blocked delete (e.g. RLS)
+                // surfaces as an error instead of the quote reappearing on the
+                // next refresh.
+                val remaining = quotes()
+                    .select(Columns.list("id")) {
+                        filter { eq("id", quoteId); eq("user_id", userId) }
+                        count(Count.EXACT)
+                    }
+                    .countOrNull() ?: 0L
+                if (remaining > 0L) error("The server didn't accept the delete.")
+                // A queued (unsynced) save for this row would re-insert it on the
+                // next flush — the delete must displace it.
+                queue.remove(quoteId)
                 dao.hardDelete(quoteId)
+                draftStore.clear(quoteId)
                 return@runCatching
             } catch (e: Exception) {
                 if (!isConnectivityError(e)) throw e
             }
         }
         // Offline — tombstone locally (hidden from lists immediately) and queue the
-        // delete so it's pushed when connectivity returns.
+        // delete so it's pushed when connectivity returns. Enqueue replaces any
+        // queued save for the same id, so a pending edit can't resurrect the row.
         dao.getById(quoteId)?.let {
             dao.upsert(it.copy(deleted = true, syncStatus = SyncStatus.PENDING, updatedAt = now))
         }
@@ -296,6 +313,7 @@ class QuoteRepositoryImpl @Inject constructor(
                 createdAt = now,
             )
         )
+        draftStore.clear(quoteId)
     }
 
     override suspend fun markAccepted(

@@ -131,6 +131,10 @@ class QuoteBuilderViewModel @Inject constructor(
     )
     val state: StateFlow<QuoteBuilderUiState> = _state.asStateFlow()
 
+    /** The autosave collector — cancelled on a successful save so a debounced
+     *  write can't re-create the draft that save() just cleared. */
+    private var autosaveJob: kotlinx.coroutines.Job? = null
+
     init {
         viewModelScope.launch {
             // Restore an autosaved draft first — a crash/kill mid-estimate must
@@ -147,7 +151,7 @@ class QuoteBuilderViewModel @Inject constructor(
             // On an untouched edit, don't autosave the loaded quote back as a draft
             // until the user actually changes something (avoids stale drafts).
             val baseline = if (quoteId != null && draft == null) _state.value.toDraft() else null
-            _state.map { it.toDraft() }
+            autosaveJob = _state.map { it.toDraft() }
                 .distinctUntilChanged()
                 .debounce(AUTOSAVE_DEBOUNCE_MS)
                 .onEach { d ->
@@ -531,7 +535,10 @@ class QuoteBuilderViewModel @Inject constructor(
             }
             quoteRepository.saveQuote(userId, input)
                 .onSuccess {
-                    // The quote is now persisted for real — drop the autosaved draft.
+                    // The quote is now persisted for real — stop autosaving FIRST
+                    // (a debounced write landing after the clear would resurrect
+                    // the draft and pre-fill the next new estimate), then drop it.
+                    autosaveJob?.cancel()
                     draftStore.clear(draftKey)
                     _state.update { it.copy(isSaving = false, saved = true) }
                 }
