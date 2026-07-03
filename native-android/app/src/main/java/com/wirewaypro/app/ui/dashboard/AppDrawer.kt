@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Groups
@@ -106,6 +107,7 @@ fun AppDrawerContent(
 
             // ── Tools ─────────────────────────────────────────────────────────
             DrawerSection("Tools")
+            DrawerLink("Calculators", Icons.Outlined.Calculate, DashDest.TOOLS, currentRoute, onDestination, closeDrawer)
             DrawerLink("NEC code reference", Icons.Outlined.MenuBook, DashDest.NEC, currentRoute, onDestination, closeDrawer)
             DrawerLink("Load advisor", Icons.Outlined.Bolt, DashDest.LOAD_ADVISOR, currentRoute, onDestination, closeDrawer)
 

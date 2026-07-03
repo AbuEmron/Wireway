@@ -68,6 +68,12 @@ import com.wirewaypro.app.ui.settings.SettingsScreen
 import com.wirewaypro.app.ui.subscription.SubscriptionsScreen
 import com.wirewaypro.app.ui.takeoff.AiEstimateMode
 import com.wirewaypro.app.ui.takeoff.TakeoffScreen
+import com.wirewaypro.app.ui.tools.BoxFillCalcScreen
+import com.wirewaypro.app.ui.tools.ConduitFillCalcScreen
+import com.wirewaypro.app.ui.tools.DeratingCalcScreen
+import com.wirewaypro.app.ui.tools.ToolsScreen
+import com.wirewaypro.app.ui.tools.VoltageDropCalcScreen
+import com.wirewaypro.app.ui.tools.WireSizeCalcScreen
 
 /**
  * The authenticated shell. A nested NavHost drives the four bottom-nav tabs plus
@@ -253,6 +259,33 @@ fun DashboardScreen(
             }
             composable(DashDest.LOAD_ADVISOR) {
                 LoadAdvisorScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.TOOLS) {
+                ToolsScreen(
+                    onBack = { navController.popBackStack() },
+                    onWireSize = { navController.navigate(DashDest.CALC_WIRE_SIZE) },
+                    onVoltageDrop = { navController.navigate(DashDest.CALC_VOLTAGE_DROP) },
+                    onConduitFill = { navController.navigate(DashDest.CALC_CONDUIT_FILL) },
+                    onBoxFill = { navController.navigate(DashDest.CALC_BOX_FILL) },
+                    onDerating = { navController.navigate(DashDest.CALC_DERATING) },
+                    onNec = { navController.navigate(DashDest.NEC) },
+                    onLoadAdvisor = { navController.navigate(DashDest.LOAD_ADVISOR) },
+                )
+            }
+            composable(DashDest.CALC_WIRE_SIZE) {
+                WireSizeCalcScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.CALC_VOLTAGE_DROP) {
+                VoltageDropCalcScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.CALC_CONDUIT_FILL) {
+                ConduitFillCalcScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.CALC_BOX_FILL) {
+                BoxFillCalcScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.CALC_DERATING) {
+                DeratingCalcScreen(onBack = { navController.popBackStack() })
             }
             composable(DashDest.TAKEOFF) {
                 TakeoffScreen(
