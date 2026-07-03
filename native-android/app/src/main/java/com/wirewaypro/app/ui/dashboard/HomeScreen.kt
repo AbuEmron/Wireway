@@ -27,6 +27,8 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Lock
@@ -87,6 +89,9 @@ fun HomeScreen(
     onOpenAssemblies: () -> Unit,
     onOpenBank: () -> Unit,
     onOpenSubscription: () -> Unit,
+    onOpenTools: () -> Unit,
+    onOpenMaterialDb: () -> Unit,
+    onOpenLaborCalc: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.home.collectAsStateWithLifecycle()
@@ -148,6 +153,15 @@ fun HomeScreen(
             onTakeoff = if (isElite) onOpenTakeoff else onOpenSubscription,
             onMoney = onOpenMoney,
         )
+
+        // ── Field tools — the on-the-ladder row: NEC calcs, one thumb-tap away ─
+        SectionEyebrow("Field tools", modifier = Modifier.padding(top = 4.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            QuickAction("Calculators", Icons.Outlined.Calculate, Modifier.weight(1f), onOpenTools)
+            QuickAction("Materials", Icons.Outlined.Category, Modifier.weight(1f), onOpenMaterialDb)
+            QuickAction("Labor", Icons.Outlined.Schedule, Modifier.weight(1f), onOpenLaborCalc)
+            QuickAction("NEC code", Icons.Outlined.MenuBook, Modifier.weight(1f), onOpenNec)
+        }
 
         // ── This month ────────────────────────────────────────────────────────
         SectionEyebrow("This month", modifier = Modifier.padding(top = 4.dp))

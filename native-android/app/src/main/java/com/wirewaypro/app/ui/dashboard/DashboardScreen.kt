@@ -196,6 +196,9 @@ fun DashboardScreen(
                     onOpenAssemblies = { navController.navigate(DashDest.ASSEMBLIES) },
                     onOpenBank = { navController.navigate(DashDest.BANK) },
                     onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                    onOpenTools = { navController.navigate(DashDest.TOOLS) },
+                    onOpenMaterialDb = { navController.navigate(DashDest.MATERIAL_DB) },
+                    onOpenLaborCalc = { navController.navigate(DashDest.LABOR_CALC) },
                 )
             }
             composable(HomeTab.ESTIMATES.route) {
