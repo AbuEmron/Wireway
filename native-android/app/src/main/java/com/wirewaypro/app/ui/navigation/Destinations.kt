@@ -34,7 +34,7 @@ enum class HomeTab(
  */
 object DashDest {
     const val JOBS = "jobs"
-    const val JOBS_CALENDAR = "jobs_calendar"
+    const val SCHEDULE = "schedule"
     const val CLIENTS = "clients"
     const val EXPENSES = "expenses"
     const val ADD_EXPENSE = "add_expense"
@@ -66,12 +66,13 @@ object DashDest {
 
     // Create / edit routes (query args; blank id = create).
     const val QUOTE_BUILDER = "quote_builder?id={id}&invoice={invoice}"
-    const val JOB_EDIT = "job_edit?id={id}&quoteId={quoteId}"
+    const val JOB_EDIT = "job_edit?id={id}&quoteId={quoteId}&date={date}"
     const val CLIENT_EDIT = "client_edit?id={id}"
 
     const val ARG_ID = "id"
     const val ARG_INVOICE = "invoice"
     const val ARG_QUOTE_ID = "quoteId"
+    const val ARG_DATE = "date"
 
     fun jobDetail(id: String) = "job/$id"
     fun estimateDetail(id: String) = "estimate/$id"
@@ -81,8 +82,8 @@ object DashDest {
     fun quoteBuilder(id: String? = null, invoice: Boolean = false) =
         "quote_builder?id=${id.orEmpty()}&invoice=$invoice"
 
-    fun jobEdit(id: String? = null, quoteId: String? = null) =
-        "job_edit?id=${id.orEmpty()}&quoteId=${quoteId.orEmpty()}"
+    fun jobEdit(id: String? = null, quoteId: String? = null, date: String? = null) =
+        "job_edit?id=${id.orEmpty()}&quoteId=${quoteId.orEmpty()}&date=${date.orEmpty()}"
 
     fun clientEdit(id: String? = null) = "client_edit?id=${id.orEmpty()}"
 }

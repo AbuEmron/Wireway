@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Groups
@@ -94,6 +95,7 @@ fun AppDrawerContent(
             DrawerTab("Estimates", Icons.Outlined.Description, HomeTab.ESTIMATES, currentRoute, onTab, closeDrawer)
             DrawerTab("Invoices", Icons.Outlined.Receipt, HomeTab.INVOICES, currentRoute, onTab, closeDrawer)
             DrawerLink("Jobs", Icons.Outlined.Work, DashDest.JOBS, currentRoute, onDestination, closeDrawer)
+            DrawerLink("Schedule", Icons.Outlined.CalendarMonth, DashDest.SCHEDULE, currentRoute, onDestination, closeDrawer)
             DrawerLink("Clients", Icons.Outlined.Groups, DashDest.CLIENTS, currentRoute, onDestination, closeDrawer)
 
             // ── Money ─────────────────────────────────────────────────────────

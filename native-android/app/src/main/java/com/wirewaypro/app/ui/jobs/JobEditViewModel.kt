@@ -48,7 +48,17 @@ class JobEditViewModel @Inject constructor(
     private val jobId: String? = savedStateHandle.get<String>(ARG_ID)?.takeIf { it.isNotBlank() }
     private val linkedQuoteId: String? = savedStateHandle.get<String>(ARG_QUOTE_ID)?.takeIf { it.isNotBlank() }
 
-    private val _state = MutableStateFlow(JobEditUiState(isEdit = jobId != null, isLoading = jobId != null))
+    // "Schedule for this day": the calendar passes the tapped date so a new entry
+    // opens pre-dated instead of making the user re-pick it.
+    private val prefillDate: String? = savedStateHandle.get<String>(ARG_DATE)?.takeIf { it.isNotBlank() }
+
+    private val _state = MutableStateFlow(
+        JobEditUiState(
+            isEdit = jobId != null,
+            isLoading = jobId != null,
+            scheduledDate = if (jobId == null) prefillDate.orEmpty() else "",
+        ),
+    )
     val state: StateFlow<JobEditUiState> = _state.asStateFlow()
 
     init {
@@ -129,5 +139,6 @@ class JobEditViewModel @Inject constructor(
     companion object {
         const val ARG_ID = "id"
         const val ARG_QUOTE_ID = "quoteId"
+        const val ARG_DATE = "date"
     }
 }

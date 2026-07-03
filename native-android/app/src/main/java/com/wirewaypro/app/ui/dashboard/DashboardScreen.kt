@@ -48,8 +48,8 @@ import com.wirewaypro.app.ui.expenses.ExpensesScreen
 import com.wirewaypro.app.ui.getpaid.GetPaidScreen
 import com.wirewaypro.app.ui.jobs.JobDetailScreen
 import com.wirewaypro.app.ui.jobs.JobEditScreen
-import com.wirewaypro.app.ui.jobs.JobsCalendarScreen
 import com.wirewaypro.app.ui.jobs.JobsScreen
+import com.wirewaypro.app.ui.schedule.ScheduleScreen
 import com.wirewaypro.app.ui.load.LoadAdvisorScreen
 import com.wirewaypro.app.ui.mileage.MileageScreen
 import com.wirewaypro.app.ui.navigation.DashDest
@@ -225,13 +225,14 @@ fun DashboardScreen(
                     onBack = { navController.popBackStack() },
                     onOpenJob = { id -> navController.navigate(DashDest.jobDetail(id)) },
                     onAdd = { navController.navigate(DashDest.jobEdit()) },
-                    onOpenCalendar = { navController.navigate(DashDest.JOBS_CALENDAR) },
+                    onOpenCalendar = { navController.navigate(DashDest.SCHEDULE) },
                 )
             }
-            composable(DashDest.JOBS_CALENDAR) {
-                JobsCalendarScreen(
+            composable(DashDest.SCHEDULE) {
+                ScheduleScreen(
                     onBack = { navController.popBackStack() },
                     onOpenJob = { id -> navController.navigate(DashDest.jobDetail(id)) },
+                    onAddForDate = { date -> navController.navigate(DashDest.jobEdit(date = date)) },
                 )
             }
             composable(DashDest.CLIENTS) {
@@ -394,6 +395,7 @@ fun DashboardScreen(
                 arguments = listOf(
                     optionalId,
                     navArgument(DashDest.ARG_QUOTE_ID) { type = NavType.StringType; defaultValue = "" },
+                    navArgument(DashDest.ARG_DATE) { type = NavType.StringType; defaultValue = "" },
                 ),
             ) {
                 JobEditScreen(onClose = { navController.popBackStack() })
