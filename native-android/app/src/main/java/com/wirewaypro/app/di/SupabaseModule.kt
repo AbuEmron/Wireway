@@ -4,6 +4,7 @@ import com.wirewaypro.app.BuildConfig
 import com.wirewaypro.app.data.auth.AuthRepositoryImpl
 import com.wirewaypro.app.data.clients.ClientRepositoryImpl
 import com.wirewaypro.app.data.expenses.ExpenseRepositoryImpl
+import com.wirewaypro.app.data.financing.WisetackFinancingRepository
 import com.wirewaypro.app.data.jobs.JobRepositoryImpl
 import com.wirewaypro.app.data.money.MoneyRepositoryImpl
 import com.wirewaypro.app.data.profile.ProfileRepositoryImpl
@@ -13,6 +14,7 @@ import com.wirewaypro.app.data.trips.TripRepositoryImpl
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ClientRepository
 import com.wirewaypro.app.domain.repository.ExpenseRepository
+import com.wirewaypro.app.domain.repository.FinancingRepository
 import com.wirewaypro.app.domain.repository.JobRepository
 import com.wirewaypro.app.domain.repository.MoneyRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
@@ -111,4 +113,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindTimeEntryRepository(impl: TimeEntryRepositoryImpl): TimeEntryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFinancingRepository(impl: WisetackFinancingRepository): FinancingRepository
 }

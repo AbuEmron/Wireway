@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -182,6 +184,27 @@ fun QuoteDetailScreen(
                             Text("Client accepts \u2014 sign in person")
                         }
                     }
+                }
+            }
+
+            // Client financing (Elite): a real Wisetack offer on this estimate,
+            // or the Pro→Elite moment. Free isn't shown this — they already get
+            // the Pro prompt below; never stack two walls on one screen.
+            if (!quote.isInvoice) {
+                when {
+                    state.tier.atLeast(Tier.ELITE) -> FinancingSection(
+                        state = state,
+                        onOffer = viewModel::offerFinancing,
+                        onWithdraw = viewModel::stopOfferingFinancing,
+                        onShare = { url -> shareFinancingLink(context, url) },
+                    )
+                    state.tier == Tier.PRO -> UpgradePrompt(
+                        hook = "Close bigger jobs with monthly payments",
+                        detail = "Elite adds client financing: your customer applies in " +
+                            "minutes and pays over time — you still get paid in full.",
+                        tier = Tier.ELITE,
+                        onUpgrade = onOpenSubscription,
+                    )
                 }
             }
 
@@ -494,5 +517,114 @@ private fun sharePdf(context: Context, file: File) {
         context.startActivity(
             Intent.createChooser(intent, "Share PDF").apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
         )
+    }
+}
+
+private fun shareFinancingLink(context: Context, url: String) {
+    runCatching {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "Apply for financing for this project — it takes a few minutes: $url")
+        }
+        context.startActivity(
+            Intent.createChooser(intent, "Share financing link").apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
+        )
+    }
+}
+
+/**
+ * Elite client financing on an estimate. Three honest states: not connected
+ * (setup, never a dead toggle), connected with no offer (the "Offer financing"
+ * switch), and a live offer (status + provider-reported "as low as" + share).
+ * Nothing here invents a number — amounts and statuses are provider-reported.
+ */
+@Composable
+private fun FinancingSection(
+    state: QuoteDetailUiState,
+    onOffer: () -> Unit,
+    onWithdraw: () -> Unit,
+    onShare: (String) -> Unit,
+) {
+    val setup = state.financingSetup
+    val offer = state.financingOffer
+    val uriHandler = LocalUriHandler.current
+    SectionCard(title = "Client financing") {
+        when {
+            setup == null -> Text(
+                "Checking financing availability…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            !setup.connected -> {
+                Text(
+                    "Let customers pay over time while you get paid in full — powered by " +
+                        "Wisetack. Your financing account isn't connected yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.padding(top = 10.dp))
+                val connectUrl = setup.connectUrl
+                if (connectUrl != null) {
+                    Button(onClick = { uriHandler.openUri(connectUrl) }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Connect Wisetack")
+                    }
+                } else {
+                    Text(
+                        "Financing setup for your account is coming online — you'll connect " +
+                            "Wisetack right here once it's ready.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            else -> {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Offer financing", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            if (offer != null) "On — the pay-over-time option rides on this proposal."
+                            else "Adds a pay-over-time option to this estimate's proposal.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (state.financingBusy) {
+                        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                    } else {
+                        Switch(
+                            checked = offer != null,
+                            onCheckedChange = { on -> if (on) onOffer() else onWithdraw() },
+                        )
+                    }
+                }
+                if (offer != null) {
+                    Spacer(Modifier.padding(top = 8.dp))
+                    InfoRow("Status", offer.status.label)
+                    offer.asLowAsMonthly?.let { m ->
+                        InfoRow("As low as", "${Format.money(m)}/mo (provider-quoted)")
+                    }
+                    Spacer(Modifier.padding(top = 8.dp))
+                    OutlinedButton(
+                        onClick = { onShare(offer.applicationUrl) },
+                        enabled = !state.financingBusy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Share application link")
+                    }
+                }
+                state.financingError?.let { message ->
+                    Spacer(Modifier.padding(top = 6.dp))
+                    Text(
+                        message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        }
     }
 }

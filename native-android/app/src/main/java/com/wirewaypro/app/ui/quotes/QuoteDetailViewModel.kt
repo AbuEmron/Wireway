@@ -7,10 +7,13 @@ import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.entitlements.TierService
 import com.wirewaypro.app.data.prefs.DEFAULT_HOURLY_RATE
 import com.wirewaypro.app.data.prefs.SettingsPrefs
+import com.wirewaypro.app.domain.financing.FinancingOffer
+import com.wirewaypro.app.domain.financing.FinancingSetup
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.repository.AuthRepository
+import com.wirewaypro.app.domain.repository.FinancingRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
 import com.wirewaypro.app.ui.util.QuotePdfGenerator
@@ -40,6 +43,12 @@ data class QuoteDetailUiState(
     // Defaults to PRO so the upgrade moment never flashes for paying users
     // before the real tier resolves; FREE arrives only once actually known.
     val tier: Tier = Tier.PRO,
+    // Client financing (Elite): connection state + this estimate's offer. All
+    // figures provider-reported — nothing here is ever computed locally.
+    val financingSetup: FinancingSetup? = null,
+    val financingOffer: FinancingOffer? = null,
+    val financingBusy: Boolean = false,
+    val financingError: String? = null,
 )
 
 /**
@@ -54,6 +63,7 @@ class QuoteDetailViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val settingsPrefs: SettingsPrefs,
     private val tierService: TierService,
+    private val financingRepository: FinancingRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -67,6 +77,67 @@ class QuoteDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val tier = tierService.current()
             _state.update { it.copy(tier = tier) }
+            // Financing is Elite-only and estimate-only; the section stays
+            // hidden for everyone else, so don't even fetch.
+            if (tier.atLeast(Tier.ELITE)) loadFinancing()
+        }
+    }
+
+    /** Connection state + this estimate's existing offer (webhook-updated status). */
+    private suspend fun loadFinancing() {
+        financingRepository.setup().onSuccess { setup ->
+            _state.update { it.copy(financingSetup = setup) }
+            if (setup.connected) {
+                financingRepository.offerFor(quoteId).onSuccess { offer ->
+                    _state.update { it.copy(financingOffer = offer) }
+                }
+            }
+        }
+    }
+
+    /** "Offer financing" ON: ask the provider for this estimate's application link. */
+    fun offerFinancing() {
+        val quote = _state.value.quote ?: return
+        val amount = quote.total ?: return
+        _state.update { it.copy(financingBusy = true, financingError = null) }
+        viewModelScope.launch {
+            financingRepository.createOffer(
+                estimateId = quoteId,
+                amount = amount,
+                clientName = quote.clientName,
+                clientEmail = quote.clientEmail,
+                clientPhone = quote.clientPhone,
+            )
+                .onSuccess { offer -> _state.update { it.copy(financingBusy = false, financingOffer = offer) } }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(financingBusy = false, financingError = e.message ?: "Couldn't create the financing link.")
+                    }
+                }
+        }
+    }
+
+    /** "Offer financing" OFF: withdraw the link (and drop it from the proposal PDF). */
+    fun stopOfferingFinancing() {
+        _state.update { it.copy(financingBusy = true, financingError = null) }
+        viewModelScope.launch {
+            financingRepository.removeOffer(quoteId)
+                .onSuccess { _state.update { it.copy(financingBusy = false, financingOffer = null) } }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(financingBusy = false, financingError = e.message ?: "Couldn't withdraw the offer.")
+                    }
+                }
+        }
+    }
+
+    /** Pull the latest webhook-driven status for this estimate's offer. */
+    fun refreshFinancing() {
+        if (_state.value.financingSetup?.connected != true) return
+        viewModelScope.launch {
+            financingRepository.offerFor(quoteId).onSuccess { offer ->
+                _state.update { it.copy(financingOffer = offer) }
+            }
         }
     }
 
@@ -224,10 +295,18 @@ class QuoteDetailViewModel @Inject constructor(
             val accent = if (!branded) null else settingsPrefs.brandColorHex.first().takeIf { it.isNotBlank() }?.let { hex ->
                 runCatching { android.graphics.Color.parseColor(hex) }.getOrNull()
             }
-            // The contractor's own financing-partner link, surfaced on estimates only when set.
-            val financingLink = settingsPrefs.financingLink.first().takeIf { it.isNotBlank() }
+            // Financing on the proposal: a live provider offer for THIS estimate
+            // wins (its link + provider-reported monthly figure); otherwise fall
+            // back to the contractor's generic financing link from settings.
+            val offer = _state.value.financingOffer
+            val financingLink = offer?.applicationUrl
+                ?: settingsPrefs.financingLink.first().takeIf { it.isNotBlank() }
             val file = withContext(Dispatchers.IO) {
-                QuotePdfGenerator.generate(appContext, quote, business, logo, accent, financingLink, watermark = !branded)
+                QuotePdfGenerator.generate(
+                    appContext, quote, business, logo, accent, financingLink,
+                    financingMonthly = offer?.asLowAsMonthly,
+                    watermark = !branded,
+                )
             }
             if (file == null) {
                 _state.update { it.copy(exportingPdf = false, error = "Couldn't build the PDF.") }

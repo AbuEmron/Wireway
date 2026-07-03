@@ -45,6 +45,8 @@ object QuotePdfGenerator {
         logo: Bitmap? = null,
         accent: Int? = null,
         financingLink: String? = null,
+        /** Provider-reported "as low as $/mo" — printed ONLY when the provider sent one. */
+        financingMonthly: Double? = null,
         watermark: Boolean = false,
     ): File? = runCatching {
         val doc = PdfDocument()
@@ -59,7 +61,7 @@ object QuotePdfGenerator {
         // Only for estimates the client hasn't yet accepted, and only when the
         // contractor supplied a real financing link (never faked).
         if (!quote.isInvoice) {
-            financingLink?.takeIf { it.isNotBlank() }?.let { drawFinancing(state, it) }
+            financingLink?.takeIf { it.isNotBlank() }?.let { drawFinancing(state, it, financingMonthly) }
         }
         drawNotes(state, quote)
         drawTerms(state)
@@ -164,10 +166,22 @@ object QuotePdfGenerator {
         }
     }
 
-    private fun drawFinancing(s: PageState, link: String) {
+    private fun drawFinancing(s: PageState, link: String, monthly: Double? = null) {
         s.ensure(48f)
         s.canvas.drawText("FINANCING AVAILABLE", MARGIN, s.y + 10f, paint(s.accent, 9f, bold = true))
         s.y += 18f
+        // "As low as $X/mo" is printed only when the financing provider reported
+        // it for this estimate — never computed here (a made-up payment figure
+        // is a trust and compliance problem).
+        monthly?.takeIf { it > 0 }?.let { m ->
+            val promo = paint(INK, 11f, bold = true)
+            s.ensure(16f)
+            s.canvas.drawText(
+                "As low as ${java.text.NumberFormat.getCurrencyInstance(java.util.Locale.US).format(m)}/mo for qualified customers.",
+                MARGIN, s.y + 10f, promo,
+            )
+            s.y += 16f
+        }
         val p = paint(INK, 10f)
         val text = "Prefer to spread this out? Flexible monthly payment options are available " +
             "for this project — apply in minutes here: $link"
