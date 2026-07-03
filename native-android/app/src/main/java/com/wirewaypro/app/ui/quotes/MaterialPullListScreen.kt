@@ -214,6 +214,14 @@ private fun ResultHeader(result: PullListResult) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        if (result.unconfirmedCount > 0) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "${result.unconfirmedCount} ${if (result.unconfirmedCount == 1) "line needs" else "lines need"} a price check in store — not included in the total.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -232,15 +240,37 @@ private fun PullItemRow(item: PullItem) {
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(12.dp))
+            val total = item.lineTotal
             Text(
-                Format.money(item.lineTotal),
+                // A line whose price basis is unknown shows "confirm", never a
+                // fabricated feet × package-price number (accuracy doctrine).
+                text = total?.let { Format.money(it) } ?: "confirm",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (total != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         item.spec?.takeIf { it.isNotBlank() }?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        // Package math, spelled out: "2 × 25 ft coil" — the number a counter clerk
+        // can sanity-check at a glance.
+        if (item.basis == com.wirewaypro.app.domain.model.PriceBasis.PER_PACKAGE) {
+            val pkg = item.packageSize
+            val count = item.priceMultiplier?.toInt()
+            if (pkg != null && count != null) {
+                Text(
+                    "$count × ${hoursOrQty(pkg)} ${item.unit ?: "unit"} package",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else if (item.lineTotal == null && item.price != null) {
+            Text(
+                "price is per package — confirm the count in store",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         if (item.prices.isNotEmpty()) {
             val cheapest = item.prices.minByOrNull { it.price }?.store
@@ -264,6 +294,7 @@ private fun buildCopyText(result: PullListResult): String =
     result.sections.joinToString("\n\n") { s ->
         s.service.uppercase() + "\n" + s.items.joinToString("\n") { i ->
             val spec = i.spec?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
-            "  [ ] ${hoursOrQty(i.qty)} ${i.unit ?: ""} — ${i.name}$spec — ~${Format.money(i.lineTotal)}"
+            val total = i.lineTotal?.let { "~${Format.money(it)}" } ?: "confirm price"
+            "  [ ] ${hoursOrQty(i.qty)} ${i.unit ?: ""} — ${i.name}$spec — $total"
         }
     } + "\n\nESTIMATED TOTAL: ${Format.money(result.estTotal)}"
