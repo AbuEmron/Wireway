@@ -326,6 +326,7 @@ fun DashboardScreen(
                             popUpTo(DashDest.ASSEMBLIES) { inclusive = true }
                         }
                     },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
                 )
             }
             composable(DashDest.AI_QUOTE_BUILDER) {
