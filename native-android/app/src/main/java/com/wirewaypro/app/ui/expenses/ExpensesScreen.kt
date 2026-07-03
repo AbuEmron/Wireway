@@ -40,7 +40,9 @@ import com.wirewaypro.app.domain.model.Expense
 import com.wirewaypro.app.domain.model.ExpenseCategories
 import com.wirewaypro.app.ui.components.BackTopBar
 import com.wirewaypro.app.ui.components.ConfirmDialog
+import com.wirewaypro.app.ui.components.EmptyState
 import com.wirewaypro.app.ui.components.ListCard
+import com.wirewaypro.app.ui.components.ListCardSkeleton
 import com.wirewaypro.app.ui.components.RefreshOnReturn
 import com.wirewaypro.app.ui.components.RefreshableList
 import com.wirewaypro.app.ui.util.Format
@@ -108,6 +110,16 @@ fun ExpensesScreen(
             emptyMessage = "No expenses yet. Snap a receipt to add one.",
             onRefresh = viewModel::refresh,
             modifier = Modifier.padding(padding),
+            skeleton = { ListCardSkeleton() },
+            emptyContent = {
+                EmptyState(
+                    icon = Icons.Outlined.PhotoCamera,
+                    title = "No expenses yet",
+                    message = "Snap a receipt and it's logged — every material run counts against the job's real profit.",
+                    actionLabel = "Scan receipts",
+                    onAction = { startBatchScan() },
+                )
+            },
         ) {
             items(state.items, key = { it.id }) { expense ->
                 ExpenseRow(expense = expense, onClick = { pendingDelete = expense })

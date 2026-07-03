@@ -31,8 +31,12 @@ import com.plaid.link.configuration.LinkTokenConfiguration
 import com.plaid.link.result.LinkExit
 import com.plaid.link.result.LinkSuccess
 import com.wirewaypro.app.domain.model.PlaidTxn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBalance
 import com.wirewaypro.app.ui.components.BackTopBar
+import com.wirewaypro.app.ui.components.EmptyState
 import com.wirewaypro.app.ui.components.ListCard
+import com.wirewaypro.app.ui.components.ListCardSkeleton
 import com.wirewaypro.app.ui.components.RefreshableList
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.util.Format
@@ -109,6 +113,14 @@ fun BankScreen(
                     isEmpty = state.isEmpty,
                     emptyMessage = "No bank transactions yet. Connect a bank to import them.",
                     onRefresh = viewModel::refresh,
+                    skeleton = { ListCardSkeleton() },
+                    emptyContent = {
+                        EmptyState(
+                            icon = Icons.Outlined.AccountBalance,
+                            title = "No transactions yet",
+                            message = "Connect your business checking above and purchases import themselves — job costing without the shoebox of receipts.",
+                        )
+                    },
                 ) {
                     items(state.transactions, key = { it.id }) { txn ->
                         TxnRow(txn)
