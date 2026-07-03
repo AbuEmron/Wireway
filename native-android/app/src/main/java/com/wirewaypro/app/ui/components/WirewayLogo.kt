@@ -1,26 +1,19 @@
 package com.wirewaypro.app.ui.components
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.wirewaypro.app.R
 
 /**
- * The Wireway mark — the blue→cyan ring, blue→purple "W", and cyan lightning bolt —
- * rendered from the [R.drawable.ic_wireway_logo] VectorDrawable so it matches the brand
- * mockup and the launcher icon exactly. Designed on a dark surface; prefer
- * [WirewayLogoBadge] on light backgrounds.
+ * The W-cable mark — the silver + blue "W" whose last stroke becomes a cut cable
+ * with exposed conductors — on a transparent background. The first stroke is
+ * near-white, so this variant is for DARK or brand-gradient surfaces only;
+ * on possibly-light surfaces use [WirewayLogoBadge].
  */
 @Composable
 fun WirewayLogomark(
@@ -28,25 +21,24 @@ fun WirewayLogomark(
     size: Dp = 28.dp,
 ) {
     Image(
-        painter = painterResource(R.drawable.wireway_icon),
+        painter = painterResource(R.drawable.wireway_mark),
         contentDescription = "Wireway",
         modifier = modifier.size(size),
     )
 }
 
 /**
- * The mark inside the dark-navy rounded badge — the app/brand lockup that mirrors the
- * launcher icon. Works on any background.
+ * The full brand tile — the W-cable mark and "WIREWAY PRO" wordmark on the dark
+ * rounded tile, matching the launcher icon. Self-contained, so it works on any
+ * background (the lockup of choice for light surfaces).
  */
 @Composable
 fun WirewayLogoBadge(
     modifier: Modifier = Modifier,
     size: Dp = 44.dp,
 ) {
-    // The brand icon PNG already carries its own rounded blue background, so it
-    // renders directly here and matches the launcher icon exactly.
     Image(
-        painter = painterResource(R.drawable.wireway_icon),
+        painter = painterResource(R.drawable.wireway_tile),
         contentDescription = "Wireway",
         modifier = modifier.size(size),
     )

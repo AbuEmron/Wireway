@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.wirewaypro.app.ui.components.WirewayLogoBadge
+import com.wirewaypro.app.ui.components.WirewayLogomark
 import com.wirewaypro.app.ui.theme.GradientBlue
 import com.wirewaypro.app.ui.theme.GradientPurple
 
@@ -61,7 +61,9 @@ fun WelcomeScreen(
         ) {
             Spacer(Modifier.weight(1f))
 
-            WirewayLogoBadge(size = 104.dp)
+            // Transparent W-cable mark straight on the gradient hero — the screen
+            // draws its own WIREWAY PRO wordmark below, so the tile would double it.
+            WirewayLogomark(size = 104.dp)
             Spacer(Modifier.height(28.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
