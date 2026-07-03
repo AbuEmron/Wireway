@@ -261,7 +261,10 @@ fun DashboardScreen(
                 TimeTrackingScreen(onBack = { navController.popBackStack() })
             }
             composable(DashDest.NEC) {
-                NecReferenceScreen(onBack = { navController.popBackStack() })
+                NecReferenceScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
             }
             composable(DashDest.LOAD_ADVISOR) {
                 LoadAdvisorScreen(onBack = { navController.popBackStack() })

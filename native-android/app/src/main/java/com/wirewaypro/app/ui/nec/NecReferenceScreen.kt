@@ -27,16 +27,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.nec.NecArticle
 import com.wirewaypro.app.domain.nec.NecReference
 import com.wirewaypro.app.ui.components.BackTopBar
+import com.wirewaypro.app.ui.components.UpgradePrompt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NecReferenceScreen(onBack: () -> Unit) {
+fun NecReferenceScreen(
+    onBack: () -> Unit,
+    onOpenSubscription: () -> Unit = {},
+    viewModel: NecReferenceViewModel = hiltViewModel(),
+) {
     var query by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf<String?>("210") }
-    val results = NecReference.search(query)
+    var expanded by remember { mutableStateOf<String?>("Residential/210") }
+    val tier by viewModel.tier.collectAsStateWithLifecycle()
+    val isElite = tier?.atLeast(Tier.ELITE) == true
+    val results = NecReference.search(query, includeElite = isElite)
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -51,18 +61,40 @@ fun NecReferenceScreen(onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
             )
             Text(
-                "NEC 2023 residential reference · educational only — confirm against the adopted code + local amendments.",
+                if (isElite) {
+                    "NEC 2023 reference — residential, commercial, industrial & health care · " +
+                        "educational only — confirm against the adopted code + local amendments."
+                } else {
+                    "NEC 2023 residential reference · educational only — confirm against the adopted code + local amendments."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(10.dp))
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(results, key = { it.number }) { article ->
+                // Duplicate article numbers exist across sectors (e.g. a residential
+                // and a commercial 210), so keys and expansion track sector+number.
+                items(results, key = { "${it.sector}/${it.number}" }) { article ->
+                    val cardKey = "${article.sector}/${article.number}"
                     ArticleCard(
                         article = article,
-                        expanded = expanded == article.number,
-                        onToggle = { expanded = if (expanded == article.number) null else article.number },
+                        expanded = expanded == cardKey,
+                        onToggle = { expanded = if (expanded == cardKey) null else cardKey },
                     )
+                }
+                if (!isElite && tier != null) {
+                    item(key = "elite-upsell") {
+                        UpgradePrompt(
+                            hook = "Working commercial, industrial or medical?",
+                            detail = "Elite extends the code reference beyond the dwelling: " +
+                                "non-dwelling loads (210/220), motors (430), transformers (450), " +
+                                "hazardous locations (500–516), IT rooms (645), emergency & standby " +
+                                "power (700/701), controls (725), and health care facilities (517).",
+                            tier = Tier.ELITE,
+                            onUpgrade = onOpenSubscription,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
                 }
                 item { Spacer(Modifier.height(16.dp)) }
             }
@@ -92,7 +124,15 @@ private fun ArticleCard(article: NecArticle, expanded: Boolean, onToggle: () -> 
                 Text(
                     article.title,
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 8.dp),
+                    modifier = Modifier.padding(start = 8.dp).weight(1f),
+                )
+            }
+            if (article.sector != "Residential") {
+                Text(
+                    article.sector.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary,
                 )
             }
             Spacer(Modifier.height(4.dp))
