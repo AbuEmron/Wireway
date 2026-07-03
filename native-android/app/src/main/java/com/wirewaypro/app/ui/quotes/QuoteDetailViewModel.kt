@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wirewaypro.app.data.entitlements.TierService
 import com.wirewaypro.app.data.prefs.DEFAULT_HOURLY_RATE
 import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.domain.model.QuoteDetail
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
@@ -35,6 +37,9 @@ data class QuoteDetailUiState(
     val pdfToShare: File? = null, // one-shot: non-null when ready for the share sheet
     val createdInvoiceId: String? = null, // one-shot: id of the invoice just created from this estimate
     val duplicatedId: String? = null, // one-shot: id of the copy just created ("same as last job")
+    // Defaults to PRO so the upgrade moment never flashes for paying users
+    // before the real tier resolves; FREE arrives only once actually known.
+    val tier: Tier = Tier.PRO,
 )
 
 /**
@@ -48,6 +53,7 @@ class QuoteDetailViewModel @Inject constructor(
     private val quoteRepository: QuoteRepository,
     private val profileRepository: ProfileRepository,
     private val settingsPrefs: SettingsPrefs,
+    private val tierService: TierService,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -58,6 +64,10 @@ class QuoteDetailViewModel @Inject constructor(
 
     init {
         load()
+        viewModelScope.launch {
+            val tier = tierService.current()
+            _state.update { it.copy(tier = tier) }
+        }
     }
 
     fun load() {
@@ -193,13 +203,16 @@ class QuoteDetailViewModel @Inject constructor(
         val quote = _state.value.quote ?: return
         _state.update { it.copy(exportingPdf = true) }
         viewModelScope.launch {
+            // Branding is a Pro feature: Free exports carry the Wireway watermark
+            // and go out without the contractor's logo or accent color.
+            val branded = tierService.current().atLeast(Tier.PRO)
             // Business header comes from the user's profile (best-effort).
             val business = auth.currentUserId()
                 ?.let { profileRepository.getProfile(it).getOrNull() }
                 ?.businessInfo()
             // Fetch the business logo for the PDF header (best-effort; PDF still
             // renders without it if the download or decode fails).
-            val logo = withContext(Dispatchers.IO) {
+            val logo = if (!branded) null else withContext(Dispatchers.IO) {
                 business?.logoUrl?.takeIf { it.isNotBlank() }?.let { url ->
                     runCatching {
                         val bytes = java.net.URL(url).openStream().use { it.readBytes() }
@@ -208,13 +221,13 @@ class QuoteDetailViewModel @Inject constructor(
                 }
             }
             // Contractor's chosen proposal accent color (blank/invalid → default brand blue).
-            val accent = settingsPrefs.brandColorHex.first().takeIf { it.isNotBlank() }?.let { hex ->
+            val accent = if (!branded) null else settingsPrefs.brandColorHex.first().takeIf { it.isNotBlank() }?.let { hex ->
                 runCatching { android.graphics.Color.parseColor(hex) }.getOrNull()
             }
             // The contractor's own financing-partner link, surfaced on estimates only when set.
             val financingLink = settingsPrefs.financingLink.first().takeIf { it.isNotBlank() }
             val file = withContext(Dispatchers.IO) {
-                QuotePdfGenerator.generate(appContext, quote, business, logo, accent, financingLink)
+                QuotePdfGenerator.generate(appContext, quote, business, logo, accent, financingLink, watermark = !branded)
             }
             if (file == null) {
                 _state.update { it.copy(exportingPdf = false, error = "Couldn't build the PDF.") }

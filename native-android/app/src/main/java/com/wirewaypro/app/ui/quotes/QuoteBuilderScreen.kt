@@ -53,22 +53,26 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.catalog.Catalog
+import com.wirewaypro.app.domain.model.FreeLimits
 import com.wirewaypro.app.domain.model.PricingRecommendation
 import com.wirewaypro.app.domain.model.QuoteCalculator
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.RateMode
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.ui.components.DateField
 import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.GlassCard
 import com.wirewaypro.app.ui.components.SaveTopBar
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.SectionHeader
+import com.wirewaypro.app.ui.components.UpgradePrompt
 import com.wirewaypro.app.ui.util.Format
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuoteBuilderScreen(
     onClose: () -> Unit,
+    onOpenSubscription: () -> Unit = {},
     viewModel: QuoteBuilderViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -133,6 +137,20 @@ fun QuoteBuilderScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // Free hit the saved-quote ceiling on Save — the natural Pro moment
+            // ("I'm bidding regularly"). Nothing typed here is lost: the builder
+            // autosaves a local draft, so the quote is waiting after the upgrade.
+            if (state.quoteCapReached) {
+                UpgradePrompt(
+                    hook = "You're bidding for real now",
+                    detail = "Free includes ${FreeLimits.MAX_QUOTES} saved quotes and you've used them all. " +
+                        "Pro is unlimited — quotes, invoices, clients. This draft is saved on your phone " +
+                        "and will be right here.",
+                    tier = Tier.PRO,
+                    onUpgrade = onOpenSubscription,
+                )
+            }
+
             state.quoteNumber?.let {
                 Text("#$it", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }

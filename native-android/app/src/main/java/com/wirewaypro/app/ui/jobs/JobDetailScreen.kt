@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.model.Job
 import com.wirewaypro.app.domain.model.JobDraw
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.ui.components.ConfirmDialog
 import com.wirewaypro.app.ui.components.DateField
 import com.wirewaypro.app.ui.components.DetailScaffold
@@ -44,12 +45,14 @@ import com.wirewaypro.app.ui.components.InfoRow
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.StatusChip
 import com.wirewaypro.app.ui.components.StatusSelector
+import com.wirewaypro.app.ui.components.UpgradePrompt
 import com.wirewaypro.app.ui.util.Format
 
 @Composable
 fun JobDetailScreen(
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
+    onOpenSubscription: () -> Unit = {},
     viewModel: JobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -204,7 +207,40 @@ fun JobDetailScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        // Elite: line the bid up against real costs on this job.
+                        state.estimateTotal?.let { bid ->
+                            val trueCost = p.materials + p.laborCost
+                            Spacer(Modifier.padding(top = 10.dp))
+                            InfoRow("You bid", Format.money(bid))
+                            InfoRow("True cost so far", Format.money(trueCost))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text("Left in the bid", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                                Text(
+                                    Format.money(bid - trueCost),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = if (bid - trueCost >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        }
                     }
+                }
+            }
+
+            // The Pro→Elite moment (WIREWAY_PRICING_TIERS.md): hours are being
+            // logged on this job — Elite lines the bid up against real costs.
+            state.profitability?.let { p ->
+                if (!state.tier.atLeast(Tier.ELITE) && p.laborHours > 0.0) {
+                    UpgradePrompt(
+                        hook = "See true job cost vs estimate",
+                        detail = "Hours are adding up on this job. Elite compares what you bid " +
+                            "against real materials and labor as they land, so you know where " +
+                            "the money went before the next bid.",
+                        tier = Tier.ELITE,
+                        onUpgrade = onOpenSubscription,
+                    )
                 }
             }
 

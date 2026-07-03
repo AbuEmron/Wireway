@@ -351,6 +351,7 @@ fun DashboardScreen(
                 JobDetailScreen(
                     onBack = { navController.popBackStack() },
                     onEdit = { id -> navController.navigate(DashDest.jobEdit(id)) },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
                 )
             }
             composable(DashDest.ESTIMATE_DETAIL, arguments = idArg) {
@@ -364,6 +365,7 @@ fun DashboardScreen(
                             popUpTo(DashDest.ESTIMATE_DETAIL) { inclusive = true }
                         }
                     },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
                 )
             }
             composable(DashDest.INVOICE_DETAIL, arguments = idArg) {
@@ -371,6 +373,7 @@ fun DashboardScreen(
                     onBack = { navController.popBackStack() },
                     onEdit = { id -> navController.navigate(DashDest.quoteBuilder(id = id)) },
                     onPullList = { id -> navController.navigate(DashDest.pullList(id)) },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
                 )
             }
             composable(DashDest.PULL_LIST, arguments = idArg) {
@@ -388,7 +391,10 @@ fun DashboardScreen(
                     navArgument(DashDest.ARG_INVOICE) { type = NavType.BoolType; defaultValue = false },
                 ),
             ) {
-                QuoteBuilderScreen(onClose = { navController.popBackStack() })
+                QuoteBuilderScreen(
+                    onClose = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
             }
             composable(
                 DashDest.JOB_EDIT,
@@ -401,7 +407,10 @@ fun DashboardScreen(
                 JobEditScreen(onClose = { navController.popBackStack() })
             }
             composable(DashDest.CLIENT_EDIT, arguments = listOf(optionalId)) {
-                ClientEditScreen(onClose = { navController.popBackStack() })
+                ClientEditScreen(
+                    onClose = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
             }
         }
         }

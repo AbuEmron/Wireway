@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.ai.AiService
 import com.wirewaypro.app.data.ai.PricingAdvisorService
 import com.wirewaypro.app.data.ai.TakeoffHandoff
+import com.wirewaypro.app.data.entitlements.TierService
 import com.wirewaypro.app.data.location.LocationService
 import com.wirewaypro.app.data.prefs.DEFAULT_HOURLY_RATE
 import com.wirewaypro.app.data.prefs.SettingsPrefs
@@ -14,6 +15,7 @@ import com.wirewaypro.app.data.quotes.DraftCustomItem
 import com.wirewaypro.app.data.quotes.QuoteDraft
 import com.wirewaypro.app.data.quotes.QuoteDraftStore
 import com.wirewaypro.app.domain.catalog.Catalog
+import com.wirewaypro.app.domain.model.FreeLimits
 import com.wirewaypro.app.domain.model.QuoteCalculator
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.QuoteCustomItem
@@ -22,6 +24,7 @@ import com.wirewaypro.app.domain.model.PricingRecommendation
 import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.model.QuoteTotals
 import com.wirewaypro.app.domain.model.RateMode
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.pricing.DefaultRate
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
@@ -91,6 +94,8 @@ data class QuoteBuilderUiState(
     val adviceError: String? = null,
     val error: String? = null,
     val saved: Boolean = false,
+    /** True when a Free user hit the saved-quote ceiling — the Pro moment. */
+    val quoteCapReached: Boolean = false,
 )
 
 private fun String.toD(): Double = trim().toDoubleOrNull() ?: 0.0
@@ -105,6 +110,7 @@ class QuoteBuilderViewModel @Inject constructor(
     private val locationService: LocationService,
     private val draftStore: QuoteDraftStore,
     private val takeoffHandoff: TakeoffHandoff,
+    private val tierService: TierService,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -490,8 +496,19 @@ class QuoteBuilderViewModel @Inject constructor(
             customItems = items,
         )
 
-        _state.update { it.copy(isSaving = true, error = null) }
+        _state.update { it.copy(isSaving = true, error = null, quoteCapReached = false) }
         viewModelScope.launch {
+            // Free ceiling (WIREWAY_PRICING_TIERS.md): a small number of complete
+            // quotes proves the loop end to end; unlimited lives in Pro. Applies
+            // only to NEW records — edits to existing ones always save.
+            if (quoteId == null && !tierService.current().atLeast(Tier.PRO)) {
+                val saved = (quoteRepository.getEstimates(userId).getOrNull()?.size ?: 0) +
+                    (quoteRepository.getInvoices(userId).getOrNull()?.size ?: 0)
+                if (saved >= FreeLimits.MAX_QUOTES) {
+                    _state.update { it.copy(isSaving = false, quoteCapReached = true) }
+                    return@launch
+                }
+            }
             quoteRepository.saveQuote(userId, input)
                 .onSuccess {
                     // The quote is now persisted for real — drop the autosaved draft.

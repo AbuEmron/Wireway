@@ -3,11 +3,13 @@ package com.wirewaypro.app.ui.jobs
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wirewaypro.app.data.entitlements.TierService
 import com.wirewaypro.app.domain.model.Job
 import com.wirewaypro.app.domain.model.JobDraw
 import com.wirewaypro.app.domain.model.JobDrawInput
 import com.wirewaypro.app.domain.model.JobProfitability
 import com.wirewaypro.app.domain.model.MoneyMath
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.domain.repository.ExpenseRepository
@@ -45,6 +47,11 @@ data class JobDetailUiState(
     val error: String? = null,
     val editingDraw: DrawDraft? = null,
     val deleted: Boolean = false,
+    // Defaults to ELITE so the upgrade moment never flashes for paying users
+    // before the real tier resolves.
+    val tier: Tier = Tier.ELITE,
+    /** The job's contract total ("you bid"), set for Elite's bid-vs-actual rows. */
+    val estimateTotal: Double? = null,
 )
 
 @HiltViewModel
@@ -54,6 +61,7 @@ class JobDetailViewModel @Inject constructor(
     private val expenseRepository: ExpenseRepository,
     private val timeEntryRepository: TimeEntryRepository,
     private val settingsPrefs: SettingsPrefs,
+    private val tierService: TierService,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -83,6 +91,14 @@ class JobDetailViewModel @Inject constructor(
             val draws = jobRepository.getJobDraws(jobId).getOrDefault(emptyList())
             _state.update { it.copy(isLoading = false, job = job, draws = draws, error = null) }
             refreshProfitability(draws)
+
+            // Elite's bid-vs-actual: the job's contract total is the bid, so
+            // "Did I make money?" can line it up against real costs. Lower
+            // tiers see the contextual Elite moment instead.
+            val tier = tierService.current()
+            _state.update {
+                it.copy(tier = tier, estimateTotal = if (tier.atLeast(Tier.ELITE)) job.total else null)
+            }
         }
     }
 

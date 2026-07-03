@@ -49,12 +49,14 @@ import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteExpiry
 import com.wirewaypro.app.domain.model.QuoteLineItem
 import com.wirewaypro.app.domain.model.RateMode
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.ui.components.ConfirmDialog
 import com.wirewaypro.app.ui.components.DetailScaffold
 import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.InfoRow
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.StatusChip
+import com.wirewaypro.app.ui.components.UpgradePrompt
 import com.wirewaypro.app.ui.components.WirewayDatePickerDialog
 import com.wirewaypro.app.ui.util.Format
 import java.io.File
@@ -71,6 +73,7 @@ fun QuoteDetailScreen(
     onEdit: (String) -> Unit,
     onPullList: (String) -> Unit = {},
     onOpenInvoice: (String) -> Unit = {},
+    onOpenSubscription: () -> Unit = {},
     viewModel: QuoteDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -180,6 +183,19 @@ fun QuoteDetailScreen(
                         }
                     }
                 }
+            }
+
+            // The Free→Pro moment (WIREWAY_PRICING_TIERS.md): this is where the
+            // contractor sends the document, and Free exports go out watermarked
+            // without their logo.
+            if (state.tier == Tier.FREE) {
+                UpgradePrompt(
+                    hook = "Send it clean, with your logo",
+                    detail = "Free PDFs carry a Wireway watermark. Pro puts your " +
+                        "logo and colors on every ${kind.lowercase()} — no watermark.",
+                    tier = Tier.PRO,
+                    onUpgrade = onOpenSubscription,
+                )
             }
 
             if (quote.clientName != null || quote.clientEmail != null || quote.clientPhone != null) {

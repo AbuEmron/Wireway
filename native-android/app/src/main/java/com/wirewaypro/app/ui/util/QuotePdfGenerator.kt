@@ -45,9 +45,10 @@ object QuotePdfGenerator {
         logo: Bitmap? = null,
         accent: Int? = null,
         financingLink: String? = null,
+        watermark: Boolean = false,
     ): File? = runCatching {
         val doc = PdfDocument()
-        val state = PageState(doc, accent ?: ACCENT)
+        val state = PageState(doc, accent ?: ACCENT, watermark)
         state.start()
 
         drawHeader(state, quote)
@@ -77,7 +78,7 @@ object QuotePdfGenerator {
     }.getOrNull()
 
     // ── Page bookkeeping ───────────────────────────────────────────────────────
-    private class PageState(val doc: PdfDocument, val accent: Int) {
+    private class PageState(val doc: PdfDocument, val accent: Int, val watermark: Boolean = false) {
         lateinit var page: PdfDocument.Page
         lateinit var canvas: Canvas
         var y = MARGIN
@@ -88,6 +89,8 @@ object QuotePdfGenerator {
             page = doc.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNo).create())
             canvas = page.canvas
             y = MARGIN
+            // Drawn first so the page content renders over it.
+            if (watermark) drawWatermark(canvas)
         }
 
         /** Ensure [need] points of vertical space; start a new page if not. */
@@ -342,6 +345,19 @@ object QuotePdfGenerator {
             BOTTOM + 18f,
             paint(MUTED, 9f),
         )
+    }
+
+    /**
+     * Free-plan watermark (WIREWAY_PRICING_TIERS.md): a light diagonal
+     * "MADE WITH WIREWAY" across every page. Pro exports never call this.
+     */
+    private fun drawWatermark(canvas: Canvas) {
+        val p = paint(0x140A0E14, 40f, bold = true, align = Paint.Align.CENTER)
+        canvas.save()
+        canvas.rotate(-35f, PAGE_W / 2f, PAGE_H / 2f)
+        canvas.drawText("MADE WITH WIREWAY", PAGE_W / 2f, PAGE_H / 2f, p)
+        canvas.drawText("wirewaypro.com", PAGE_W / 2f, PAGE_H / 2f + 34f, paint(0x140A0E14, 16f, align = Paint.Align.CENTER))
+        canvas.restore()
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
