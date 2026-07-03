@@ -23,29 +23,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.catalog.Catalog
 import com.wirewaypro.app.domain.catalog.CatalogService
+import com.wirewaypro.app.domain.catalog.EliteCatalog
+import com.wirewaypro.app.domain.catalog.EliteMaterial
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.ui.components.DetailScaffold
 import com.wirewaypro.app.ui.components.EmptyState
 import com.wirewaypro.app.ui.components.FormField
-import com.wirewaypro.app.ui.components.SectionEyebrow
+import com.wirewaypro.app.ui.components.UpgradePrompt
 import com.wirewaypro.app.ui.theme.Spacing
 import com.wirewaypro.app.ui.util.Format
 
 /**
- * Standalone material & labor database — the NEC-2023 residential service catalog that
- * already backs the estimate builder, now browsable on its own. Every line carries a
- * material cost, a labor cost, labor hours, and the NEC article — deterministic
- * reference an electrician can trust at the supply-house counter, offline.
+ * Standalone material & labor database. The NEC-2023 residential service catalog
+ * (deterministic costs, backs the estimate builder) is available on every tier;
+ * the commercial + industrial library (truthful specs, market/quote price basis —
+ * never fabricated dollar figures) is the Elite layer.
  */
 @Composable
-fun MaterialDatabaseScreen(onBack: () -> Unit) {
+fun MaterialDatabaseScreen(
+    onBack: () -> Unit,
+    onOpenSubscription: () -> Unit = {},
+    viewModel: MaterialDatabaseViewModel = hiltViewModel(),
+) {
     var query by remember { mutableStateOf("") }
     val q = query.trim().lowercase()
+    val tier by viewModel.tier.collectAsStateWithLifecycle()
+    val isElite = tier?.atLeast(Tier.ELITE) == true
 
     // Flat, category-tagged rows so search can span the whole catalog while a blank
     // query still reads as grouped sections.
-    val rows: List<CatalogRow> = remember(q) { buildRows(q) }
+    val rows: List<CatalogRow> = remember(q, isElite) { buildRows(q, isElite) }
 
     DetailScaffold(title = "Material database", onBack = onBack, isLoading = false, error = null) { padding ->
         Column(
@@ -83,6 +94,26 @@ fun MaterialDatabaseScreen(onBack: () -> Unit) {
                                 modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xxs),
                             )
                             is CatalogRow.Item -> MaterialCard(row.service)
+                            is CatalogRow.EliteItem -> EliteMaterialCard(row.material)
+                            CatalogRow.ElitePricingNote -> Text(
+                                "Commercial & industrial gear is market- and quote-priced (copper moves " +
+                                    "daily; switchgear is engineered to order), so no list prices are shown — " +
+                                    "they'd be wrong. Each entry states how the item is sold; price it with " +
+                                    "your distributor at bid time.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = Spacing.xxs),
+                            )
+                            CatalogRow.EliteUpsell -> UpgradePrompt(
+                                hook = "Bidding commercial or industrial?",
+                                detail = "Elite adds the full commercial + industrial library — " +
+                                    "277/480 V distribution, switchgear, motor control and VFDs, busway, " +
+                                    "cable tray, fire alarm, PLC/controls and hazardous-location gear — " +
+                                    "with truthful specs, NEC references and how each item is actually sold.",
+                                tier = Tier.ELITE,
+                                onUpgrade = onOpenSubscription,
+                                modifier = Modifier.padding(top = Spacing.md),
+                            )
                         }
                     }
                 }
@@ -131,6 +162,41 @@ private fun MaterialCard(service: CatalogService) {
 }
 
 @Composable
+private fun EliteMaterialCard(material: EliteMaterial) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(Modifier.padding(Spacing.lg)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    material.label,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                NecTagPill(material.nec)
+            }
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                material.spec,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(Spacing.sm))
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                Metric("Unit", material.unit)
+                Metric("Pricing", "Live / quoted")
+            }
+        }
+    }
+}
+
+@Composable
 private fun Metric(label: String, value: String) {
     Column {
         Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -141,21 +207,39 @@ private fun Metric(label: String, value: String) {
 private sealed interface CatalogRow {
     data class Header(val label: String) : CatalogRow
     data class Item(val service: CatalogService) : CatalogRow
+    data class EliteItem(val material: EliteMaterial) : CatalogRow
+    data object ElitePricingNote : CatalogRow
+    data object EliteUpsell : CatalogRow
 }
 
 /** Grouped rows when unfiltered; a flat matching list when searching. */
-private fun buildRows(q: String): List<CatalogRow> {
+private fun buildRows(q: String, isElite: Boolean): List<CatalogRow> {
     if (q.isEmpty()) {
-        return Catalog.categories.flatMap { cat ->
+        val residential = Catalog.categories.flatMap { cat ->
             buildList {
                 add(CatalogRow.Header(cat.label))
                 cat.services.forEach { add(CatalogRow.Item(it)) }
             }
         }
+        if (!isElite) return residential + CatalogRow.EliteUpsell
+        return residential + EliteCatalog.categories.flatMapIndexed { idx, cat ->
+            buildList {
+                add(CatalogRow.Header("${cat.sector.label} · ${cat.label}"))
+                if (idx == 0) add(CatalogRow.ElitePricingNote)
+                cat.materials.forEach { add(CatalogRow.EliteItem(it)) }
+            }
+        }
     }
-    return Catalog.allServices
+    val residential = Catalog.allServices
         .filter { it.label.lowercase().contains(q) || it.nec.lowercase().contains(q) }
-        .map { CatalogRow.Item(it) }
+        .map<CatalogService, CatalogRow>(CatalogRow::Item)
+    if (!isElite) return residential
+    return residential + EliteCatalog.allMaterials
+        .filter {
+            it.label.lowercase().contains(q) || it.nec.lowercase().contains(q) ||
+                it.spec.lowercase().contains(q) || it.typicalUse.lowercase().contains(q)
+        }
+        .map(CatalogRow::EliteItem)
 }
 
 private fun hoursText(h: Double): String =

@@ -18,9 +18,19 @@ class TierService @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val playEntitlements: PlayEntitlements,
 ) {
+    /**
+     * Last profile that actually loaded, reused only when a later fetch FAILS
+     * (offline job site) — a fetch that succeeds with a lower plan still
+     * downgrades. Play purchases already survive offline via Play's own cache.
+     */
+    @Volatile
+    private var lastKnownProfile: com.wirewaypro.app.domain.model.UserProfile? = null
+
     suspend fun current(): Tier {
-        val profile = auth.currentUserId()
-            ?.let { profileRepository.getProfile(it).getOrNull() }
+        val userId = auth.currentUserId()
+        val profile = userId?.let { profileRepository.getProfile(it).getOrNull() }
+            ?.also { lastKnownProfile = it }
+            ?: lastKnownProfile?.takeIf { it.id == userId }
         return Tier.resolve(profile, playEntitlements.ownedProducts.value)
     }
 }

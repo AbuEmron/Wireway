@@ -296,7 +296,10 @@ fun DashboardScreen(
                 DeratingCalcScreen(onBack = { navController.popBackStack() })
             }
             composable(DashDest.MATERIAL_DB) {
-                MaterialDatabaseScreen(onBack = { navController.popBackStack() })
+                MaterialDatabaseScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
             }
             composable(DashDest.LABOR_CALC) {
                 LaborCalcScreen(onBack = { navController.popBackStack() })
