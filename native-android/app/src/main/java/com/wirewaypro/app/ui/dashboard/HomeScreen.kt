@@ -143,7 +143,9 @@ fun HomeScreen(
         }
 
         val snap = state.snapshot
-        val isElite = state.profile?.isElite == true
+        // Tier engine: server plan OR Play purchase, so a fresh Play upgrade
+        // unlocks Takeoff here before backend entitlement sync lands.
+        val isElite = state.tier.atLeast(com.wirewaypro.app.domain.model.Tier.ELITE)
 
         // ── Quick actions — the core money loop, one tap away ─────────────────
         SectionEyebrow("Quick actions")

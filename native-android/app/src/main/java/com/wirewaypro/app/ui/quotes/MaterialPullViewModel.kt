@@ -4,11 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.ai.MaterialPullService
+import com.wirewaypro.app.data.entitlements.TierService
 import com.wirewaypro.app.data.location.LocationService
 import com.wirewaypro.app.domain.model.PullListResult
 import com.wirewaypro.app.domain.model.QuoteDetail
-import com.wirewaypro.app.domain.repository.AuthRepository
-import com.wirewaypro.app.domain.repository.ProfileRepository
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.repository.QuoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,9 +36,8 @@ data class MaterialPullUiState(
  */
 @HiltViewModel
 class MaterialPullViewModel @Inject constructor(
-    private val auth: AuthRepository,
     private val quoteRepository: QuoteRepository,
-    private val profileRepository: ProfileRepository,
+    private val tierService: TierService,
     private val pullService: MaterialPullService,
     private val locationService: LocationService,
     savedStateHandle: SavedStateHandle,
@@ -60,8 +59,9 @@ class MaterialPullViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            val userId = auth.currentUserId()
-            val isPro = userId?.let { profileRepository.getProfile(it).getOrNull()?.isPro } ?: false
+            // Tier engine (server plan OR Play purchase — highest wins), so a
+            // fresh Play upgrade unlocks the pull list before backend sync.
+            val isPro = tierService.current().atLeast(Tier.PRO)
             quoteRepository.getQuote(id)
                 .onSuccess { q -> applyLoaded(q, isPro) }
                 .onFailure { _state.update { it.copy(isLoadingQuote = false, isPro = isPro, error = "Couldn't load this quote.") } }

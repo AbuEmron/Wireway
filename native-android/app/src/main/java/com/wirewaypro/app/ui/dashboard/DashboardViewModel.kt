@@ -2,9 +2,11 @@ package com.wirewaypro.app.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wirewaypro.app.data.entitlements.PlayEntitlements
 import com.wirewaypro.app.data.offline.SyncManager
 import com.wirewaypro.app.data.widget.WidgetUpdater
 import com.wirewaypro.app.domain.model.MoneySnapshot
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.model.UserProfile
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.MoneyRepository
@@ -26,6 +28,9 @@ data class HomeUiState(
     val jobCount: Long? = null,
     val snapshot: MoneySnapshot? = null,
     val error: String? = null,
+    // Effective tier (server plan OR Play purchase — highest wins). Defaults to
+    // ELITE so paid features never flash locked while the tier resolves.
+    val tier: Tier = Tier.ELITE,
 )
 
 @HiltViewModel
@@ -34,6 +39,7 @@ class DashboardViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val moneyRepository: MoneyRepository,
     private val widgetUpdater: WidgetUpdater,
+    private val playEntitlements: PlayEntitlements,
     syncManager: SyncManager,
 ) : ViewModel() {
 
@@ -67,12 +73,16 @@ class DashboardViewModel @Inject constructor(
                 ?.let { "Couldn't load your data. Pull to retry." }
 
             _home.update {
+                val profile = profileResult.getOrNull() ?: it.profile
                 it.copy(
                     isLoading = false,
-                    profile = profileResult.getOrNull() ?: it.profile,
+                    profile = profile,
                     jobCount = jobCountResult.getOrNull() ?: it.jobCount,
                     snapshot = snapshotResult.getOrNull() ?: it.snapshot,
                     error = error,
+                    // Resolve from the profile just fetched (no second network hit)
+                    // + the device's owned Play subscriptions — highest wins.
+                    tier = Tier.resolve(profile, playEntitlements.ownedProducts.value),
                 )
             }
         }

@@ -54,16 +54,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.model.PriceBasis
 import com.wirewaypro.app.domain.model.PullItem
 import com.wirewaypro.app.domain.model.PullListResult
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.ui.components.BackTopBar
 import com.wirewaypro.app.ui.components.InfoRow
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.SectionHeader
+import com.wirewaypro.app.ui.components.UpgradePrompt
 import com.wirewaypro.app.ui.util.Format
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MaterialPullListScreen(
     onBack: () -> Unit,
+    onOpenSubscription: () -> Unit = {},
     viewModel: MaterialPullViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -109,20 +112,13 @@ fun MaterialPullListScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (!state.isPro) {
-                SectionCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.WorkspacePremium, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(10.dp))
-                        Text("A Pro feature", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "The Material Pull List builds an itemized shopping list with live local " +
-                            "pricing. It's part of Wireway Pro — upgrade from the Subscription screen to use it.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                UpgradePrompt(
+                    hook = "Walk in with the list priced",
+                    detail = "The Material Pull List turns this quote into an itemized shopping " +
+                        "list with live local supply-house pricing — part of Pro.",
+                    tier = Tier.PRO,
+                    onUpgrade = onOpenSubscription,
+                )
                 return@Column
             }
 

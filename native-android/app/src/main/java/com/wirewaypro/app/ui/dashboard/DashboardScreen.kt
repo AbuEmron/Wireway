@@ -383,7 +383,10 @@ fun DashboardScreen(
                 )
             }
             composable(DashDest.PULL_LIST, arguments = idArg) {
-                MaterialPullListScreen(onBack = { navController.popBackStack() })
+                MaterialPullListScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
             }
 
             // ── Create / edit screens ───────────────────────────────────────────
