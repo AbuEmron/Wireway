@@ -166,17 +166,37 @@ class QuoteBuilderViewModel @Inject constructor(
      * point — never the blind $85. [rateHint] tells the user where it came from.
      */
     private suspend fun seedNewQuote() {
-        takeoffHandoff.take()?.takeIf { it.isNotEmpty() }?.let { entries ->
-            _state.update { s ->
-                s.copy(catalogItems = entries.map { CatalogEntryUi(it.serviceId, numText(it.qty), it.variantIdx, it.clientBuys) })
-            }
-        }
+        // Rate first: template custom lines price their labor from it below.
         val resolved = DefaultRate.resolve(
             personalRate = settingsPrefs.rawDefaultHourlyRate.first(),
             regionalTypical = settingsPrefs.regionalDefaultRate.first(),
             national = DEFAULT_HOURLY_RATE,
         )
         _state.update { it.copy(hourlyRate = numText(resolved.rate), rateHint = resolved.hint) }
+
+        takeoffHandoff.take()?.takeIf { it.isNotEmpty() }?.let { entries ->
+            _state.update { s ->
+                s.copy(catalogItems = entries.map { CatalogEntryUi(it.serviceId, numText(it.qty), it.variantIdx, it.clientBuys) })
+            }
+        }
+        // Commercial/industrial template lines: labor priced at the contractor's
+        // OWN rate (typical hours × rate, editable); material left at 0 for the
+        // supplier's quote — never a fabricated number.
+        takeoffHandoff.takeCustom()?.takeIf { it.isNotEmpty() }?.let { customs ->
+            _state.update { s ->
+                s.copy(
+                    items = s.items + customs.map { c ->
+                        CustomItemUi(
+                            label = c.label,
+                            qty = numText(c.qty),
+                            materialCost = "0",
+                            laborCost = numText(Math.round(c.laborHours * resolved.rate).toDouble()),
+                            laborHours = numText(c.laborHours),
+                        )
+                    },
+                )
+            }
+        }
     }
 
     /** Current form → serializable draft snapshot. */

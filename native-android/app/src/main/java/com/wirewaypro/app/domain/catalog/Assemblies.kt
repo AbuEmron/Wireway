@@ -355,8 +355,136 @@ object Assemblies {
         ),
     )
 
-    // ── Commercial & industrial (ELITE) — added in the Elite templates commit ──
-    private val commercialIndustrial: List<Assembly> = emptyList()
+    // ── Commercial & industrial (ELITE) ─────────────────────────────────────────
+    // Every line sources an EliteCatalog entry where one exists. Hours are
+    // typical journeyman defaults the contractor edits; material prices are
+    // NEVER hardcoded — this gear is market/quote-priced, so lines seed at $0
+    // material for the supplier's quote (the description says so).
+    private const val QUOTE_NOTE = " Material at supplier quote — hours are typical defaults, edit to the job."
+
+    private val commercialIndustrial: List<Assembly> = listOf(
+        c(
+            "com_lighting_circuit_277", "277V Lighting Circuit (per ~100 ft run)",
+            "One 277 V lighting branch: EMT, THHN, boxes and make-up.$QUOTE_NOTE",
+            "Commercial",
+            ci("EMT 1/2\" conduit — 10-ft length", 10.0, 0.4, "c_emt"),
+            ci("EMT set-screw fittings", 14.0, 0.05, "c_emt_fittings"),
+            ci("THHN #12 Cu — per 100 ft", 3.0, 0.8, "c_feeder_cu"),
+            ci("4\" square boxes, rings & covers", 4.0, 0.25),
+            ci("Circuit make-up, terminations & test", 1.0, 1.0),
+        ),
+        c(
+            "com_troffer_package", "LED Troffer Package (per 10 fixtures)",
+            "Grid-ceiling troffers with MC whips and 0–10 V dimming tie-in.$QUOTE_NOTE",
+            "Commercial",
+            ci("2×4 LED troffer, 277 V", 10.0, 0.5, "c_troffer"),
+            ci("MC cable whip 12/2", 10.0, 0.25, "c_mc"),
+            ci("0–10 V dimming wire — per 100 ft", 2.0, 0.5, "c_dim_wire"),
+            ci("Controls tie-in & test", 1.0, 1.5),
+        ),
+        c(
+            "com_panelboard_480", "480Y/277V Panelboard Install",
+            "Set, feed and terminate a 42-circuit 480Y/277 panelboard.$QUOTE_NOTE",
+            "Commercial",
+            ci("Panelboard 480Y/277V 42-circuit", 1.0, 8.0, "c_panel_480"),
+            ci("XHHW-2 Al feeder conductor — per 100 ft", 4.0, 1.5, "c_feeder_al"),
+            ci("EMT 2\" conduit — 10-ft length", 6.0, 0.75, "c_emt"),
+            ci("Strut & supports — 10-ft length", 4.0, 0.5, "c_strut"),
+            ci("Terminations, torque & circuit directory", 1.0, 3.0),
+        ),
+        c(
+            "com_xfmr_75", "Dry-Type Transformer (75 kVA) + 208V Panel",
+            "480→208Y/120 step-down with its secondary panelboard, fed and grounded.$QUOTE_NOTE",
+            "Commercial",
+            ci("Dry-type transformer 480Δ→208Y/120, 75 kVA", 1.0, 6.0, "c_xfmr_dry"),
+            ci("Panelboard 208Y/120V 42-circuit", 1.0, 6.0, "c_panel_208"),
+            ci("EMT 2\" conduit — 10-ft length", 8.0, 0.75, "c_emt"),
+            ci("THHN Cu feeder conductor — per 100 ft", 8.0, 1.2, "c_feeder_cu"),
+            ci("Grounding & bonding make-up", 1.0, 2.0),
+            ci("Terminations, torque & testing", 1.0, 3.0),
+        ),
+        c(
+            "com_lighting_contactor", "Lighting Contactor Panel",
+            "Contactor-switched lighting from a timeclock, photocell or the BAS.$QUOTE_NOTE",
+            "Commercial",
+            ci("Lighting contactor — 8-pole", 1.0, 2.5, "c_ltg_contactor"),
+            ci("Class 2 control wiring — per 100 ft", 2.0, 0.6, "i_class2"),
+            ci("Timeclock / photocell tie-in & test", 1.0, 1.5),
+        ),
+        c(
+            "com_occ_sensors", "Occupancy Sensor Package (per 8 rooms)",
+            "Line-voltage sensors swapped in at the switch point, per energy code.$QUOTE_NOTE",
+            "Commercial",
+            ci("Occupancy sensor, line-voltage 120/277 V", 8.0, 0.75, "c_occ_sensor"),
+            ci("Neutral pull / box make-up — per room", 8.0, 0.4),
+        ),
+        c(
+            "com_fire_alarm_10", "Fire Alarm Rough-In (per 10 devices)",
+            "Addressable smokes and horn/strobes wired back to the FACP.$QUOTE_NOTE",
+            "Commercial",
+            ci("Addressable smoke detector", 6.0, 0.75, "c_fa_smoke"),
+            ci("Horn/strobe notification appliance", 4.0, 0.75, "c_horn_strobe"),
+            ci("FPLR cable — 1000-ft spool (pulled)", 1.0, 6.0, "c_fplr"),
+            ci("Panel tie-in, programming & test — per device", 10.0, 0.25),
+        ),
+        c(
+            "ind_motor_vfd", "Motor Circuit + VFD (to 10 HP, 480 V)",
+            "Drive, disconnect, branch conductors and startup for one 3Ø motor.$QUOTE_NOTE",
+            "Industrial",
+            ci("VFD 480 V (to 10 HP)", 1.0, 4.0, "i_vfd"),
+            ci("Heavy-duty safety switch — 30 A", 1.0, 1.5, "i_safety_switch"),
+            ci("XHHW-2 Cu motor branch — per 100 ft", 1.0, 1.2, "i_motor_feeder"),
+            ci("EMT 3/4\" conduit — 10-ft length", 8.0, 0.45, "c_emt"),
+            ci("Pilot devices / control station", 1.0, 1.5, "i_pilot"),
+            ci("Parameter set-up & rotation check", 1.0, 2.0),
+        ),
+        c(
+            "ind_motor_starter", "Motor Circuit + NEMA Starter (to 25 HP)",
+            "Full-voltage starter, disconnect, branch conductors and bump test.$QUOTE_NOTE",
+            "Industrial",
+            ci("Magnetic starter — NEMA size 1–2", 1.0, 3.0, "i_starter"),
+            ci("Overload relay / heater elements (set)", 1.0, 0.5, "i_overload"),
+            ci("Heavy-duty safety switch", 1.0, 1.5, "i_safety_switch"),
+            ci("XHHW-2 Cu motor branch — per 100 ft", 1.0, 1.2, "i_motor_feeder"),
+            ci("EMT 3/4\" conduit — 10-ft length", 8.0, 0.45, "c_emt"),
+            ci("Control wiring & bump test", 1.0, 1.5),
+        ),
+        c(
+            "ind_feeder_run", "Feeder Run (per 100 ft, EMT + Cu)",
+            "Conduit, conductors, supports and testing for one feeder stretch — scale qty by length.$QUOTE_NOTE",
+            "Industrial",
+            ci("EMT 2\" conduit — 10-ft length", 10.0, 0.75, "c_emt"),
+            ci("THHN Cu feeder — per 100 ft per conductor", 4.0, 1.2, "c_feeder_cu"),
+            ci("Strut / trapeze supports", 8.0, 0.5, "c_strut"),
+            ci("Terminations & insulation-resistance test", 1.0, 2.0),
+        ),
+        c(
+            "ind_busway_run", "Busway Run (per 50 ft)",
+            "Overhead bus with two plug-in drops, hung and supported.$QUOTE_NOTE",
+            "Industrial",
+            ci("Busway — 10-ft section", 5.0, 1.5, "i_busway"),
+            ci("Busway plug-in unit", 2.0, 1.0, "i_busplug"),
+            ci("Hangers & supports", 5.0, 0.5, "c_strut"),
+        ),
+        c(
+            "ind_cable_tray", "Cable Tray Run (per 60 ft)",
+            "Ladder tray with fittings, tray cable and bonding.$QUOTE_NOTE",
+            "Industrial",
+            ci("Ladder cable tray — 12-ft section", 5.0, 1.0, "i_tray_ladder"),
+            ci("Tray fittings / splice sets", 4.0, 0.5, "i_tray_fittings"),
+            ci("TC-ER tray cable — per 100 ft", 2.0, 1.0, "i_tc_cable"),
+            ci("Supports & bonding", 1.0, 2.0),
+        ),
+        c(
+            "ind_control_panel", "Control Panel Set + Field Wiring",
+            "Set a UL 508A panel, land control power and field I/O, and check it out point-to-point.$QUOTE_NOTE",
+            "Industrial",
+            ci("UL 508A control panel (set in place)", 1.0, 4.0, "i_plc_panel"),
+            ci("Control transformer", 1.0, 1.0, "i_ctrl_xfmr"),
+            ci("Class 2 field wiring — per 100 ft", 4.0, 0.6, "i_class2"),
+            ci("Terminations & point-to-point checkout", 1.0, 4.0),
+        ),
+    )
 
     val all: List<Assembly> = residential + commercialIndustrial
 

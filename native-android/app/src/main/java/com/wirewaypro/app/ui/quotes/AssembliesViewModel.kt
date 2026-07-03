@@ -22,5 +22,6 @@ class AssembliesViewModel @Inject constructor(
     /** Hand the template's line items to the builder about to open. */
     fun seed(assembly: Assembly) {
         handoff.put(assembly.toCatalogEntries())
+        if (assembly.customItems.isNotEmpty()) handoff.putCustom(assembly.customItems)
     }
 }
