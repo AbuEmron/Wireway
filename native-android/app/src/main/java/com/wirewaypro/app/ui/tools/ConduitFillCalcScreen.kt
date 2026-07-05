@@ -2,27 +2,38 @@ package com.wirewaypro.app.ui.tools
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import com.wirewaypro.app.domain.calc.Awg
 import com.wirewaypro.app.domain.calc.ConduitFill
+import com.wirewaypro.app.ui.components.AnimatedNumberText
 import com.wirewaypro.app.ui.components.DetailScaffold
 import com.wirewaypro.app.ui.components.FormField
+import com.wirewaypro.app.ui.components.GlassCard
+import com.wirewaypro.app.ui.components.ProgressRing
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.SectionEyebrow
 import com.wirewaypro.app.ui.components.SegmentedTabs
 import com.wirewaypro.app.ui.theme.Spacing
+import com.wirewaypro.app.ui.theme.extended
 
 /** Conduit fill — NEC Chapter 9 Tables 1 (fill %), 4 (conduit areas), 5 (THHN areas). */
 @Composable
@@ -64,10 +75,10 @@ fun ConduitFillCalcScreen(onBack: () -> Unit) {
                     ResultStatus.FAIL,
                 )
                 eval != null -> {
-                    ResultBanner(
-                        value = "${minConduit.label} ${type.label}",
-                        caption = "Smallest that fits — ${fmt1(eval.fillPercent)}% fill (max ${pct(eval.maxFillFraction)})",
-                        status = ResultStatus.PASS,
+                    FillGaugeCard(
+                        conduitLabel = "${minConduit.label} ${type.label}",
+                        fillPercent = eval.fillPercent,
+                        maxFillPercent = eval.maxFillFraction * 100.0,
                     )
                     SectionCard {
                         BreakdownRow("Conductors", "${eval.conductorCount} × ${gauge.label}")
@@ -91,6 +102,69 @@ fun ConduitFillCalcScreen(onBack: () -> Unit) {
                     "The fill percentage caps how much of the pipe's cross-section the wires may occupy — exceed it " +
                     "and you risk overheating and a rough, jacket-scraping pull.",
             )
+        }
+    }
+}
+
+/**
+ * The mockup's fill gauge: an animated ring showing how much of the NEC fill
+ * allowance the pull uses, beside the smallest conduit that passes. The ring
+ * springs between results as the inputs change — the "is it optimal?" read is
+ * instant, and the exact percentages stay printed for the inspector.
+ */
+@Composable
+private fun FillGaugeCard(
+    conduitLabel: String,
+    fillPercent: Double,
+    maxFillPercent: Double,
+) {
+    val ext = MaterialTheme.extended
+    val capacityUsed = if (maxFillPercent > 0) (fillPercent / maxFillPercent).toFloat() else 0f
+    val ok = fillPercent <= maxFillPercent + 1e-9
+    val tint = if (ok) ext.success else MaterialTheme.colorScheme.error
+    GlassCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ProgressRing(
+                progress = capacityUsed,
+                size = 108.dp,
+                strokeWidth = 10.dp,
+                tint = tint,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    AnimatedNumberText(
+                        value = fillPercent,
+                        style = MaterialTheme.typography.headlineSmall,
+                        durationMillis = 500,
+                        format = { v -> "${fmt1(v)}%" },
+                    )
+                    Text(
+                        "fill",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Spacer(Modifier.width(Spacing.lg))
+            Column {
+                Text(
+                    conduitLabel,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Smallest that fits",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "${fmt1(capacityUsed.toDouble() * 100)}% of the ${maxFillPercent.toInt()}% allowance used",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = tint,
+                )
+            }
         }
     }
 }

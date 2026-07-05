@@ -154,8 +154,8 @@ private fun MoneyContent(
 
         if (snap != null) {
             SectionCard(title = "Real profit") {
-                Text(
-                    Format.money(snap.realProfit),
+                com.wirewaypro.app.ui.components.AnimatedMoneyText(
+                    value = snap.realProfit,
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = if (snap.realProfit >= 0) BrandGreen else MaterialTheme.colorScheme.error,

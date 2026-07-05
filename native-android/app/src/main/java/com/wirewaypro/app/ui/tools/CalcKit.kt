@@ -1,5 +1,6 @@
 package com.wirewaypro.app.ui.tools
 
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -123,12 +124,29 @@ fun ResultBanner(
                 Icon(icon, contentDescription = null, tint = tint)
             }
             Column(Modifier.fillMaxWidth()) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                // The answer slides up as inputs change — alive, never jarring.
+                androidx.compose.animation.AnimatedContent(
+                    targetState = value,
+                    transitionSpec = {
+                        (
+                            androidx.compose.animation.fadeIn(
+                                androidx.compose.animation.core.tween(180),
+                            ) + androidx.compose.animation.slideInVertically { it / 3 }
+                            ).togetherWith(
+                            androidx.compose.animation.fadeOut(
+                                androidx.compose.animation.core.tween(120),
+                            ) + androidx.compose.animation.slideOutVertically { -it / 3 },
+                        )
+                    },
+                    label = "result-value",
+                ) { shown ->
+                    Text(
+                        text = shown,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
                 Text(
                     text = caption,
                     style = MaterialTheme.typography.bodyMedium,

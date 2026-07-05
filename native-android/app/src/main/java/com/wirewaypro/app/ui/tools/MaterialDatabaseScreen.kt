@@ -78,10 +78,10 @@ fun MaterialDatabaseScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            FormField(
+            com.wirewaypro.app.ui.components.SearchField(
                 value = query,
                 onValueChange = { query = it },
-                label = "Search materials, services, NEC article",
+                placeholder = "Search materials, services, NEC article",
                 modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.md),
             )
             if (rows.isEmpty()) {
