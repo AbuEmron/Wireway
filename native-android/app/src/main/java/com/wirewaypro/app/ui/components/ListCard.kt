@@ -34,10 +34,15 @@ fun ListCard(
     trailingChip: (@Composable () -> Unit)? = null,
     footerBadge: (@Composable () -> Unit)? = null,
 ) {
+    val haptics = rememberWirewayHaptics()
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .pressScale(pressedScale = 0.98f)
+            .clickable {
+                haptics.tap()
+                onClick()
+            },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,

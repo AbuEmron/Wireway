@@ -15,6 +15,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -29,6 +30,7 @@ import com.wirewaypro.app.ui.components.ExpiryChip
 import com.wirewaypro.app.ui.components.ListCard
 import com.wirewaypro.app.ui.components.ListCardSkeleton
 import com.wirewaypro.app.ui.components.RefreshableList
+import com.wirewaypro.app.ui.components.SearchField
 import com.wirewaypro.app.ui.components.SegmentedTabs
 import com.wirewaypro.app.ui.components.SyncBanner
 import com.wirewaypro.app.ui.components.SyncStateChip
@@ -71,10 +73,19 @@ fun EstimatesScreen(
     com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::refresh)
 
     var filterIndex by rememberSaveable { mutableIntStateOf(0) }
+    var query by rememberSaveable { mutableStateOf("") }
     val filters = remember { EstimateFilter.entries }
     val activeFilter = filters[filterIndex.coerceIn(0, filters.lastIndex)]
-    val visibleItems = remember(state.items, activeFilter) {
-        state.items.filter { activeFilter.matches(it.status) }
+    val visibleItems = remember(state.items, activeFilter, query) {
+        val q = query.trim()
+        state.items.filter { quote ->
+            activeFilter.matches(quote.status) && (
+                q.isBlank() ||
+                    quote.jobName?.contains(q, ignoreCase = true) == true ||
+                    quote.clientName?.contains(q, ignoreCase = true) == true ||
+                    quote.quoteNumber?.contains(q, ignoreCase = true) == true
+                )
+        }
     }
     // The list is "empty" for state purposes only when there are genuinely no
     // estimates — never merely because the current filter hides them all. That keeps
@@ -99,13 +110,22 @@ fun EstimatesScreen(
             // Only show the filter once there's something to filter — no point
             // offering tabs over an empty screen.
             if (!noneAtAll) {
+                SearchField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = "Search estimates…",
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.screen,
+                        vertical = Spacing.sm,
+                    ),
+                )
                 SegmentedTabs(
                     options = filters.map { it.label },
                     selectedIndex = filterIndex,
                     onSelect = { filterIndex = it },
                     modifier = Modifier.padding(
                         horizontal = Spacing.screen,
-                        vertical = Spacing.md,
+                        vertical = Spacing.sm,
                     ),
                 )
             }
@@ -136,7 +156,11 @@ fun EstimatesScreen(
                     }
                 } else {
                     items(visibleItems, key = { it.id }) { quote ->
-                        QuoteRow(quote = quote, onClick = { onOpenEstimate(quote.id) })
+                        QuoteRow(
+                            quote = quote,
+                            onClick = { onOpenEstimate(quote.id) },
+                            modifier = Modifier.animateItem(),
+                        )
                     }
                 }
             }
@@ -162,7 +186,7 @@ private fun FilterEmptyNote(filter: EstimateFilter) {
 }
 
 @Composable
-internal fun QuoteRow(quote: QuoteSummary, onClick: () -> Unit) {
+internal fun QuoteRow(quote: QuoteSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val number = quote.quoteNumber?.let { "#$it" }
     val title = quote.jobName?.takeIf { it.isNotBlank() }
         ?: quote.clientName?.takeIf { it.isNotBlank() }
@@ -178,6 +202,7 @@ internal fun QuoteRow(quote: QuoteSummary, onClick: () -> Unit) {
     ListCard(
         title = title,
         onClick = onClick,
+        modifier = modifier,
         trailing = Format.money(quote.total),
         subtitle = subtitle,
         footerStart = Format.date(quote.createdAt),

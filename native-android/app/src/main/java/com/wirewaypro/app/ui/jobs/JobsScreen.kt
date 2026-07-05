@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -37,6 +38,7 @@ import com.wirewaypro.app.ui.components.EmptyState
 import com.wirewaypro.app.ui.components.ListCard
 import com.wirewaypro.app.ui.components.ListCardSkeleton
 import com.wirewaypro.app.ui.components.RefreshableList
+import com.wirewaypro.app.ui.components.SearchField
 import com.wirewaypro.app.ui.components.SegmentedTabs
 import com.wirewaypro.app.ui.components.SyncBanner
 import com.wirewaypro.app.ui.components.SyncStateChip
@@ -90,10 +92,19 @@ fun JobsScreen(
     com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::refresh)
 
     var filterIndex by rememberSaveable { mutableIntStateOf(0) }
+    var query by rememberSaveable { mutableStateOf("") }
     val filters = remember { JobFilter.entries }
     val activeFilter = filters[filterIndex.coerceIn(0, filters.lastIndex)]
-    val visibleItems = remember(state.items, activeFilter) {
-        state.items.filter { activeFilter.matches(it.status) }
+    val visibleItems = remember(state.items, activeFilter, query) {
+        val q = query.trim()
+        state.items.filter { job ->
+            activeFilter.matches(job.status) && (
+                q.isBlank() ||
+                    job.title.contains(q, ignoreCase = true) ||
+                    job.clientName?.contains(q, ignoreCase = true) == true ||
+                    job.jobAddress?.contains(q, ignoreCase = true) == true
+                )
+        }
     }
     // Empty only when there are genuinely no jobs — a filter hiding everything
     // gets a calm inline note instead of the full first-run empty state.
@@ -130,13 +141,22 @@ fun JobsScreen(
                 onRetry = viewModel::retrySync,
             )
             if (!noneAtAll) {
+                SearchField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = "Search jobs…",
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.screen,
+                        vertical = Spacing.sm,
+                    ),
+                )
                 SegmentedTabs(
                     options = filters.map { it.label },
                     selectedIndex = filterIndex,
                     onSelect = { filterIndex = it },
                     modifier = Modifier.padding(
                         horizontal = Spacing.screen,
-                        vertical = Spacing.md,
+                        vertical = Spacing.sm,
                     ),
                 )
             }
@@ -177,7 +197,11 @@ fun JobsScreen(
                     }
                 } else {
                     items(visibleItems, key = { it.id }) { job ->
-                        JobRow(job = job, onClick = { onOpenJob(job.id) })
+                        JobRow(
+                            job = job,
+                            onClick = { onOpenJob(job.id) },
+                            modifier = Modifier.animateItem(),
+                        )
                     }
                 }
             }
@@ -186,7 +210,7 @@ fun JobsScreen(
 }
 
 @Composable
-private fun JobRow(job: Job, onClick: () -> Unit) {
+private fun JobRow(job: Job, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val date = Format.date(job.scheduledDate)
     val time = Format.time(job.scheduledTime)
     val whenText = if (time != null) "$date · $time" else date
@@ -194,6 +218,7 @@ private fun JobRow(job: Job, onClick: () -> Unit) {
     ListCard(
         title = job.title,
         onClick = onClick,
+        modifier = modifier,
         trailing = job.total?.let { Format.money(it) },
         subtitle = job.clientName ?: job.jobAddress,
         footerStart = whenText,
