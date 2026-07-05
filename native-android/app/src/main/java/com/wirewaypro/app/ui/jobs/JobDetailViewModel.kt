@@ -4,14 +4,17 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.entitlements.TierService
+import com.wirewaypro.app.domain.model.CrewMember
 import com.wirewaypro.app.domain.model.Job
 import com.wirewaypro.app.domain.model.JobDraw
 import com.wirewaypro.app.domain.model.JobDrawInput
 import com.wirewaypro.app.domain.model.JobProfitability
 import com.wirewaypro.app.domain.model.MoneyMath
+import com.wirewaypro.app.domain.model.TimeEntry
 import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.data.prefs.SettingsPrefs
+import com.wirewaypro.app.domain.repository.CrewRepository
 import com.wirewaypro.app.domain.repository.ExpenseRepository
 import com.wirewaypro.app.domain.repository.JobRepository
 import com.wirewaypro.app.domain.repository.TimeEntryRepository
@@ -38,6 +41,17 @@ data class DrawDraft(
     }
 }
 
+/**
+ * Editor for logging a crew member's hours against this job. [crewMemberId] null
+ * until a crew member is chosen; [hours] as text. Labor cost = hours × the chosen
+ * crew member's cost rate, computed deterministically at save.
+ */
+data class CrewLogDraft(
+    val crewMemberId: String? = null,
+    val hours: String = "",
+    val notes: String = "",
+)
+
 data class JobDetailUiState(
     val isLoading: Boolean = true,
     val job: Job? = null,
@@ -52,7 +66,17 @@ data class JobDetailUiState(
     val tier: Tier = Tier.ELITE,
     /** The job's contract total ("you bid"), set for Elite's bid-vs-actual rows. */
     val estimateTotal: Double? = null,
-)
+    // ── Elite crew + time (only populated for Elite) ─────────────────────────
+    /** Active crew for the "log hours" picker. */
+    val crew: List<CrewMember> = emptyList(),
+    /** All time entries tagged to this job (running + completed), newest first. */
+    val timeEntries: List<TimeEntry> = emptyList(),
+    /** The open "log crew hours" editor, or null. */
+    val crewLog: CrewLogDraft? = null,
+) {
+    /** Entries still on the clock for this job (multiple crew can be clocked in). */
+    val runningEntries: List<TimeEntry> get() = timeEntries.filter { it.isRunning }
+}
 
 @HiltViewModel
 class JobDetailViewModel @Inject constructor(
@@ -60,6 +84,7 @@ class JobDetailViewModel @Inject constructor(
     private val jobRepository: JobRepository,
     private val expenseRepository: ExpenseRepository,
     private val timeEntryRepository: TimeEntryRepository,
+    private val crewRepository: CrewRepository,
     private val settingsPrefs: SettingsPrefs,
     private val tierService: TierService,
     savedStateHandle: SavedStateHandle,
@@ -99,6 +124,13 @@ class JobDetailViewModel @Inject constructor(
             _state.update {
                 it.copy(tier = tier, estimateTotal = if (tier.atLeast(Tier.ELITE)) job.total else null)
             }
+            // Elite: load the crew roster for the "log hours" picker.
+            if (tier.atLeast(Tier.ELITE)) {
+                val userId = auth.currentUserId()
+                val crew = userId?.let { crewRepository.getCrew(it).getOrDefault(emptyList()) }
+                    ?.filter { it.active }.orEmpty()
+                _state.update { it.copy(crew = crew) }
+            }
         }
     }
 
@@ -109,15 +141,83 @@ class JobDetailViewModel @Inject constructor(
     private suspend fun refreshProfitability(draws: List<JobDraw>) {
         val userId = auth.currentUserId() ?: return
         val expenses = expenseRepository.getExpensesForJob(userId, jobId).getOrDefault(emptyList())
-        val entries = timeEntryRepository.getForJob(userId, jobId).getOrDefault(emptyList())
-            .filter { !it.isRunning }
+        val allEntries = timeEntryRepository.getForJob(userId, jobId).getOrDefault(emptyList())
+        // Only COMPLETED entries contribute real labor cost; running timers don't
+        // count until they're stopped (hours are still accruing).
+        val completed = allEntries.filter { !it.isRunning }
         val profitability = JobProfitability(
             collected = MoneyMath.round2(draws.filter { it.status == "paid" }.sumOf { it.net }),
             materials = MoneyMath.round2(expenses.sumOf { it.amount }),
-            laborHours = MoneyMath.round2(entries.sumOf { it.hours ?: 0.0 }),
-            laborCost = MoneyMath.round2(entries.sumOf { it.laborCost }),
+            laborHours = MoneyMath.round2(completed.sumOf { it.hours ?: 0.0 }),
+            laborCost = MoneyMath.round2(completed.sumOf { it.laborCost }),
         )
-        _state.update { it.copy(profitability = profitability) }
+        _state.update { it.copy(profitability = profitability, timeEntries = allEntries) }
+    }
+
+    // ── Elite: log crew hours against this job ────────────────────────────────
+    fun openCrewLog() = _state.update {
+        it.copy(crewLog = CrewLogDraft(crewMemberId = it.crew.firstOrNull()?.id))
+    }
+
+    fun updateCrewLog(transform: (CrewLogDraft) -> CrewLogDraft) = _state.update {
+        it.copy(crewLog = it.crewLog?.let(transform))
+    }
+
+    fun closeCrewLog() = _state.update { it.copy(crewLog = null) }
+
+    /** Saves a manual crew-hours entry: labor cost = hours × that crew member's cost rate. */
+    fun saveCrewLog() {
+        val userId = auth.currentUserId() ?: return
+        val draft = _state.value.crewLog ?: return
+        val member = _state.value.crew.firstOrNull { it.id == draft.crewMemberId } ?: return
+        val hours = draft.hours.trim().toDoubleOrNull() ?: return
+        if (hours <= 0.0) return
+        viewModelScope.launch {
+            timeEntryRepository.addManual(
+                userId = userId,
+                jobId = jobId,
+                hours = hours,
+                rate = member.hourlyCostRate, // deterministic cost rate snapshot
+                notes = draft.notes.trim().ifBlank { null },
+                crewMemberId = member.id,
+                workerName = member.name,
+            )
+            _state.update { it.copy(crewLog = null) }
+            reloadDraws()
+        }
+    }
+
+    /** Clocks a crew member in on this job (rate snapshotted from the roster). */
+    fun clockInCrew(crewMemberId: String) {
+        val userId = auth.currentUserId() ?: return
+        val member = _state.value.crew.firstOrNull { it.id == crewMemberId } ?: return
+        viewModelScope.launch {
+            timeEntryRepository.start(
+                userId = userId,
+                jobId = jobId,
+                rate = member.hourlyCostRate,
+                crewMemberId = member.id,
+                workerName = member.name,
+            )
+            reloadDraws()
+        }
+    }
+
+    /** Clocks a running crew entry out; hours computed from clock-in feed job costing. */
+    fun clockOutEntry(entry: TimeEntry) {
+        val userId = auth.currentUserId() ?: return
+        viewModelScope.launch {
+            timeEntryRepository.stop(userId, entry)
+            reloadDraws()
+        }
+    }
+
+    fun deleteTimeEntry(entryId: String) {
+        val userId = auth.currentUserId() ?: return
+        viewModelScope.launch {
+            timeEntryRepository.delete(userId, entryId)
+            reloadDraws()
+        }
     }
 
     private suspend fun reloadDraws() {

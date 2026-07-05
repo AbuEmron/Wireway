@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,8 +35,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wirewaypro.app.domain.model.CrewMember
 import com.wirewaypro.app.domain.model.Job
 import com.wirewaypro.app.domain.model.JobDraw
+import com.wirewaypro.app.domain.model.TimeEntry
 import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.ui.components.AnimatedBarRow
 import com.wirewaypro.app.ui.components.AnimatedMoneyText
@@ -174,6 +177,19 @@ fun JobDetailScreen(
                         )
                     }
                 }
+            }
+
+            // Elite: log crew hours against this job — deterministic labor cost
+            // (hours × the crew member's cost rate) that feeds the card below.
+            if (state.tier.atLeast(Tier.ELITE)) {
+                CrewLaborSection(
+                    crew = state.crew,
+                    entries = state.timeEntries,
+                    onLogHours = viewModel::openCrewLog,
+                    onClockIn = viewModel::clockInCrew,
+                    onClockOut = viewModel::clockOutEntry,
+                    onDeleteEntry = viewModel::deleteTimeEntry,
+                )
             }
 
             state.profitability?.let { p ->
@@ -323,6 +339,180 @@ fun JobDetailScreen(
             onDismiss = viewModel::closeDrawEditor,
         )
     }
+
+    state.crewLog?.let { draft ->
+        CrewLogDialog(
+            draft = draft,
+            crew = state.crew,
+            onChange = viewModel::updateCrewLog,
+            onSave = viewModel::saveCrewLog,
+            onDismiss = viewModel::closeCrewLog,
+        )
+    }
+}
+
+/**
+ * Elite: log crew hours against this job. Running timers can be stopped; hours can
+ * be entered manually. Each entry's labor cost = hours × the crew member's cost
+ * rate, flowing straight into the profit + job-costing cards below.
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun CrewLaborSection(
+    crew: List<CrewMember>,
+    entries: List<TimeEntry>,
+    onLogHours: () -> Unit,
+    onClockIn: (String) -> Unit,
+    onClockOut: (TimeEntry) -> Unit,
+    onDeleteEntry: (String) -> Unit,
+) {
+    SectionCard(title = "Crew & labor") {
+        if (crew.isEmpty()) {
+            Text(
+                "Add crew first (Time tracking → Manage crew), then log their hours here to " +
+                    "turn labor into real job cost.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@SectionCard
+        }
+
+        val running = entries.filter { it.isRunning }
+        val completed = entries.filter { !it.isRunning }
+
+        // On the clock now (multiple crew can be clocked in at once).
+        running.forEach { entry ->
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(entry.workerName ?: "Crew", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    Text(
+                        "On the clock · ${Format.money(entry.rate)}/hr",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                OutlinedButton(onClick = { onClockOut(entry) }) { Text("Stop") }
+            }
+        }
+
+        // Clock a crew member in — one tap per person.
+        Text(
+            "Clock in",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = if (running.isEmpty()) 0.dp else 8.dp, bottom = 4.dp),
+        )
+        androidx.compose.foundation.layout.FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            val runningIds = running.mapNotNull { it.crewMemberId }.toSet()
+            crew.filter { it.id !in runningIds }.forEach { member ->
+                androidx.compose.material3.AssistChip(
+                    onClick = { onClockIn(member.id) },
+                    label = { Text(member.name) },
+                    leadingIcon = {
+                        Icon(Icons.Outlined.Schedule, contentDescription = null, modifier = Modifier.padding(0.dp))
+                    },
+                )
+            }
+        }
+
+        Spacer(Modifier.padding(top = 10.dp))
+        OutlinedButton(onClick = onLogHours, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+            Text("Log hours manually")
+        }
+
+        // Logged so far on this job.
+        if (completed.isNotEmpty()) {
+            Spacer(Modifier.padding(top = 8.dp))
+            completed.forEach { entry ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(entry.workerName ?: "Crew", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        val sub = buildString {
+                            append(trimNum(entry.hours ?: 0.0)).append(" hrs")
+                            append(" · ").append(Format.money(entry.rate)).append("/hr")
+                            entry.notes?.takeIf { it.isNotBlank() }?.let { append(" · ").append(it) }
+                        }
+                        Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text(
+                        Format.money(entry.laborCost),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    IconButton(onClick = { onDeleteEntry(entry.id) }) {
+                        Icon(Icons.Outlined.Delete, contentDescription = "Delete entry", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CrewLogDialog(
+    draft: CrewLogDraft,
+    crew: List<CrewMember>,
+    onChange: ((CrewLogDraft) -> CrewLogDraft) -> Unit,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val selected = crew.firstOrNull { it.id == draft.crewMemberId }
+    val hoursValue = draft.hours.trim().toDoubleOrNull()
+    val cost = (hoursValue ?: 0.0) * (selected?.hourlyCostRate ?: 0.0)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Log crew hours") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Who worked?", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                crew.forEach { member ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onChange { it.copy(crewMemberId = member.id) } }
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        androidx.compose.material3.RadioButton(
+                            selected = member.id == draft.crewMemberId,
+                            onClick = { onChange { it.copy(crewMemberId = member.id) } },
+                        )
+                        Text(
+                            "${member.name} · ${Format.money(member.hourlyCostRate)}/hr",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+                FormField(draft.hours, { v -> onChange { it.copy(hours = v) } }, "Hours", keyboardType = KeyboardType.Decimal)
+                FormField(draft.notes, { v -> onChange { it.copy(notes = v) } }, "Notes (optional)")
+                if (hoursValue != null && hoursValue > 0 && selected != null) {
+                    Text(
+                        "Labor cost: ${Format.money(cost)}  (${trimNum(hoursValue)} hrs × ${Format.money(selected.hourlyCostRate)})",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onSave,
+                enabled = selected != null && hoursValue != null && hoursValue > 0,
+            ) { Text("Log hours") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
