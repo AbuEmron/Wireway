@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.Checkbox
@@ -86,8 +87,21 @@ fun TakeoffScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showCamera by remember { mutableStateOf(false) }
+    var showVoice by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.applied) { if (state.applied) onCreateEstimate() }
+
+    if (showVoice) {
+        com.wirewaypro.app.ui.voice.VoiceDictationSheet(
+            title = "Speak the scope",
+            prompt = "Talk through the job — fixtures, circuits, panels, rooms. Edit it before it fills the scope.",
+            onUse = { spoken ->
+                viewModel.setPrompt(com.wirewaypro.app.domain.voice.VoiceTranscript.append(state.prompt, spoken))
+                showVoice = false
+            },
+            onDismiss = { showVoice = false },
+        )
+    }
 
     val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) showCamera = true
@@ -132,6 +146,16 @@ fun TakeoffScreen(
                     keyboardOptions = KeyboardOptions.Default,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Spacer(Modifier.padding(top = 8.dp))
+                // Voice is additive — dictate the walk straight into the scope,
+                // never replacing what was typed. Deterministic capture, no AI.
+                androidx.compose.material3.OutlinedButton(
+                    onClick = { showVoice = true },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Outlined.Mic, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Speak the scope")
+                }
                 if (state.attachmentLabel != null) {
                     Spacer(Modifier.padding(top = 10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
