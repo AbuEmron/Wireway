@@ -40,11 +40,17 @@ import com.wirewaypro.app.domain.model.AgingReport
 import com.wirewaypro.app.domain.model.JobPnl
 import com.wirewaypro.app.domain.model.JobPnlReport
 import com.wirewaypro.app.domain.model.MoneySnapshot
+import com.wirewaypro.app.ui.components.AnimatedBarRow
+import com.wirewaypro.app.ui.components.AnimatedDonutChart
 import com.wirewaypro.app.ui.components.BackTopBar
+import com.wirewaypro.app.ui.components.DonutLegendRow
+import com.wirewaypro.app.ui.components.DonutSlice
 import com.wirewaypro.app.ui.components.GradientButton
-import com.wirewaypro.app.ui.components.InfoRow
 import com.wirewaypro.app.ui.components.SectionCard
+import com.wirewaypro.app.ui.components.ShimmerBox
+import com.wirewaypro.app.ui.theme.BrandAmber
 import com.wirewaypro.app.ui.theme.BrandGreen
+import com.wirewaypro.app.ui.theme.extended
 import com.wirewaypro.app.ui.util.Format
 import java.io.File
 import java.time.YearMonth
@@ -104,9 +110,7 @@ fun MoneyScreen(
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             when {
-                state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                state.isLoading -> MoneySkeleton()
                 state.error != null && state.snapshot == null -> Column(
                     Modifier.fillMaxSize().padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -163,31 +167,105 @@ private fun MoneyContent(
                 Spacer(Modifier.padding(top = 4.dp))
                 Text("Collected − spent, this month", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            // Money in — an animated bar graph of the funnel (quoted → won →
+            // collected), the exact figures printed on every row.
             SectionCard(title = "Money in") {
-                InfoRow("Collected", Format.money(snap.collected))
-                InfoRow("Quoted (bid)", Format.money(snap.bid))
-                InfoRow("Won", Format.money(snap.won))
+                val inMax = maxOf(snap.collected, snap.bid, snap.won)
+                AnimatedBarRow(
+                    label = "Collected",
+                    value = snap.collected,
+                    maxValue = inMax,
+                    valueText = Format.money(snap.collected),
+                    color = BrandGreen,
+                )
+                AnimatedBarRow(
+                    label = "Won",
+                    value = snap.won,
+                    maxValue = inMax,
+                    valueText = Format.money(snap.won),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                AnimatedBarRow(
+                    label = "Quoted (bid)",
+                    value = snap.bid,
+                    maxValue = inMax,
+                    valueText = Format.money(snap.bid),
+                    color = MaterialTheme.colorScheme.secondary,
+                )
             }
-            SectionCard(title = "Money out") {
-                InfoRow("Total spent", Format.money(snap.spent))
-                InfoRow("Materials", Format.money(snap.materials))
-                InfoRow("Mileage", Format.money(snap.mileage))
-                InfoRow("Subcontractors", Format.money(snap.subs))
-                InfoRow("Labor", Format.money(snap.labor))
+            // Cost breakdown — the mockup's donut, sliced by real spend
+            // categories; falls back to plain rows when nothing was spent.
+            SectionCard(title = "Where it went") {
+                val slices = listOf(
+                    DonutSlice("Materials", snap.materials, MaterialTheme.colorScheme.primary),
+                    DonutSlice("Labor", snap.labor, MaterialTheme.colorScheme.secondary),
+                    DonutSlice("Subcontractors", snap.subs, BrandAmber),
+                    DonutSlice("Mileage", snap.mileage, BrandGreen),
+                )
+                if (snap.spent > 0.0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AnimatedDonutChart(
+                            slices = slices,
+                            size = 132.dp,
+                            strokeWidth = 16.dp,
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                com.wirewaypro.app.ui.components.AnimatedMoneyText(
+                                    value = snap.spent,
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                Text(
+                                    "spent",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        Spacer(Modifier.size(16.dp))
+                        Column(Modifier.fillMaxWidth()) {
+                            slices.filter { it.value > 0.0 }.forEach { slice ->
+                                DonutLegendRow(slice, Format.money(slice.value))
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        "No spending recorded this month.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
 
         aging?.let { report ->
             SectionCard(title = "Accounts receivable") {
-                InfoRow("Total owed", Format.money(report.buckets.total))
-                InfoRow("Current", Format.money(report.buckets.current))
-                InfoRow("1–30 days", Format.money(report.buckets.d1_30))
-                InfoRow("31–60 days", Format.money(report.buckets.d31_60))
-                InfoRow("61–90 days", Format.money(report.buckets.d61_90))
-                InfoRow("90+ days", Format.money(report.buckets.d90))
+                com.wirewaypro.app.ui.components.AnimatedMoneyText(
+                    value = report.buckets.total,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if (report.buckets.total > 0.0) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    "total owed",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 if (report.items.isEmpty()) {
                     Spacer(Modifier.padding(top = 6.dp))
                     Text("Nothing outstanding.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Spacer(Modifier.padding(top = 8.dp))
+                    // Aging graph — the older the bucket, the hotter the bar.
+                    val ext = MaterialTheme.extended
+                    val bMax = with(report.buckets) {
+                        maxOf(current, d1_30, d31_60, d61_90, d90)
+                    }
+                    AnimatedBarRow("Current", report.buckets.current, bMax, Format.money(report.buckets.current), BrandGreen)
+                    AnimatedBarRow("1–30 days", report.buckets.d1_30, bMax, Format.money(report.buckets.d1_30), MaterialTheme.colorScheme.primary)
+                    AnimatedBarRow("31–60 days", report.buckets.d31_60, bMax, Format.money(report.buckets.d31_60), ext.warning)
+                    AnimatedBarRow("61–90 days", report.buckets.d61_90, bMax, Format.money(report.buckets.d61_90), BrandAmber)
+                    AnimatedBarRow("90+ days", report.buckets.d90, bMax, Format.money(report.buckets.d90), MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -239,6 +317,35 @@ private fun MoneyContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+/** Shimmer placeholders shaped like the report cards — "your money is arriving". */
+@Composable
+private fun MoneySkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        ShimmerBox(width = 140.dp, height = 16.dp)
+        repeat(3) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+            ) {
+                SectionCard {
+                    ShimmerBox(width = 120.dp, height = 22.dp)
+                    Spacer(Modifier.padding(top = 10.dp))
+                    ShimmerBox(width = 220.dp, height = 12.dp)
+                    Spacer(Modifier.padding(top = 8.dp))
+                    Box(Modifier.fillMaxWidth()) { ShimmerBox(width = 260.dp, height = 12.dp) }
+                }
+            }
         }
     }
 }
