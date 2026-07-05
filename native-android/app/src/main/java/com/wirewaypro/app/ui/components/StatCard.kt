@@ -37,6 +37,28 @@ fun StatCard(
     modifier: Modifier = Modifier,
     accent: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
 ) {
+    StatCard(label = label, icon = icon, modifier = modifier, accent = accent) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/**
+ * Slot variant of [StatCard]: the value cell is a composable, so screens can drop
+ * in an [AnimatedMoneyText]/[AnimatedNumberText] and get counting metric tiles.
+ */
+@Composable
+fun StatCard(
+    label: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    accent: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
+    value: @Composable () -> Unit,
+) {
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.medium,
@@ -61,12 +83,7 @@ fun StatCard(
                 Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.height(12.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            value()
             Spacer(Modifier.height(2.dp))
             Text(
                 text = label,

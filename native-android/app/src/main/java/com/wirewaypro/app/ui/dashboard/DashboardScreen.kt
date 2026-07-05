@@ -14,9 +14,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -24,6 +21,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
@@ -41,6 +39,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.wirewaypro.app.ui.bank.BankScreen
+import com.wirewaypro.app.ui.components.BottomBarTab
+import com.wirewaypro.app.ui.components.WirewayBottomBar
 import com.wirewaypro.app.ui.clients.ClientEditScreen
 import com.wirewaypro.app.ui.clients.ClientsScreen
 import com.wirewaypro.app.ui.expenses.AddExpenseScreen
@@ -95,6 +95,8 @@ fun DashboardScreen(
 
     val tabRoutes = HomeTab.entries.map { it.route }.toSet()
     val showBottomBar = currentRoute in tabRoutes
+    // Home carries its own greeting header (mockup); the other tabs keep the bar.
+    val showTopBar = showBottomBar && currentRoute != HomeTab.HOME.route
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -125,7 +127,7 @@ fun DashboardScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            if (showBottomBar) {
+            if (showTopBar) {
                 CenterAlignedTopAppBar(
                     title = { Text(topBarTitle) },
                     navigationIcon = {
@@ -141,28 +143,25 @@ fun DashboardScreen(
         },
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp,
-                ) {
-                    HomeTab.entries.forEach { tab ->
-                        val selected = backStackEntry?.destination?.hierarchy
-                            ?.any { it.route == tab.route } == true
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = { navController.navigateToTab(tab) },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        )
-                    }
+                val barTabs = remember {
+                    HomeTab.entries.map { BottomBarTab(it.route, it.label, it.icon) }
                 }
+                WirewayBottomBar(
+                    tabs = barTabs,
+                    isSelected = { tab ->
+                        backStackEntry?.destination?.hierarchy
+                            ?.any { it.route == tab.route } == true
+                    },
+                    onTab = { tab ->
+                        HomeTab.entries.firstOrNull { it.route == tab.route }
+                            ?.let { navController.navigateToTab(it) }
+                    },
+                    onFab = {
+                        navController.navigate(DashDest.quoteBuilder(invoice = false)) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
         },
     ) { innerPadding ->
@@ -199,6 +198,9 @@ fun DashboardScreen(
                     onOpenTools = { navController.navigate(DashDest.TOOLS) },
                     onOpenMaterialDb = { navController.navigate(DashDest.MATERIAL_DB) },
                     onOpenLaborCalc = { navController.navigate(DashDest.LABOR_CALC) },
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                    onOpenEstimates = { navController.navigateToTab(HomeTab.ESTIMATES) },
+                    onOpenEstimateDetail = { id -> navController.navigate(DashDest.estimateDetail(id)) },
                 )
             }
             composable(HomeTab.ESTIMATES.route) {
