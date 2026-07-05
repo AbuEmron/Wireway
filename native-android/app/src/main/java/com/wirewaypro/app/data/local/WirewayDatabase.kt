@@ -23,8 +23,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         JobDrawEntity::class,
         OverrideEntity::class,
         QuotePhotoEntity::class,
+        UserAssemblyEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class WirewayDatabase : RoomDatabase() {
@@ -35,6 +36,7 @@ abstract class WirewayDatabase : RoomDatabase() {
     abstract fun jobDrawDao(): JobDrawDao
     abstract fun overrideDao(): OverrideDao
     abstract fun quotePhotoDao(): QuotePhotoDao
+    abstract fun userAssemblyDao(): UserAssemblyDao
 
     companion object {
         const val NAME = "wireway.db"
@@ -119,6 +121,32 @@ abstract class WirewayDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_quote_photos_quoteId` ON `quote_photos` (`quoteId`)",
                 )
+            }
+        }
+
+        // v5 → v6: add contractor-authored job templates (additive). The exact
+        // DDL lives in constants so a JVM migration test can exercise it without
+        // an emulator (WirewayMigrationTest) — the migration and the test can
+        // never drift because they run the same SQL.
+        const val SQL_CREATE_USER_ASSEMBLIES =
+            "CREATE TABLE IF NOT EXISTS `user_assemblies` (" +
+                "`id` TEXT NOT NULL, `userId` TEXT NOT NULL, " +
+                "`name` TEXT NOT NULL, `category` TEXT NOT NULL, " +
+                "`payloadJson` TEXT NOT NULL, `syncStatus` TEXT NOT NULL, " +
+                "`deleted` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, " +
+                "`syncAttempts` INTEGER NOT NULL, `createdAt` TEXT, " +
+                "PRIMARY KEY(`id`))"
+        const val SQL_INDEX_USER_ASSEMBLIES_USER =
+            "CREATE INDEX IF NOT EXISTS `index_user_assemblies_userId` ON `user_assemblies` (`userId`)"
+        const val SQL_INDEX_USER_ASSEMBLIES_SYNC =
+            "CREATE INDEX IF NOT EXISTS `index_user_assemblies_syncStatus` ON `user_assemblies` (`syncStatus`)"
+
+        /** v5 → v6: add contractor-authored job templates (additive). */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(SQL_CREATE_USER_ASSEMBLIES)
+                db.execSQL(SQL_INDEX_USER_ASSEMBLIES_USER)
+                db.execSQL(SQL_INDEX_USER_ASSEMBLIES_SYNC)
             }
         }
     }

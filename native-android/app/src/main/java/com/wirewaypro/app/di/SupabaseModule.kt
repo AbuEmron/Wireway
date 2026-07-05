@@ -1,6 +1,7 @@
 package com.wirewaypro.app.di
 
 import com.wirewaypro.app.BuildConfig
+import com.wirewaypro.app.data.assemblies.UserTemplateRepositoryImpl
 import com.wirewaypro.app.data.auth.AuthRepositoryImpl
 import com.wirewaypro.app.data.clients.ClientRepositoryImpl
 import com.wirewaypro.app.data.expenses.ExpenseRepositoryImpl
@@ -21,6 +22,7 @@ import com.wirewaypro.app.domain.repository.ProfileRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
 import com.wirewaypro.app.domain.repository.TimeEntryRepository
 import com.wirewaypro.app.domain.repository.TripRepository
+import com.wirewaypro.app.domain.repository.UserTemplateRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -117,4 +119,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindFinancingRepository(impl: WisetackFinancingRepository): FinancingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserTemplateRepository(impl: UserTemplateRepositoryImpl): UserTemplateRepository
 }

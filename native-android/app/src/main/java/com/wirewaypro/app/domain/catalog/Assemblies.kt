@@ -355,6 +355,85 @@ object Assemblies {
         ),
     )
 
+    // ── Rooms & areas (PRO) — the job-walk building blocks ──────────────────────
+    // Per-room templates the electrician stacks while walking: "3 bedrooms, 2
+    // baths, 1 kitchen". Each expands to REAL catalog lines at typical
+    // residential quantities (NEC receptacle/lighting/AFCI/smoke rules), scaled
+    // by the area count in the composer. Every quantity is editable in the builder.
+    private val roomsAndAreas: List<Assembly> = listOf(
+        a(
+            "recessed_light_each", "Recessed Light (per fixture)",
+            "One recessed can — add as many as the room has. The atomic lighting unit.",
+            "Rooms & Areas",
+            i("light_recessed", qty = 1.0),
+        ),
+        a(
+            "dedicated_20a", "Dedicated 20A Circuit",
+            "One 20A branch circuit — appliance, bathroom, or small-appliance run.",
+            "Rooms & Areas",
+            i("circuit_20"),
+        ),
+        a(
+            "bedroom_standard", "Bedroom (standard)",
+            "Receptacles on spacing, ceiling box, switch, interconnected smoke/CO and the required AFCI.",
+            "Rooms & Areas",
+            i("outlet_standard", qty = 4.0, variantIdx = 1),  // new same-wall 15A
+            i("light_ceiling", variantIdx = 1),               // new box + flush mount
+            i("switch_single", variantIdx = 3),               // new location
+            i("smoke_co_combo", variantIdx = 1),              // new interconnected
+            i("arc_fault"),                                    // NEC 210.12 bedroom AFCI
+        ),
+        a(
+            "living_room_standard", "Living / Family Room (standard)",
+            "Wall receptacles on spacing, a switched ceiling box on 3-ways, and AFCI.",
+            "Rooms & Areas",
+            i("outlet_standard", qty = 5.0, variantIdx = 1),
+            i("light_ceiling", variantIdx = 1),
+            i("switch_3way", qty = 2.0, variantIdx = 2),      // new location, two ends
+            i("arc_fault"),
+        ),
+        a(
+            "bathroom_standard", "Bathroom (standard)",
+            "GFCI receptacle, vanity light, exhaust fan, its own 20A circuit and a permit.",
+            "Rooms & Areas",
+            i("outlet_gfci", variantIdx = 1),                 // new install 15A
+            i("light_vanity", variantIdx = 1),                // new standard bar
+            i("exhaust_fan", variantIdx = 2),                 // new cut-in standard
+            i("switch_single", variantIdx = 3),
+            i("circuit_20", variantIdx = 1),                  // dedicated bath circuit
+            i("permit_general"),
+        ),
+        a(
+            "kitchen_area", "Kitchen (standard)",
+            "Two small-appliance circuits, dishwasher + disposal, GFCI counters, recessed + under-cabinet lighting, permitted.",
+            "Rooms & Areas",
+            i("circuit_20", qty = 2.0, variantIdx = 1),       // small-appliance circuits
+            i("circuit_dedicated", qty = 2.0),                // dishwasher + disposal
+            i("outlet_gfci", qty = 4.0, variantIdx = 2),      // 20A counter receptacles
+            i("light_recessed", qty = 6.0),
+            i("light_undercab"),
+            i("permit_general"),
+        ),
+        a(
+            "hallway_standard", "Hallway (standard)",
+            "A receptacle, a ceiling fixture on 3-way switches, and an interconnected smoke/CO.",
+            "Rooms & Areas",
+            i("outlet_standard", variantIdx = 1),
+            i("light_ceiling", variantIdx = 1),
+            i("switch_3way", qty = 2.0, variantIdx = 2),
+            i("smoke_co_combo", variantIdx = 1),
+        ),
+        a(
+            "garage_area", "Garage (standard)",
+            "A 20A circuit, GFCI receptacles, ceiling lights and a switch.",
+            "Rooms & Areas",
+            i("circuit_20"),
+            i("outlet_gfci", qty = 2.0, variantIdx = 2),
+            i("light_ceiling", qty = 2.0, variantIdx = 1),
+            i("switch_single", variantIdx = 3),
+        ),
+    )
+
     // ── Commercial & industrial (ELITE) ─────────────────────────────────────────
     // Every line sources an EliteCatalog entry where one exists. Hours are
     // typical journeyman defaults the contractor edits; material prices are
@@ -486,7 +565,8 @@ object Assemblies {
         ),
     )
 
-    val all: List<Assembly> = residential + commercialIndustrial
+    /** The curated (built-in) library. User-created templates live in Room. */
+    val all: List<Assembly> = roomsAndAreas + residential + commercialIndustrial
 
     fun byId(id: String): Assembly? = all.firstOrNull { it.id == id }
 
