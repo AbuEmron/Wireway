@@ -4,6 +4,7 @@ import com.wirewaypro.app.BuildConfig
 import com.wirewaypro.app.data.assemblies.UserTemplateRepositoryImpl
 import com.wirewaypro.app.data.auth.AuthRepositoryImpl
 import com.wirewaypro.app.data.clients.ClientRepositoryImpl
+import com.wirewaypro.app.data.crew.CrewRepositoryImpl
 import com.wirewaypro.app.data.expenses.ExpenseRepositoryImpl
 import com.wirewaypro.app.data.financing.WisetackFinancingRepository
 import com.wirewaypro.app.data.jobs.JobRepositoryImpl
@@ -14,6 +15,7 @@ import com.wirewaypro.app.data.timetracking.TimeEntryRepositoryImpl
 import com.wirewaypro.app.data.trips.TripRepositoryImpl
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ClientRepository
+import com.wirewaypro.app.domain.repository.CrewRepository
 import com.wirewaypro.app.domain.repository.ExpenseRepository
 import com.wirewaypro.app.domain.repository.FinancingRepository
 import com.wirewaypro.app.domain.repository.JobRepository
@@ -99,6 +101,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindClientRepository(impl: ClientRepositoryImpl): ClientRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCrewRepository(impl: CrewRepositoryImpl): CrewRepository
 
     @Binds
     @Singleton

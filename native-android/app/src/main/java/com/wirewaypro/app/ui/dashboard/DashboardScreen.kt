@@ -55,6 +55,7 @@ import com.wirewaypro.app.ui.mileage.MileageScreen
 import com.wirewaypro.app.ui.navigation.DashDest
 import com.wirewaypro.app.ui.navigation.WirewayTransitions
 import com.wirewaypro.app.ui.nec.NecReferenceScreen
+import com.wirewaypro.app.ui.crew.CrewScreen
 import com.wirewaypro.app.ui.timetracking.TimeTrackingScreen
 import com.wirewaypro.app.ui.navigation.HomeTab
 import com.wirewaypro.app.ui.quotes.AssembliesScreen
@@ -291,7 +292,16 @@ fun DashboardScreen(
                 MileageScreen(onBack = { navController.popBackStack() })
             }
             composable(DashDest.TIME_TRACKING) {
-                TimeTrackingScreen(onBack = { navController.popBackStack() })
+                TimeTrackingScreen(
+                    onBack = { navController.popBackStack() },
+                    onManageCrew = { navController.navigate(DashDest.CREW) },
+                )
+            }
+            composable(DashDest.CREW) {
+                CrewScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
             }
             composable(DashDest.NEC) {
                 NecReferenceScreen(

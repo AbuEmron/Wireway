@@ -40,6 +40,7 @@ object DashDest {
     const val ADD_EXPENSE = "add_expense"
     const val MILEAGE = "mileage"
     const val TIME_TRACKING = "time_tracking"
+    const val CREW = "crew"
     const val NEC = "nec"
     const val LOAD_ADVISOR = "load_advisor"
     const val TOOLS = "tools"

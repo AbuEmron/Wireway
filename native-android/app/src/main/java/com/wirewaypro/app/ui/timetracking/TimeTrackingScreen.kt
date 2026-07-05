@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -54,13 +55,24 @@ import java.time.ZoneOffset
 @Composable
 fun TimeTrackingScreen(
     onBack: () -> Unit,
+    onManageCrew: () -> Unit = {},
     viewModel: TimeTrackingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { BackTopBar(title = "Time tracking", onBack = onBack) },
+        topBar = {
+            BackTopBar(
+                title = "Time tracking",
+                onBack = onBack,
+                actions = {
+                    IconButton(onClick = onManageCrew) {
+                        Icon(Icons.Outlined.Groups, contentDescription = "Manage crew")
+                    }
+                },
+            )
+        },
     ) { padding ->
         Column(
             modifier = Modifier

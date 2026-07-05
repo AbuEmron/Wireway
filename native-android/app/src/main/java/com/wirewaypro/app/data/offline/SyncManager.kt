@@ -1,6 +1,7 @@
 package com.wirewaypro.app.data.offline
 
 import com.wirewaypro.app.data.local.ClientDao
+import com.wirewaypro.app.data.local.CrewMemberDao
 import com.wirewaypro.app.data.local.JobDao
 import com.wirewaypro.app.data.local.JobDrawDao
 import com.wirewaypro.app.data.local.QuoteDao
@@ -38,6 +39,7 @@ class SyncManager @Inject constructor(
     private val jobDao: JobDao,
     private val clientDao: ClientDao,
     private val jobDrawDao: JobDrawDao,
+    private val crewMemberDao: CrewMemberDao,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true }
@@ -111,6 +113,7 @@ class SyncManager @Inject constructor(
         "jobs" -> if (item.mode == "delete") jobDao.hardDelete(item.id) else jobDao.markSynced(item.id)
         "clients" -> if (item.mode == "delete") clientDao.hardDelete(item.id) else clientDao.markSynced(item.id)
         "job_draws" -> if (item.mode == "delete") jobDrawDao.hardDelete(item.id) else jobDrawDao.markSynced(item.id)
+        "crew_members" -> if (item.mode == "delete") crewMemberDao.hardDelete(item.id) else crewMemberDao.markSynced(item.id)
         else -> Unit
     }
 
@@ -119,6 +122,7 @@ class SyncManager @Inject constructor(
         "jobs" -> jobDao.markError(item.id)
         "clients" -> clientDao.markError(item.id)
         "job_draws" -> jobDrawDao.markError(item.id)
+        "crew_members" -> crewMemberDao.markError(item.id)
         else -> Unit
     }
 }

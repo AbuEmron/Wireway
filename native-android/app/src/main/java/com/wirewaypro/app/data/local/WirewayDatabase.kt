@@ -24,8 +24,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         OverrideEntity::class,
         QuotePhotoEntity::class,
         UserAssemblyEntity::class,
+        CrewMemberEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class WirewayDatabase : RoomDatabase() {
@@ -37,6 +38,7 @@ abstract class WirewayDatabase : RoomDatabase() {
     abstract fun overrideDao(): OverrideDao
     abstract fun quotePhotoDao(): QuotePhotoDao
     abstract fun userAssemblyDao(): UserAssemblyDao
+    abstract fun crewMemberDao(): CrewMemberDao
 
     companion object {
         const val NAME = "wireway.db"
@@ -147,6 +149,32 @@ abstract class WirewayDatabase : RoomDatabase() {
                 db.execSQL(SQL_CREATE_USER_ASSEMBLIES)
                 db.execSQL(SQL_INDEX_USER_ASSEMBLIES_USER)
                 db.execSQL(SQL_INDEX_USER_ASSEMBLIES_SYNC)
+            }
+        }
+
+        // ── v6 → v7: Elite crew roster (additive) ──────────────────────────────
+        // The exact DDL is exposed as constants so a pure-JVM migration test can
+        // run the identical SQL Room runs (see CrewMigrationTest). Column list +
+        // types MUST stay in lock-step with [CrewMemberEntity] — Room validates
+        // the schema on open and crashes on any drift (which is what we want).
+        const val CREW_MEMBERS_CREATE_TABLE =
+            "CREATE TABLE IF NOT EXISTS `crew_members` (" +
+                "`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `name` TEXT NOT NULL, " +
+                "`role` TEXT, `hourlyCostRate` REAL NOT NULL, `active` INTEGER NOT NULL, " +
+                "`createdAt` TEXT, `payloadJson` TEXT NOT NULL, `syncStatus` TEXT NOT NULL, " +
+                "`deleted` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, " +
+                "`syncAttempts` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+        const val CREW_MEMBERS_INDEX_USER =
+            "CREATE INDEX IF NOT EXISTS `index_crew_members_userId` ON `crew_members` (`userId`)"
+        const val CREW_MEMBERS_INDEX_SYNC =
+            "CREATE INDEX IF NOT EXISTS `index_crew_members_syncStatus` ON `crew_members` (`syncStatus`)"
+
+        /** v6 → v7: add the Elite crew roster table (additive; no existing table touched). */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(CREW_MEMBERS_CREATE_TABLE)
+                db.execSQL(CREW_MEMBERS_INDEX_USER)
+                db.execSQL(CREW_MEMBERS_INDEX_SYNC)
             }
         }
     }

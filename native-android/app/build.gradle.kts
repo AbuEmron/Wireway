@@ -212,7 +212,7 @@ dependencies {
     // Test
     testImplementation(libs.junit)
     // Pure-JVM SQLite so the Room migration SQL can be exercised in unit tests
-    // (no emulator needed) — see WirewayMigrationTest.
+    // (no emulator needed) — see WirewayMigrationTest / CrewMigrationTest.
     testImplementation("org.xerial:sqlite-jdbc:3.45.1.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

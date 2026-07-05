@@ -3,6 +3,7 @@ package com.wirewaypro.app.di
 import android.content.Context
 import androidx.room.Room
 import com.wirewaypro.app.data.local.ClientDao
+import com.wirewaypro.app.data.local.CrewMemberDao
 import com.wirewaypro.app.data.local.JobDao
 import com.wirewaypro.app.data.local.JobDrawDao
 import com.wirewaypro.app.data.local.OverrideDao
@@ -38,6 +39,7 @@ object DatabaseModule {
                 WirewayDatabase.MIGRATION_3_4,
                 WirewayDatabase.MIGRATION_4_5,
                 WirewayDatabase.MIGRATION_5_6,
+                WirewayDatabase.MIGRATION_6_7,
             )
             .fallbackToDestructiveMigration()
             .build()
@@ -65,4 +67,7 @@ object DatabaseModule {
 
     @Provides
     fun provideUserAssemblyDao(db: WirewayDatabase): UserAssemblyDao = db.userAssemblyDao()
+
+    @Provides
+    fun provideCrewMemberDao(db: WirewayDatabase): CrewMemberDao = db.crewMemberDao()
 }
