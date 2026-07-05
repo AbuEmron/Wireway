@@ -5,6 +5,13 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +48,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -57,6 +68,8 @@ import com.wirewaypro.app.ui.components.ErrorState
 import com.wirewaypro.app.ui.components.GradientButton
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.ShimmerBox
+import com.wirewaypro.app.ui.components.pressScale
+import com.wirewaypro.app.ui.components.rememberWirewayHaptics
 import com.wirewaypro.app.ui.expenses.CameraCapture
 import com.wirewaypro.app.ui.util.Format
 
@@ -169,16 +182,10 @@ fun TakeoffScreen(
                 )
             }
 
-            // While the AI reads the plan, sketch the result cards it's about to fill —
-            // progress you can see, not a frozen screen.
+            // While the AI reads the plan, run the blueprint scan — a sweeping
+            // beam over a plan grid. Progress you can see, not a frozen screen.
             if (state.isAnalyzing && state.result == null) {
-                SectionCard(title = "Reading the plans…") {
-                    ShimmerBox(width = 220.dp, height = 14.dp)
-                    Spacer(Modifier.height(10.dp))
-                    ShimmerBox(width = 280.dp, height = 14.dp)
-                    Spacer(Modifier.height(10.dp))
-                    ShimmerBox(width = 180.dp, height = 14.dp)
-                }
+                BlueprintScanCard()
             }
 
             state.error?.let {
@@ -190,6 +197,15 @@ fun TakeoffScreen(
                 )
             }
 
+            androidx.compose.animation.AnimatedVisibility(
+                visible = state.result != null,
+                enter = androidx.compose.animation.fadeIn(
+                    androidx.compose.animation.core.tween(280),
+                ) + androidx.compose.animation.expandVertically(
+                    animationSpec = com.wirewaypro.app.ui.theme.MotionTokens.springGentle(),
+                ),
+            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             state.result?.let { result ->
                 if (result.summary.isNotBlank()) {
                     SectionCard(title = "Summary") {
@@ -214,9 +230,18 @@ fun TakeoffScreen(
                             )
                         }
                         Spacer(Modifier.padding(top = 8.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Text("Selected subtotal", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(Format.money(selectedTotal), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                            com.wirewaypro.app.ui.components.AnimatedMoneyText(
+                                value = selectedTotal,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                durationMillis = 400,
+                            )
                         }
                     }
 
@@ -240,7 +265,78 @@ fun TakeoffScreen(
                     )
                 }
             }
+            }
+            }
         }
+    }
+}
+
+/**
+ * The analyzing state: a blueprint grid with a sweeping electric-blue scan
+ * beam and shimmer result lines — the "AI is walking the plans" moment.
+ * Pure Canvas + one infinite float; costs a hairline per frame.
+ */
+@Composable
+private fun BlueprintScanCard() {
+    SectionCard(title = "Reading the plans…") {
+        val transition = rememberInfiniteTransition(label = "scan")
+        val beam by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1700, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "scan-beam",
+        )
+        val primary = MaterialTheme.colorScheme.primary
+        val grid = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+        Canvas(
+            Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .clip(RoundedCornerShape(12.dp)),
+        ) {
+            val step = 20.dp.toPx()
+            var x = 0f
+            while (x < size.width) {
+                drawLine(color = grid, start = Offset(x, 0f), end = Offset(x, size.height), strokeWidth = 1f)
+                x += step
+            }
+            var y = 0f
+            while (y < size.height) {
+                drawLine(color = grid, start = Offset(0f, y), end = Offset(size.width, y), strokeWidth = 1f)
+                y += step
+            }
+            val beamY = size.height * beam
+            val trail = 90f
+            drawRect(
+                brush = Brush.verticalGradient(
+                    0f to Color.Transparent,
+                    1f to primary.copy(alpha = 0.30f),
+                    startY = beamY - trail,
+                    endY = beamY,
+                ),
+                topLeft = Offset(0f, (beamY - trail).coerceAtLeast(0f)),
+                size = Size(size.width, trail.coerceAtMost(beamY)),
+            )
+            drawLine(
+                color = primary,
+                start = Offset(0f, beamY),
+                end = Offset(size.width, beamY),
+                strokeWidth = 3f,
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        ShimmerBox(width = 220.dp, height = 14.dp)
+        Spacer(Modifier.height(10.dp))
+        ShimmerBox(width = 280.dp, height = 14.dp)
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Counting fixtures, runs, and panels — this usually takes under a minute.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -253,12 +349,17 @@ private fun AttachTile(
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(14.dp)
+    val haptics = rememberWirewayHaptics()
     Column(
         modifier = modifier
             .height(64.dp)
+            .pressScale(pressedScale = 0.94f)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
             .clip(shape)
-            .clickable(onClick = onClick),
+            .clickable {
+                haptics.tap()
+                onClick()
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -277,11 +378,12 @@ private fun SuggestionRow(suggestion: TakeoffSuggestion, checked: Boolean, onTog
     val service = Catalog.service(suggestion.serviceId)
     val variant = service?.variants?.getOrNull(suggestion.variantIdx)?.label
     val amount = QuoteCalculator.catalogLineAmount(suggestion.toEntry(), PREVIEW_RATE)
+    val haptics = rememberWirewayHaptics()
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        Checkbox(checked = checked, onCheckedChange = { haptics.tick(); onToggle() })
         Column(Modifier.weight(1f).padding(top = 12.dp)) {
             Text(
                 buildString {
