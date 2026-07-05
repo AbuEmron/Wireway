@@ -20,8 +20,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
@@ -106,25 +108,34 @@ fun QuoteDetailScreen(
     var editDueDate by remember { mutableStateOf(false) }
     var acceptOpen by remember { mutableStateOf(false) }
 
-    // Job-walk site photos: capture or pick, stored on-device with the quote.
-    var cameraUri by remember { mutableStateOf<Uri?>(null) }
-    val takeSitePhoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
-        cameraUri?.let { if (ok) viewModel.addPhoto(it) }
-        cameraUri = null
-    }
-    fun launchSiteCamera() {
-        runCatching {
-            val uri = newSitePhotoUri(context)
-            cameraUri = uri
-            takeSitePhoto.launch(uri)
-        }
-    }
+    // Job-walk site photos: snap with the in-app camera (same framing/torch as
+    // the takeoff capture) or pick from the gallery, stored on-device; tap a
+    // thumbnail to open the full-screen gallery.
+    var showSiteCamera by remember { mutableStateOf(false) }
+    var galleryIndex by remember { mutableStateOf<Int?>(null) }
     val siteCameraPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { granted -> if (granted) launchSiteCamera() }
+    ) { granted -> if (granted) showSiteCamera = true }
     val pickSitePhoto = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
     ) { uri -> uri?.let(viewModel::addPhoto) }
+
+    if (showSiteCamera) {
+        com.wirewaypro.app.ui.expenses.CameraCapture(
+            onCaptured = { uri -> viewModel.addPhoto(uri); showSiteCamera = false },
+            onClose = { showSiteCamera = false },
+        )
+        return
+    }
+    galleryIndex?.let { idx ->
+        SitePhotoGallery(
+            photos = state.photos,
+            initialIndex = idx,
+            onRemove = { viewModel.removePhoto(it) },
+            onClose = { galleryIndex = null },
+        )
+        return
+    }
 
     com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::load)
     LaunchedEffect(state.deleted) { if (state.deleted) onBack() }
@@ -345,8 +356,12 @@ fun QuoteDetailScreen(
                 if (state.photos.isNotEmpty()) {
                     Spacer(Modifier.padding(top = 10.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(state.photos, key = { it.id }) { photo ->
-                            SitePhotoThumb(photo = photo, onRemove = { viewModel.removePhoto(photo) })
+                        itemsIndexed(state.photos, key = { _, p -> p.id }) { index, photo ->
+                            SitePhotoThumb(
+                                photo = photo,
+                                onOpen = { galleryIndex = index },
+                                onRemove = { viewModel.removePhoto(photo) },
+                            )
                         }
                     }
                 }
@@ -356,7 +371,7 @@ fun QuoteDetailScreen(
                         onClick = {
                             val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
                                 PackageManager.PERMISSION_GRANTED
-                            if (granted) launchSiteCamera() else siteCameraPermission.launch(Manifest.permission.CAMERA)
+                            if (granted) showSiteCamera = true else siteCameraPermission.launch(Manifest.permission.CAMERA)
                         },
                         enabled = !state.addingPhoto,
                         modifier = Modifier.weight(1f),
@@ -671,15 +686,8 @@ private fun sharePdf(context: Context, file: File) {
     }
 }
 
-/** A fresh FileProvider uri in cache/receipts for a camera capture (copied on attach). */
-private fun newSitePhotoUri(context: Context): Uri {
-    val dir = File(context.cacheDir, "receipts").apply { mkdirs() }
-    val file = File(dir, "site-${System.currentTimeMillis()}.jpg")
-    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-}
-
 @Composable
-private fun SitePhotoThumb(photo: QuotePhotoEntity, onRemove: () -> Unit) {
+private fun SitePhotoThumb(photo: QuotePhotoEntity, onOpen: () -> Unit, onRemove: () -> Unit) {
     val bitmap = remember(photo.path) {
         runCatching {
             BitmapFactory.decodeFile(photo.path, BitmapFactory.Options().apply { inSampleSize = 2 })
@@ -690,9 +698,12 @@ private fun SitePhotoThumb(photo: QuotePhotoEntity, onRemove: () -> Unit) {
         Box {
             Image(
                 bitmap = bitmap,
-                contentDescription = "Site photo",
+                contentDescription = "Site photo — tap to view",
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(96.dp).clip(MaterialTheme.shapes.small),
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable(onClick = onOpen),
             )
             IconButton(onClick = onRemove, modifier = Modifier.align(Alignment.TopEnd).size(28.dp)) {
                 Icon(
