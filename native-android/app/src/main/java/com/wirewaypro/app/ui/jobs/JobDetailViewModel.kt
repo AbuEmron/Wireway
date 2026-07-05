@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.wirewaypro.app.data.entitlements.TierService
 import com.wirewaypro.app.domain.model.CrewMember
 import com.wirewaypro.app.domain.model.Job
+import com.wirewaypro.app.domain.model.JobCosting
 import com.wirewaypro.app.domain.model.JobDraw
 import com.wirewaypro.app.domain.model.JobDrawInput
 import com.wirewaypro.app.domain.model.JobProfitability
@@ -17,6 +18,7 @@ import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.domain.repository.CrewRepository
 import com.wirewaypro.app.domain.repository.ExpenseRepository
 import com.wirewaypro.app.domain.repository.JobRepository
+import com.wirewaypro.app.domain.repository.QuoteRepository
 import com.wirewaypro.app.domain.repository.TimeEntryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,6 +75,8 @@ data class JobDetailUiState(
     val timeEntries: List<TimeEntry> = emptyList(),
     /** The open "log crew hours" editor, or null. */
     val crewLog: CrewLogDraft? = null,
+    /** Elite true job costing: estimate vs actuals + true profit (null for lower tiers). */
+    val costing: JobCosting? = null,
 ) {
     /** Entries still on the clock for this job (multiple crew can be clocked in). */
     val runningEntries: List<TimeEntry> get() = timeEntries.filter { it.isRunning }
@@ -85,6 +89,7 @@ class JobDetailViewModel @Inject constructor(
     private val expenseRepository: ExpenseRepository,
     private val timeEntryRepository: TimeEntryRepository,
     private val crewRepository: CrewRepository,
+    private val quoteRepository: QuoteRepository,
     private val settingsPrefs: SettingsPrefs,
     private val tierService: TierService,
     savedStateHandle: SavedStateHandle,
@@ -94,6 +99,13 @@ class JobDetailViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(JobDetailUiState())
     val state: StateFlow<JobDetailUiState> = _state.asStateFlow()
+
+    // Estimate basis for job costing, loaded once per job from the linked quote.
+    // Labor is compared in HOURS (the estimate's labor dollars are a bill rate,
+    // not a cost — see JobCosting); materials in cost dollars.
+    private var estLaborHours = 0.0
+    private var estMaterialCost = 0.0
+    private var hasEstimate = false
 
     init {
         load()
@@ -124,13 +136,56 @@ class JobDetailViewModel @Inject constructor(
             _state.update {
                 it.copy(tier = tier, estimateTotal = if (tier.atLeast(Tier.ELITE)) job.total else null)
             }
-            // Elite: load the crew roster for the "log hours" picker.
+            // Elite: load the crew roster + the estimate basis for true costing.
             if (tier.atLeast(Tier.ELITE)) {
                 val userId = auth.currentUserId()
                 val crew = userId?.let { crewRepository.getCrew(it).getOrDefault(emptyList()) }
                     ?.filter { it.active }.orEmpty()
                 _state.update { it.copy(crew = crew) }
+                loadEstimateBasis(job)
+                // Rebuild costing now that the estimate basis is loaded.
+                _state.value.profitability?.let { buildCosting(it) }
             }
+        }
+    }
+
+    /**
+     * Pulls the estimate basis from the job's linked quote: estimated labor HOURS
+     * (quote total_hours) and estimated material COST (quote total_material). No
+     * linked quote → no estimate side (the card shows actuals only, never a fake $0).
+     */
+    private suspend fun loadEstimateBasis(job: Job) {
+        val quoteId = job.quoteId
+        if (quoteId.isNullOrBlank()) {
+            hasEstimate = false
+            estLaborHours = 0.0
+            estMaterialCost = 0.0
+            return
+        }
+        val quote = quoteRepository.getQuote(quoteId).getOrNull()
+        if (quote == null) {
+            hasEstimate = false
+            return
+        }
+        estLaborHours = quote.totalHours ?: 0.0
+        estMaterialCost = quote.totalMaterial ?: 0.0
+        hasEstimate = quote.totalHours != null || quote.totalMaterial != null
+    }
+
+    /** Builds the Elite [JobCosting] from the estimate basis + recorded actuals. */
+    private fun buildCosting(p: JobProfitability) {
+        _state.update {
+            it.copy(
+                costing = JobCosting(
+                    estimatedLaborHours = estLaborHours,
+                    actualLaborHours = p.laborHours,
+                    actualLaborCost = p.laborCost,
+                    estimatedMaterialCost = estMaterialCost,
+                    actualMaterialCost = p.materials,
+                    collected = p.collected,
+                    hasEstimate = hasEstimate,
+                ),
+            )
         }
     }
 
@@ -152,6 +207,8 @@ class JobDetailViewModel @Inject constructor(
             laborCost = MoneyMath.round2(completed.sumOf { it.laborCost }),
         )
         _state.update { it.copy(profitability = profitability, timeEntries = allEntries) }
+        // Keep the Elite costing card in step with freshly-logged actuals.
+        if (_state.value.tier.atLeast(Tier.ELITE)) buildCosting(profitability)
     }
 
     // ── Elite: log crew hours against this job ────────────────────────────────

@@ -37,6 +37,7 @@ data class JobDto(
         status = status,
         total = total,
         createdAt = createdAt,
+        quoteId = quoteId,
     )
 }
 

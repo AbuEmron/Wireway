@@ -294,6 +294,12 @@ fun JobDetailScreen(
                                 )
                             }
                         }
+                        // Elite deeper layer: estimate vs ACTUAL, split into labor
+                        // (hours) and materials (cost), with variance + true profit.
+                        state.costing?.let { c ->
+                            Spacer(Modifier.padding(top = 12.dp))
+                            EstimateVsActualBlock(c)
+                        }
                     }
                 }
             }
@@ -514,6 +520,117 @@ private fun CrewLogDialog(
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
+
+/**
+ * Elite true job costing: estimate vs ACTUAL, split into labor (compared in hours,
+ * because the estimate's labor dollars are a bill rate, not a cost) and materials
+ * (compared in cost dollars), each with an honest variance. True profit already
+ * shows above as the Pro card's profit (collected − actual costs).
+ */
+@Composable
+private fun EstimateVsActualBlock(c: com.wirewaypro.app.domain.model.JobCosting) {
+    Text(
+        "Estimate vs actual",
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+    if (!c.hasEstimate) {
+        Spacer(Modifier.padding(top = 4.dp))
+        Text(
+            "Link this job to its estimate (from the quote) to compare estimated labor " +
+                "and materials against what actually landed.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+
+    // Materials — cost vs cost.
+    Spacer(Modifier.padding(top = 8.dp))
+    val mMax = maxOf(c.estimatedMaterialCost, c.actualMaterialCost, 1.0)
+    Text("Materials", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    AnimatedBarRow(
+        label = "Estimated",
+        value = c.estimatedMaterialCost,
+        maxValue = mMax,
+        valueText = Format.money(c.estimatedMaterialCost),
+        color = MaterialTheme.colorScheme.secondary,
+    )
+    AnimatedBarRow(
+        label = "Actual",
+        value = c.actualMaterialCost,
+        maxValue = mMax,
+        valueText = Format.money(c.actualMaterialCost),
+        color = if (c.materialVariance <= 0.0) BrandGreen else MaterialTheme.colorScheme.error,
+    )
+    VarianceRow(
+        label = "Material variance",
+        text = signedMoney(c.materialVariance),
+        over = c.materialVariance > 0.0,
+    )
+
+    // Labor — hours vs hours (with actual cost shown alongside).
+    Spacer(Modifier.padding(top = 10.dp))
+    val hMax = maxOf(c.estimatedLaborHours, c.actualLaborHours, 1.0)
+    Text("Labor (hours)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    AnimatedBarRow(
+        label = "Estimated",
+        value = c.estimatedLaborHours,
+        maxValue = hMax,
+        valueText = "${trimNum(c.estimatedLaborHours)} hrs",
+        color = MaterialTheme.colorScheme.secondary,
+    )
+    AnimatedBarRow(
+        label = "Actual",
+        value = c.actualLaborHours,
+        maxValue = hMax,
+        valueText = "${trimNum(c.actualLaborHours)} hrs",
+        color = if (c.laborHoursVariance <= 0.0) BrandGreen else MaterialTheme.colorScheme.error,
+    )
+    VarianceRow(
+        label = "Hours variance",
+        text = signedHours(c.laborHoursVariance),
+        over = c.laborHoursVariance > 0.0,
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text("Actual labor cost", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            Format.money(c.actualLaborCost),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun VarianceRow(label: String, text: String, over: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text + if (over) "  over" else "  under",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = if (over) MaterialTheme.colorScheme.error else BrandGreen,
+        )
+    }
+}
+
+/** "+$120" / "−$80" (variance = actual − estimate). */
+private fun signedMoney(v: Double): String =
+    (if (v >= 0) "+" else "−") + Format.money(kotlin.math.abs(v))
+
+/** "+6 hrs" / "−2 hrs". */
+private fun signedHours(v: Double): String =
+    (if (v >= 0) "+" else "−") + trimNum(kotlin.math.abs(v)) + " hrs"
 
 @Composable
 private fun HeaderBlock(title: String, status: String?, total: Double?) {
