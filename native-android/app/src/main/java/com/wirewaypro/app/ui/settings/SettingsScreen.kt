@@ -1,5 +1,8 @@
 package com.wirewaypro.app.ui.settings
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,12 +33,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,7 +51,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.BuildConfig
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.TabTopBar
+import com.wirewaypro.app.ui.components.pressScale
+import com.wirewaypro.app.ui.components.rememberWirewayHaptics
 import com.wirewaypro.app.ui.theme.BrandGradients
+import com.wirewaypro.app.ui.theme.MotionTokens
 import com.wirewaypro.app.ui.theme.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -184,11 +188,16 @@ private fun SettingsRow(
     subtitle: String,
     onClick: () -> Unit,
 ) {
+    val haptics = rememberWirewayHaptics()
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .pressScale(pressedScale = 0.98f)
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .clickable {
+                haptics.tap()
+                onClick()
+            }
             .defaultMinSize(minHeight = 52.dp)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -230,27 +239,87 @@ private fun SettingsRow(
     }
 }
 
-/** Segmented System / Light / Dark theme override. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The mockup's Appearance picker: three icon tiles (Light / Dark / System).
+ * The selected tile lifts with a brand border + tinted fill on a color spring,
+ * pops on the bouncy spring, and every switch ticks. The theme itself crossfades
+ * app-wide via WirewayTheme, so the tap feels like flipping a physical switch.
+ */
 @Composable
 private fun ThemeSelector(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
     data class Option(val mode: ThemeMode, val label: String, val icon: ImageVector)
     val options = listOf(
-        Option(ThemeMode.SYSTEM, "System", Icons.Outlined.PhoneAndroid),
         Option(ThemeMode.LIGHT, "Light", Icons.Outlined.LightMode),
         Option(ThemeMode.DARK, "Dark", Icons.Outlined.DarkMode),
+        Option(ThemeMode.SYSTEM, "System", Icons.Outlined.PhoneAndroid),
     )
-    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-        options.forEachIndexed { index, opt ->
-            SegmentedButton(
-                selected = selected == opt.mode,
-                onClick = { onSelect(opt.mode) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                icon = {
-                    Icon(opt.icon, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
+    val haptics = rememberWirewayHaptics()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        options.forEach { opt ->
+            val isSelected = selected == opt.mode
+            val borderColor by animateColorAsState(
+                targetValue = if (isSelected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant,
+                animationSpec = MotionTokens.standardSpec(),
+                label = "theme-border",
+            )
+            val fill by animateColorAsState(
+                targetValue = if (isSelected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                } else {
+                    Color.Transparent
                 },
+                animationSpec = MotionTokens.standardSpec(),
+                label = "theme-fill",
+            )
+            val tint by animateColorAsState(
+                targetValue = if (isSelected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                animationSpec = MotionTokens.standardSpec(),
+                label = "theme-tint",
+            )
+            val pop by animateFloatAsState(
+                targetValue = if (isSelected) 1.08f else 1f,
+                animationSpec = MotionTokens.springBouncy(),
+                label = "theme-pop",
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .pressScale(pressedScale = 0.95f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.5.dp, borderColor, RoundedCornerShape(16.dp))
+                    .drawBehind { drawRect(fill) }
+                    .clickable {
+                        if (!isSelected) {
+                            haptics.tick()
+                            onSelect(opt.mode)
+                        }
+                    }
+                    .padding(vertical = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(opt.label)
+                Icon(
+                    opt.icon,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier
+                        .size(22.dp)
+                        .graphicsLayer {
+                            scaleX = pop
+                            scaleY = pop
+                        },
+                )
+                Spacer(Modifier.padding(top = 6.dp))
+                Text(
+                    opt.label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = tint,
+                )
             }
         }
     }
