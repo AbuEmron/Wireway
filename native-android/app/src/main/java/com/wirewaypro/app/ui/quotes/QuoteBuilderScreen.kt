@@ -62,13 +62,16 @@ import com.wirewaypro.app.domain.model.QuoteCalculator
 import com.wirewaypro.app.domain.model.QuoteCatalogEntry
 import com.wirewaypro.app.domain.model.RateMode
 import com.wirewaypro.app.domain.model.Tier
+import com.wirewaypro.app.ui.components.AnimatedMoneyText
 import com.wirewaypro.app.ui.components.DateField
 import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.GlassCard
 import com.wirewaypro.app.ui.components.SaveTopBar
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.SectionHeader
+import com.wirewaypro.app.ui.components.SparkBurst
 import com.wirewaypro.app.ui.components.UpgradePrompt
+import com.wirewaypro.app.ui.components.rememberWirewayHaptics
 import com.wirewaypro.app.ui.util.Format
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,7 +120,18 @@ fun QuoteBuilderScreen(
         }.onFailure { viewModel.dictationUnavailable() }
     }
 
-    LaunchedEffect(state.saved) { if (state.saved) onClose() }
+    // The reward moment: a confirm haptic + electric spark burst when the
+    // estimate lands, then close. Purely visual — the save already happened.
+    var burst by remember { mutableStateOf(0) }
+    val haptics = rememberWirewayHaptics()
+    LaunchedEffect(state.saved) {
+        if (state.saved) {
+            haptics.confirm()
+            burst++
+            kotlinx.coroutines.delay(950)
+            onClose()
+        }
+    }
 
     if (showCatalog) {
         CatalogPicker(
@@ -133,6 +147,7 @@ fun QuoteBuilderScreen(
     val hourlyRate = state.hourlyRate.trim().toDoubleOrNull()?.takeIf { it > 0 } ?: 85.0
     val taxRate = state.taxRatePct.trim().toDoubleOrNull()?.div(100.0) ?: 0.0
 
+    Box {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -243,12 +258,12 @@ fun QuoteBuilderScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = state.rateMode == RateMode.FLAT,
-                        onClick = { viewModel.setRateMode(RateMode.FLAT) },
+                        onClick = { haptics.tick(); viewModel.setRateMode(RateMode.FLAT) },
                         label = { Text("Flat rate") },
                     )
                     FilterChip(
                         selected = state.rateMode == RateMode.HOURLY,
-                        onClick = { viewModel.setRateMode(RateMode.HOURLY) },
+                        onClick = { haptics.tick(); viewModel.setRateMode(RateMode.HOURLY) },
                         label = { Text("Hourly") },
                     )
                 }
@@ -263,12 +278,12 @@ fun QuoteBuilderScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(
                             selected = !state.clientBuysAll,
-                            onClick = { viewModel.setClientBuysAll(false) },
+                            onClick = { haptics.tick(); viewModel.setClientBuysAll(false) },
                             label = { Text("Labor + materials") },
                         )
                         FilterChip(
                             selected = state.clientBuysAll,
-                            onClick = { viewModel.setClientBuysAll(true) },
+                            onClick = { haptics.tick(); viewModel.setClientBuysAll(true) },
                             label = { Text("Just labor") },
                         )
                     }
@@ -368,13 +383,18 @@ fun QuoteBuilderScreen(
                 Spacer(Modifier.padding(top = 6.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(Modifier.padding(top = 6.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        Format.money(headline),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                    // Live-counting headline: edits glide the number instead of snapping.
+                    AnimatedMoneyText(
+                        value = headline,
+                        style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary,
+                        durationMillis = 450,
                     )
                 }
                 if (state.rateMode == RateMode.HOURLY) {
@@ -413,6 +433,9 @@ fun QuoteBuilderScreen(
                 Text(state.error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
         }
+    }
+    // Celebration overlay above the whole builder (idle cost zero until saved).
+    SparkBurst(trigger = burst)
     }
 
     if (showAdvisor) {
@@ -577,6 +600,7 @@ private fun CatalogItemEditor(
     onRemove: () -> Unit,
 ) {
     val service = Catalog.service(item.serviceId)
+    val haptics = rememberWirewayHaptics()
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             service?.label ?: item.serviceId,
@@ -597,7 +621,7 @@ private fun CatalogItemEditor(
             service.variants.forEachIndexed { idx, variant ->
                 FilterChip(
                     selected = idx == item.variantIdx,
-                    onClick = { onChange { it.copy(variantIdx = idx) } },
+                    onClick = { haptics.tick(); onChange { it.copy(variantIdx = idx) } },
                     label = { Text(variant.label) },
                 )
             }
@@ -611,11 +635,12 @@ private fun CatalogItemEditor(
             QuoteCatalogEntry(item.serviceId, item.qty.trim().toDoubleOrNull() ?: 0.0, item.variantIdx, item.clientBuys),
             hourlyRate,
         )
-        Text(
-            Format.money(amount),
+        AnimatedMoneyText(
+            value = amount ?: 0.0,
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+            durationMillis = 350,
         )
     }
 }
@@ -646,6 +671,7 @@ private fun LineItemEditor(
 
 @Composable
 private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    val haptics = rememberWirewayHaptics()
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -653,7 +679,7 @@ private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Un
     ) {
         Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onChange)
+        Switch(checked = checked, onCheckedChange = { haptics.tick(); onChange(it) })
     }
 }
 

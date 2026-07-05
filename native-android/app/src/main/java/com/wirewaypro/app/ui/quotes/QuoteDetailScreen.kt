@@ -67,9 +67,11 @@ import com.wirewaypro.app.domain.model.QuoteExpiry
 import com.wirewaypro.app.domain.model.QuoteLineItem
 import com.wirewaypro.app.domain.model.RateMode
 import com.wirewaypro.app.domain.model.Tier
+import com.wirewaypro.app.ui.components.AnimatedMoneyText
 import com.wirewaypro.app.ui.components.ConfirmDialog
 import com.wirewaypro.app.ui.components.DetailScaffold
 import com.wirewaypro.app.ui.components.FormField
+import com.wirewaypro.app.ui.components.GradientButton
 import com.wirewaypro.app.ui.components.InfoRow
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.StatusChip
@@ -355,12 +357,15 @@ fun QuoteDetailScreen(
                 Spacer(Modifier.padding(top = 6.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(Modifier.padding(top = 6.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        Format.money(quote.total),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                    AnimatedMoneyText(
+                        value = quote.total ?: 0.0,
+                        style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -381,12 +386,22 @@ fun QuoteDetailScreen(
                 }
             }
 
-            Button(
+            GradientButton(
+                text = if (quote.isInvoice) "Request payment" else "Send estimate",
                 onClick = { sharePayLink(context, quote.id, quote.quoteNumber, quote.isInvoice) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Icon(Icons.Outlined.Payments, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("Request payment (share pay link)")
+                Icon(
+                    Icons.Outlined.Send,
+                    contentDescription = null,
+                    tint = androidx.compose.ui.graphics.Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = if (quote.isInvoice) "Request payment" else "Send estimate",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = androidx.compose.ui.graphics.Color.White,
+                )
             }
             Text(
                 "Client pays by card or bank (ACH) — money goes straight to your connected account.",
@@ -502,10 +517,9 @@ private fun Header(quote: QuoteDetail, kind: String) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             StatusChip(status = if (quote.isInvoice && quote.invoicePaid) "paid" else quote.status)
             Spacer(Modifier.padding(start = 12.dp))
-            Text(
-                text = Format.money(quote.total),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+            AnimatedMoneyText(
+                value = quote.total ?: 0.0,
+                style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
         }
