@@ -37,15 +37,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.model.Job
 import com.wirewaypro.app.domain.model.JobDraw
 import com.wirewaypro.app.domain.model.Tier
+import com.wirewaypro.app.ui.components.AnimatedBarRow
+import com.wirewaypro.app.ui.components.AnimatedMoneyText
 import com.wirewaypro.app.ui.components.ConfirmDialog
 import com.wirewaypro.app.ui.components.DateField
 import com.wirewaypro.app.ui.components.DetailScaffold
 import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.InfoRow
+import com.wirewaypro.app.ui.components.ProgressRing
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.StatusChip
 import com.wirewaypro.app.ui.components.StatusSelector
 import com.wirewaypro.app.ui.components.UpgradePrompt
+import com.wirewaypro.app.ui.theme.BrandAmber
+import com.wirewaypro.app.ui.theme.BrandGreen
 import com.wirewaypro.app.ui.util.Format
 
 @Composable
@@ -180,46 +185,94 @@ fun JobDetailScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else {
-                        InfoRow("Collected (paid draws)", Format.money(p.collected))
-                        InfoRow("Materials & receipts", "\u2212" + Format.money(p.materials))
-                        InfoRow("Labor (" + trimNum(p.laborHours) + " hrs)", "\u2212" + Format.money(p.laborCost))
-                        Spacer(Modifier.padding(top = 6.dp))
+                        // Profit analysis graph: money in vs the two cost lines,
+                        // each bar filling on a spring with the exact figure printed.
+                        val pMax = maxOf(p.collected, p.materials, p.laborCost)
+                        AnimatedBarRow(
+                            label = "Collected (paid draws)",
+                            value = p.collected,
+                            maxValue = pMax,
+                            valueText = Format.money(p.collected),
+                            color = BrandGreen,
+                        )
+                        AnimatedBarRow(
+                            label = "Materials & receipts",
+                            value = p.materials,
+                            maxValue = pMax,
+                            valueText = "\u2212" + Format.money(p.materials),
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
+                        AnimatedBarRow(
+                            label = "Labor (" + trimNum(p.laborHours) + " hrs)",
+                            value = p.laborCost,
+                            maxValue = pMax,
+                            valueText = "\u2212" + Format.money(p.laborCost),
+                            color = BrandAmber,
+                        )
+                        Spacer(Modifier.padding(top = 8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text("Profit", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                            Text(
-                                Format.money(p.profit),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = if (p.profit >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                            )
+                            Column(Modifier.weight(1f)) {
+                                Text("Profit", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                                AnimatedMoneyText(
+                                    value = p.profit,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = if (p.profit >= 0) BrandGreen else MaterialTheme.colorScheme.error,
+                                )
+                                Text(
+                                    "Counts only what you've recorded on this job.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            // Margin ring \u2014 profit as a share of collected.
+                            p.margin?.let { m ->
+                                ProgressRing(
+                                    progress = m.toFloat().coerceIn(0f, 1f),
+                                    size = 64.dp,
+                                    strokeWidth = 7.dp,
+                                    tint = if (p.profit >= 0) BrandGreen else MaterialTheme.colorScheme.error,
+                                ) {
+                                    Text(
+                                        "${(m * 100).toInt()}%",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                }
+                            }
                         }
-                        p.margin?.let { m ->
-                            Text(
-                                "${(m * 100).toInt()}% of collected",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Text(
-                            "Counts only what you've recorded on this job.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                         // Elite: line the bid up against real costs on this job.
                         state.estimateTotal?.let { bid ->
                             val trueCost = p.materials + p.laborCost
+                            val bMax = maxOf(bid, trueCost)
                             Spacer(Modifier.padding(top = 10.dp))
-                            InfoRow("You bid", Format.money(bid))
-                            InfoRow("True cost so far", Format.money(trueCost))
+                            AnimatedBarRow(
+                                label = "You bid",
+                                value = bid,
+                                maxValue = bMax,
+                                valueText = Format.money(bid),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            AnimatedBarRow(
+                                label = "True cost so far",
+                                value = trueCost,
+                                maxValue = bMax,
+                                valueText = Format.money(trueCost),
+                                color = if (trueCost <= bid) MaterialTheme.colorScheme.secondary
+                                else MaterialTheme.colorScheme.error,
+                            )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text("Left in the bid", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                                Text(
-                                    Format.money(bid - trueCost),
+                                AnimatedMoneyText(
+                                    value = bid - trueCost,
                                     style = MaterialTheme.typography.titleMedium,
                                     color = if (bid - trueCost >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                                 )
@@ -280,10 +333,9 @@ private fun HeaderBlock(title: String, status: String?, total: Double?) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             StatusChip(status = status)
             Spacer(Modifier.padding(start = 12.dp))
-            Text(
-                Format.money(total),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+            AnimatedMoneyText(
+                value = total ?: 0.0,
+                style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
         }
