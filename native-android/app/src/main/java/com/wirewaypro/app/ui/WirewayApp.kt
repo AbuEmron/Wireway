@@ -19,6 +19,7 @@ import com.wirewaypro.app.ui.auth.SignUpScreen
 import com.wirewaypro.app.ui.auth.WelcomeScreen
 import com.wirewaypro.app.ui.dashboard.DashboardScreen
 import com.wirewaypro.app.ui.navigation.Routes
+import com.wirewaypro.app.ui.navigation.WirewayTransitions
 
 /**
  * Root composable. Owns the top-level NavHost and keeps it in sync with the
@@ -55,7 +56,15 @@ fun WirewayApp(
         }
     }
 
-    NavHost(navController = navController, startDestination = startRoute) {
+    NavHost(
+        navController = navController,
+        startDestination = startRoute,
+        // Auth surfaces are siblings — fade-through keeps sign-in calm.
+        enterTransition = WirewayTransitions.tabEnter,
+        exitTransition = WirewayTransitions.tabExit,
+        popEnterTransition = WirewayTransitions.tabEnter,
+        popExitTransition = WirewayTransitions.tabExit,
+    ) {
         composable(Routes.WELCOME) {
             WelcomeScreen(
                 onGetStarted = { navController.navigate(Routes.SIGNUP) },

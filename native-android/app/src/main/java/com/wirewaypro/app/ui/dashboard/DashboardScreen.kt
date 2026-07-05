@@ -53,6 +53,7 @@ import com.wirewaypro.app.ui.schedule.ScheduleScreen
 import com.wirewaypro.app.ui.load.LoadAdvisorScreen
 import com.wirewaypro.app.ui.mileage.MileageScreen
 import com.wirewaypro.app.ui.navigation.DashDest
+import com.wirewaypro.app.ui.navigation.WirewayTransitions
 import com.wirewaypro.app.ui.nec.NecReferenceScreen
 import com.wirewaypro.app.ui.timetracking.TimeTrackingScreen
 import com.wirewaypro.app.ui.navigation.HomeTab
@@ -176,11 +177,23 @@ fun DashboardScreen(
         NavHost(
             navController = navController,
             startDestination = HomeTab.HOME.route,
+            // Shared-axis X everywhere; pop mirrors push, which also gives the
+            // predictive-back gesture its seek-and-settle preview.
+            enterTransition = WirewayTransitions.enter,
+            exitTransition = WirewayTransitions.exit,
+            popEnterTransition = WirewayTransitions.popEnter,
+            popExitTransition = WirewayTransitions.popExit,
             modifier = Modifier
                 .fillMaxSize()
                 .widthIn(max = 640.dp),
         ) {
-            composable(HomeTab.HOME.route) {
+            composable(
+                HomeTab.HOME.route,
+                enterTransition = WirewayTransitions.tabEnter,
+                exitTransition = WirewayTransitions.tabExit,
+                popEnterTransition = WirewayTransitions.tabEnter,
+                popExitTransition = WirewayTransitions.tabExit,
+            ) {
                 HomeScreen(
                     onOpenAiQuoteBuilder = { navController.navigate(DashDest.AI_QUOTE_BUILDER) },
                     onOpenJobs = { navController.navigate(DashDest.JOBS) },
@@ -203,19 +216,37 @@ fun DashboardScreen(
                     onOpenEstimateDetail = { id -> navController.navigate(DashDest.estimateDetail(id)) },
                 )
             }
-            composable(HomeTab.ESTIMATES.route) {
+            composable(
+                HomeTab.ESTIMATES.route,
+                enterTransition = WirewayTransitions.tabEnter,
+                exitTransition = WirewayTransitions.tabExit,
+                popEnterTransition = WirewayTransitions.tabEnter,
+                popExitTransition = WirewayTransitions.tabExit,
+            ) {
                 EstimatesScreen(
                     onOpenEstimate = { id -> navController.navigate(DashDest.estimateDetail(id)) },
                     onAdd = { navController.navigate(DashDest.quoteBuilder(invoice = false)) },
                 )
             }
-            composable(HomeTab.INVOICES.route) {
+            composable(
+                HomeTab.INVOICES.route,
+                enterTransition = WirewayTransitions.tabEnter,
+                exitTransition = WirewayTransitions.tabExit,
+                popEnterTransition = WirewayTransitions.tabEnter,
+                popExitTransition = WirewayTransitions.tabExit,
+            ) {
                 InvoicesScreen(
                     onOpenInvoice = { id -> navController.navigate(DashDest.invoiceDetail(id)) },
                     onAdd = { navController.navigate(DashDest.quoteBuilder(invoice = true)) },
                 )
             }
-            composable(HomeTab.SETTINGS.route) {
+            composable(
+                HomeTab.SETTINGS.route,
+                enterTransition = WirewayTransitions.tabEnter,
+                exitTransition = WirewayTransitions.tabExit,
+                popEnterTransition = WirewayTransitions.tabEnter,
+                popExitTransition = WirewayTransitions.tabExit,
+            ) {
                 SettingsScreen(
                     onEditProfile = { navController.navigate(DashDest.PROFILE_EDIT) },
                     onGetPaid = { navController.navigate(DashDest.GET_PAID) },
