@@ -30,10 +30,10 @@ import com.wirewaypro.app.domain.model.Client
 import com.wirewaypro.app.domain.model.SyncState
 import com.wirewaypro.app.ui.components.BackTopBar
 import com.wirewaypro.app.ui.components.EmptyState
-import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.ListCard
 import com.wirewaypro.app.ui.components.ListCardSkeleton
 import com.wirewaypro.app.ui.components.RefreshableList
+import com.wirewaypro.app.ui.components.SearchField
 import com.wirewaypro.app.ui.components.SyncBanner
 import com.wirewaypro.app.ui.components.SyncStateChip
 import com.wirewaypro.app.ui.theme.Spacing
@@ -84,10 +84,10 @@ fun ClientsScreen(
                 onRetry = viewModel::retrySync,
             )
             if (!noneAtAll) {
-                FormField(
+                SearchField(
                     value = query,
                     onValueChange = { query = it },
-                    label = "Search name, email, phone",
+                    placeholder = "Search name, email, phone",
                     modifier = Modifier.padding(
                         horizontal = Spacing.screen,
                         vertical = Spacing.md,
@@ -131,7 +131,11 @@ fun ClientsScreen(
                     }
                 } else {
                     items(visibleItems, key = { it.id }) { client ->
-                        ClientRow(client = client, onClick = { onOpenClient(client.id) })
+                        ClientRow(
+                            client = client,
+                            onClick = { onOpenClient(client.id) },
+                            modifier = Modifier.animateItem(),
+                        )
                     }
                 }
             }
@@ -140,13 +144,14 @@ fun ClientsScreen(
 }
 
 @Composable
-private fun ClientRow(client: Client, onClick: () -> Unit) {
+private fun ClientRow(client: Client, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val jobs = client.jobCount ?: 0
     val jobsLabel = if (jobs == 1) "1 job" else "$jobs jobs"
 
     ListCard(
         title = client.name,
         onClick = onClick,
+        modifier = modifier,
         trailing = client.totalBilled?.let { Format.money(it) },
         subtitle = listOfNotNull(client.email, client.phone).joinToString("  ·  ").ifBlank { null },
         footerStart = jobsLabel,

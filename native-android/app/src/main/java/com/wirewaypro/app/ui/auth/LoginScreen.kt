@@ -34,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.ui.components.GradientButton
 import com.wirewaypro.app.ui.components.WirewayLogoBadge
+import com.wirewaypro.app.ui.components.riseIn
 import com.wirewaypro.app.ui.theme.BrandGradients
 
 /**
@@ -63,7 +64,7 @@ fun LoginScreen(
         Spacer(Modifier.height(48.dp))
 
         // Logo badge over a soft radial brand glow.
-        Box(contentAlignment = Alignment.Center) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.riseIn(0)) {
             Box(
                 modifier = Modifier
                     .height(140.dp)
@@ -79,6 +80,7 @@ fun LoginScreen(
             style = MaterialTheme.typography.displayMedium.copy(letterSpacing = 2.sp),
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.riseIn(1),
         )
         Text(
             text = "Electrical estimating · Powered by Precision",
@@ -105,7 +107,7 @@ fun LoginScreen(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next,
             ),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().riseIn(2),
         )
         Spacer(Modifier.height(14.dp))
 
@@ -122,7 +124,7 @@ fun LoginScreen(
                 imeAction = ImeAction.Done,
             ),
             keyboardActions = KeyboardActions(onDone = { viewModel.signIn() }),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().riseIn(3),
         )
 
         if (state.error != null) {
@@ -140,7 +142,7 @@ fun LoginScreen(
             onClick = viewModel::signIn,
             enabled = state.canSubmit,
             loading = state.isSubmitting,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().riseIn(4),
         )
 
         Spacer(Modifier.height(10.dp))

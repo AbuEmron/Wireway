@@ -7,12 +7,18 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
+import com.wirewaypro.app.ui.theme.MotionTokens
 
 /**
  * Animates a number counting up to [target] whenever it changes, e.g. the dashboard
@@ -85,4 +91,28 @@ class WirewayHaptics(private val view: View) {
 fun rememberWirewayHaptics(): WirewayHaptics {
     val view = LocalView.current
     return remember(view) { WirewayHaptics(view) }
+}
+
+/**
+ * Entrance stagger: fades + rises a block once on first composition, delayed by
+ * [index] so successive sections choreograph. Pure graphicsLayer — hidden
+ * blocks keep their layout, so nothing reflows as they arrive.
+ */
+@Composable
+fun Modifier.riseIn(index: Int = 0): Modifier {
+    var on by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { on = true }
+    val t by animateFloatAsState(
+        targetValue = if (on) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 340,
+            delayMillis = index * 55,
+            easing = MotionTokens.emphasized,
+        ),
+        label = "rise-in",
+    )
+    return graphicsLayer {
+        alpha = t
+        translationY = (1f - t) * 28f
+    }
 }
