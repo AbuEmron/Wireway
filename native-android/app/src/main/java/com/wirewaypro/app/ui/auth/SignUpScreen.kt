@@ -40,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.ui.components.GradientButton
 import com.wirewaypro.app.ui.components.WirewayLogoBadge
+import com.wirewaypro.app.ui.components.riseIn
 import com.wirewaypro.app.ui.theme.BrandGradients
 
 /**
@@ -72,7 +73,7 @@ fun SignUpScreen(
     ) {
         Spacer(Modifier.height(40.dp))
 
-        Box(contentAlignment = Alignment.Center) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.riseIn(0)) {
             Box(
                 modifier = Modifier
                     .height(130.dp)
@@ -88,6 +89,7 @@ fun SignUpScreen(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.riseIn(1),
         )
         Text(
             text = "Start estimating in minutes — no credit card required.",
@@ -108,7 +110,7 @@ fun SignUpScreen(
                 capitalization = KeyboardCapitalization.Words,
                 imeAction = ImeAction.Next,
             ),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().riseIn(2),
         )
         Spacer(Modifier.height(14.dp))
 
@@ -123,7 +125,7 @@ fun SignUpScreen(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next,
             ),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().riseIn(3),
         )
         Spacer(Modifier.height(14.dp))
 
@@ -141,7 +143,7 @@ fun SignUpScreen(
                 imeAction = ImeAction.Done,
             ),
             keyboardActions = KeyboardActions(onDone = { viewModel.signUp() }),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().riseIn(4),
         )
 
         if (state.error != null) {

@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -32,6 +33,7 @@ import com.wirewaypro.app.ui.components.EmptyState
 import com.wirewaypro.app.ui.components.ListCard
 import com.wirewaypro.app.ui.components.ListCardSkeleton
 import com.wirewaypro.app.ui.components.RefreshableList
+import com.wirewaypro.app.ui.components.SearchField
 import com.wirewaypro.app.ui.components.SegmentedTabs
 import com.wirewaypro.app.ui.components.SyncBanner
 import com.wirewaypro.app.ui.components.SyncStateChip
@@ -76,11 +78,20 @@ fun InvoicesScreen(
     com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::refresh)
 
     var filterIndex by rememberSaveable { mutableIntStateOf(0) }
+    var query by rememberSaveable { mutableStateOf("") }
     val filters = remember { InvoiceFilter.entries }
     val activeFilter = filters[filterIndex.coerceIn(0, filters.lastIndex)]
     val today = remember { LocalDate.now() }
-    val visibleItems = remember(state.items, activeFilter, today) {
-        state.items.filter { activeFilter.matches(it, today) }
+    val visibleItems = remember(state.items, activeFilter, today, query) {
+        val q = query.trim()
+        state.items.filter { invoice ->
+            activeFilter.matches(invoice, today) && (
+                q.isBlank() ||
+                    invoice.clientName?.contains(q, ignoreCase = true) == true ||
+                    invoice.jobName?.contains(q, ignoreCase = true) == true ||
+                    invoice.quoteNumber?.contains(q, ignoreCase = true) == true
+                )
+        }
     }
     val noneAtAll = state.items.isEmpty()
 
@@ -100,13 +111,22 @@ fun InvoicesScreen(
                 onRetry = viewModel::retrySync,
             )
             if (!noneAtAll) {
+                SearchField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = "Search invoices…",
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.screen,
+                        vertical = Spacing.sm,
+                    ),
+                )
                 SegmentedTabs(
                     options = filters.map { it.label },
                     selectedIndex = filterIndex,
                     onSelect = { filterIndex = it },
                     modifier = Modifier.padding(
                         horizontal = Spacing.screen,
-                        vertical = Spacing.md,
+                        vertical = Spacing.sm,
                     ),
                 )
             }
@@ -147,7 +167,11 @@ fun InvoicesScreen(
                     }
                 } else {
                     items(visibleItems, key = { it.id }) { invoice ->
-                        InvoiceRow(invoice = invoice, onClick = { onOpenInvoice(invoice.id) })
+                        InvoiceRow(
+                            invoice = invoice,
+                            onClick = { onOpenInvoice(invoice.id) },
+                            modifier = Modifier.animateItem(),
+                        )
                     }
                 }
             }
@@ -156,7 +180,7 @@ fun InvoicesScreen(
 }
 
 @Composable
-private fun InvoiceRow(invoice: QuoteSummary, onClick: () -> Unit) {
+private fun InvoiceRow(invoice: QuoteSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val number = invoice.quoteNumber?.let { "#$it" }
     val title = invoice.clientName?.takeIf { it.isNotBlank() }
         ?: invoice.jobName?.takeIf { it.isNotBlank() }
@@ -169,6 +193,7 @@ private fun InvoiceRow(invoice: QuoteSummary, onClick: () -> Unit) {
     ListCard(
         title = title,
         onClick = onClick,
+        modifier = modifier,
         trailing = Format.money(invoice.total),
         subtitle = listOfNotNull(invoice.jobName?.takeIf { it != title }, number)
             .joinToString("  ·  ").ifBlank { null },
