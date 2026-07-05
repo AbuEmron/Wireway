@@ -73,6 +73,8 @@ import com.wirewaypro.app.ui.components.DetailScaffold
 import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.GradientButton
 import com.wirewaypro.app.ui.components.InfoRow
+import com.wirewaypro.app.ui.components.MorphingCard
+import com.wirewaypro.app.ui.components.SectionEyebrow
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.StatusChip
 import com.wirewaypro.app.ui.components.UpgradePrompt
@@ -268,8 +270,45 @@ fun QuoteDetailScreen(
             }
 
             if (quote.lineItems.isNotEmpty()) {
-                SectionCard(title = "Line items") {
-                    quote.lineItems.forEach { LineItemRow(it) }
+                // The mockup's expandable estimate-item rows: one open at a time,
+                // tap morphs the card open on a spring to show the line's math.
+                var expandedItem by remember { mutableStateOf(-1) }
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SectionEyebrow("Line items")
+                    quote.lineItems.forEachIndexed { idx, item ->
+                        MorphingCard(
+                            expanded = expandedItem == idx,
+                            onToggle = { expandedItem = if (expandedItem == idx) -1 else idx },
+                            header = {
+                                val prefix = if (item.kind == "mileage") "🚗 " else ""
+                                Text(
+                                    text = "$prefix${item.label}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (item.amount != null) {
+                                    Text(
+                                        text = Format.money(item.amount),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 8.dp),
+                                    )
+                                }
+                            },
+                            body = {
+                                InfoRow("Quantity", trimNum(item.quantity))
+                                val amount = item.amount
+                                if (amount != null && item.quantity > 0 && item.quantity != 1.0) {
+                                    InfoRow("Per unit", Format.money(amount / item.quantity))
+                                }
+                                if (item.kind == "mileage") {
+                                    InfoRow("Type", "Mileage")
+                                }
+                            },
+                        )
+                    }
                 }
             }
 
