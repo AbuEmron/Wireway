@@ -1,6 +1,12 @@
 package com.wirewaypro.app.ui.nec
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,11 +18,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -33,7 +42,11 @@ import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.nec.NecArticle
 import com.wirewaypro.app.domain.nec.NecReference
 import com.wirewaypro.app.ui.components.BackTopBar
+import com.wirewaypro.app.ui.components.SearchField
 import com.wirewaypro.app.ui.components.UpgradePrompt
+import com.wirewaypro.app.ui.components.pressScale
+import com.wirewaypro.app.ui.components.rememberWirewayHaptics
+import com.wirewaypro.app.ui.theme.MotionTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,11 +66,10 @@ fun NecReferenceScreen(
         topBar = { BackTopBar(title = "NEC reference", onBack = onBack) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
-            OutlinedTextField(
+            SearchField(
                 value = query,
                 onValueChange = { query = it },
-                label = { Text("Search articles (GFCI, EV, pool, 210…)") },
-                singleLine = true,
+                placeholder = "Search articles (GFCI, EV, pool, 210…)",
                 modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
             )
             Text(
@@ -80,6 +92,7 @@ fun NecReferenceScreen(
                         article = article,
                         expanded = expanded == cardKey,
                         onToggle = { expanded = if (expanded == cardKey) null else cardKey },
+                        modifier = Modifier.animateItem(),
                     )
                 }
                 if (!isElite && tier != null) {
@@ -103,15 +116,33 @@ fun NecReferenceScreen(
 }
 
 @Composable
-private fun ArticleCard(article: NecArticle, expanded: Boolean, onToggle: () -> Unit) {
+private fun ArticleCard(
+    article: NecArticle,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val haptics = rememberWirewayHaptics()
+    val chevron by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = MotionTokens.springBouncy(),
+        label = "article-chevron",
+    )
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle),
+        modifier = modifier
+            .fillMaxWidth()
+            .pressScale(pressedScale = 0.985f)
+            .animateContentSize(animationSpec = MotionTokens.springGentle())
+            .clickable {
+                haptics.tap()
+                onToggle()
+            },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (expanded) 3.dp else 1.dp),
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -125,6 +156,12 @@ private fun ArticleCard(article: NecArticle, expanded: Boolean, onToggle: () -> 
                     article.title,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(start = 8.dp).weight(1f),
+                )
+                Icon(
+                    Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.rotate(chevron),
                 )
             }
             if (article.sector != "Residential") {
@@ -141,7 +178,11 @@ private fun ArticleCard(article: NecArticle, expanded: Boolean, onToggle: () -> 
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            AnimatedVisibility(visible = expanded) {
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(animationSpec = MotionTokens.springGentle()) + fadeIn(),
+                exit = shrinkVertically(animationSpec = MotionTokens.springGentle()) + fadeOut(),
+            ) {
                 Column {
                     Spacer(Modifier.height(12.dp))
                     Text("KEY RULES", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)

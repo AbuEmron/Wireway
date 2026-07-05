@@ -41,6 +41,8 @@ import com.wirewaypro.app.ui.components.EmptyState
 import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.InfoRow
 import com.wirewaypro.app.ui.components.SectionHeader
+import com.wirewaypro.app.ui.components.pressScale
+import com.wirewaypro.app.ui.components.rememberWirewayHaptics
 import com.wirewaypro.app.ui.components.UpgradePrompt
 import com.wirewaypro.app.ui.theme.Spacing
 import com.wirewaypro.app.ui.util.Format
@@ -138,8 +140,12 @@ fun MaterialDatabaseScreen(
 
 @Composable
 private fun MaterialCard(service: CatalogService, onClick: () -> Unit) {
+    val haptics = rememberWirewayHaptics()
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale(pressedScale = 0.98f)
+            .clickable { haptics.tap(); onClick() },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -177,8 +183,12 @@ private fun MaterialCard(service: CatalogService, onClick: () -> Unit) {
 
 @Composable
 private fun EliteMaterialCard(material: EliteMaterial, onClick: () -> Unit) {
+    val haptics = rememberWirewayHaptics()
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale(pressedScale = 0.98f)
+            .clickable { haptics.tap(); onClick() },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
