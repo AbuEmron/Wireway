@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +63,7 @@ import com.wirewaypro.app.ui.theme.ThemeMode
 fun SettingsScreen(
     onEditProfile: () -> Unit,
     onGetPaid: () -> Unit,
+    onJurisdiction: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val email by viewModel.email.collectAsStateWithLifecycle()
@@ -93,6 +95,12 @@ fun SettingsScreen(
                     title = "Get paid",
                     subtitle = "Connect Stripe to take card payments",
                     onClick = onGetPaid,
+                )
+                SettingsRow(
+                    icon = Icons.Outlined.Place,
+                    title = "Jurisdiction (AHJ)",
+                    subtitle = "Set your state & local AHJ — the code your inspector enforces",
+                    onClick = onJurisdiction,
                 )
             }
 

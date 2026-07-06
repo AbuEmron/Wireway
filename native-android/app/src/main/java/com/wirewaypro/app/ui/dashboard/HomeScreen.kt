@@ -107,6 +107,7 @@ fun HomeScreen(
     onOpenDrawer: () -> Unit,
     onOpenEstimates: () -> Unit,
     onOpenEstimateDetail: (String) -> Unit,
+    onOpenJurisdiction: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.home.collectAsStateWithLifecycle()
@@ -170,6 +171,9 @@ fun HomeScreen(
                 onClick = onOpenMoney,
             )
         }
+
+        // Onboarding nudge — shows only until the user sets their AHJ jurisdiction.
+        com.wirewaypro.app.ui.ahj.AhjJurisdictionNudge(onSet = onOpenJurisdiction)
 
         if (state.error != null && state.profile == null) {
             ErrorState(

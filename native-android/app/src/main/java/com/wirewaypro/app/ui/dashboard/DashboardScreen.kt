@@ -64,6 +64,7 @@ import com.wirewaypro.app.ui.quotes.InvoicesScreen
 import com.wirewaypro.app.ui.money.MoneyScreen
 import com.wirewaypro.app.ui.quotes.QuoteBuilderScreen
 import com.wirewaypro.app.ui.quotes.MaterialPullListScreen
+import com.wirewaypro.app.ui.ahj.JurisdictionPickerScreen
 import com.wirewaypro.app.ui.quotes.QuoteDetailScreen
 import com.wirewaypro.app.ui.settings.ProfileEditScreen
 import com.wirewaypro.app.ui.settings.SettingsScreen
@@ -215,6 +216,7 @@ fun DashboardScreen(
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                     onOpenEstimates = { navController.navigateToTab(HomeTab.ESTIMATES) },
                     onOpenEstimateDetail = { id -> navController.navigate(DashDest.estimateDetail(id)) },
+                    onOpenJurisdiction = { navController.navigate(DashDest.JURISDICTION) },
                 )
             }
             composable(
@@ -251,6 +253,7 @@ fun DashboardScreen(
                 SettingsScreen(
                     onEditProfile = { navController.navigate(DashDest.PROFILE_EDIT) },
                     onGetPaid = { navController.navigate(DashDest.GET_PAID) },
+                    onJurisdiction = { navController.navigate(DashDest.JURISDICTION) },
                 )
             }
 
@@ -395,6 +398,9 @@ fun DashboardScreen(
             composable(DashDest.GET_PAID) {
                 GetPaidScreen(onBack = { navController.popBackStack() })
             }
+            composable(DashDest.JURISDICTION) {
+                JurisdictionPickerScreen(onBack = { navController.popBackStack() })
+            }
 
             val idArg = listOf(navArgument(DashDest.ARG_ID) { type = NavType.StringType })
             composable(DashDest.JOB_DETAIL, arguments = idArg) {
@@ -416,6 +422,7 @@ fun DashboardScreen(
                         }
                     },
                     onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                    onOpenJurisdiction = { navController.navigate(DashDest.JURISDICTION) },
                 )
             }
             composable(DashDest.INVOICE_DETAIL, arguments = idArg) {
@@ -424,6 +431,7 @@ fun DashboardScreen(
                     onEdit = { id -> navController.navigate(DashDest.quoteBuilder(id = id)) },
                     onPullList = { id -> navController.navigate(DashDest.pullList(id)) },
                     onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                    onOpenJurisdiction = { navController.navigate(DashDest.JURISDICTION) },
                 )
             }
             composable(DashDest.PULL_LIST, arguments = idArg) {

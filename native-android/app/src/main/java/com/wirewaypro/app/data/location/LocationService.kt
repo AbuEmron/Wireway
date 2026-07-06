@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import com.wirewaypro.app.domain.ahj.UsStates
 import com.wirewaypro.app.domain.model.LocationArea
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +63,34 @@ class LocationService @Inject constructor(
         )
     }
 
+    /**
+     * A best-effort jurisdiction PRE-SUGGESTION from the device location — state
+     * code (+ county/city when the geocoder provides them). Only ever a
+     * suggestion: the caller shows it for the user to confirm or override, never a
+     * silently-saved location. Returns null when location/permission is
+     * unavailable or the state can't be resolved to a known code.
+     */
+    suspend fun suggestJurisdiction(): JurisdictionSuggestion? {
+        if (!hasPermission()) return null
+        val location = runCatching { freshLocation() }.getOrNull()
+            ?: runCatching { lastKnownLocation() }.getOrNull()
+            ?: return null
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                Geocoder(context, Locale.US).getFromLocation(location.latitude, location.longitude, 1)
+                    ?.firstOrNull()
+                    ?.let { addr ->
+                        val stateCode = UsStates.codeForName(addr.adminArea) ?: return@let null
+                        JurisdictionSuggestion(
+                            stateCode = stateCode,
+                            county = addr.subAdminArea,
+                            city = addr.locality,
+                        )
+                    }
+            }.getOrNull()
+        }
+    }
+
     /** A fresh high-accuracy GPS fix, or null if none arrives within the timeout. */
     @SuppressLint("MissingPermission") // guarded by hasPermission()
     private suspend fun freshLocation(): Location? = withTimeoutOrNull(FRESH_FIX_TIMEOUT_MS) {
@@ -98,3 +127,13 @@ class LocationService @Inject constructor(
         const val FRESH_FIX_TIMEOUT_MS = 10_000L
     }
 }
+
+/**
+ * A location-derived jurisdiction PRE-SUGGESTION. Never authoritative — the user
+ * always confirms or overrides it in the picker before it's saved.
+ */
+data class JurisdictionSuggestion(
+    val stateCode: String,
+    val county: String?,
+    val city: String?,
+)

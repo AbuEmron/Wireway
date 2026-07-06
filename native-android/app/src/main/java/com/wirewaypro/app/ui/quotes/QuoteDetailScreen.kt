@@ -97,6 +97,7 @@ fun QuoteDetailScreen(
     onPullList: (String) -> Unit = {},
     onOpenInvoice: (String) -> Unit = {},
     onOpenSubscription: () -> Unit = {},
+    onOpenJurisdiction: () -> Unit = {},
     viewModel: QuoteDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -188,6 +189,10 @@ fun QuoteDetailScreen(
             }
 
             Header(quote = quote, kind = kind)
+
+            // Honest AHJ coverage: what code this is checked against + the amendment
+            // gap. Never a "compliant" claim. Broadly available (not tier-gated).
+            com.wirewaypro.app.ui.ahj.AhjCoverageCard(onEdit = onOpenJurisdiction)
 
             if (quote.isInvoice) {
                 SectionCard(title = "Invoice") {

@@ -59,6 +59,7 @@ object DashDest {
     const val SUBSCRIPTION = "subscription"
     const val PROFILE_EDIT = "profile_edit"
     const val GET_PAID = "get_paid"
+    const val JURISDICTION = "jurisdiction"
 
     const val JOB_DETAIL = "job/{id}"
     const val ESTIMATE_DETAIL = "estimate/{id}"
