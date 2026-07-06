@@ -150,10 +150,19 @@ class EsignManager @Inject constructor(
             identityCheck = if (signer.email.isNullOrBlank()) "In person" else "Email on file",
         )
 
-        // 2) Render + hash the sealed PDF (off the main thread).
-        val seal = withContext(Dispatchers.IO) {
-            QuotePdfGenerator.generateSealed(context, quote, input, business, logo, accent)
+        // 2) Render + hash the sealed PDF (off the main thread), then relocate it
+        //    from the (evictable) cache into the DURABLE files dir — a signed legal
+        //    record must survive cache clearing (never lose a signed record). The
+        //    bytes are copied verbatim, so sealedSha256 still matches the file.
+        val sealedPdf = withContext(Dispatchers.IO) {
+            val seal = QuotePdfGenerator.generateSealed(context, quote, input, business, logo, accent)
+                ?: return@withContext null
+            val durable = File(File(context.filesDir, "esign").apply { mkdirs() }, "signed-${session.recordId}.pdf")
+            seal.file.copyTo(durable, overwrite = true)
+            seal.file.delete()
+            Triple(durable, seal.contentSha256, seal.sealedSha256)
         } ?: error("Couldn't build the signed PDF.")
+        val (sealedFile, contentSha, sealedSha) = sealedPdf
 
         // 3) Encrypt the signature image at rest (drawn only; typed has no bitmap).
         val encPath = signatureBitmap?.let { bmp ->
@@ -173,9 +182,9 @@ class EsignManager @Inject constructor(
             consentVersion = session.consentVersion,
             consentGivenAtMillis = consentAt,
             signedAtMillis = nowMillis,
-            contentSha256 = seal.contentSha256,
-            sealedSha256 = seal.sealedSha256,
-            sealedPdfPath = seal.file.absolutePath,
+            contentSha256 = contentSha,
+            sealedSha256 = sealedSha,
+            sealedPdfPath = sealedFile.absolutePath,
             encryptedSignaturePath = encPath,
             context = env,
         )
@@ -187,7 +196,7 @@ class EsignManager @Inject constructor(
         repository.appendEvent(
             session.userId, session.recordId, EsignEventType.DOCUMENT_SEALED,
             session.consentVersion, nowMillis,
-            detailJson = """{"content_sha256":"${seal.contentSha256}","sealed_sha256":"${seal.sealedSha256}"}""",
+            detailJson = """{"content_sha256":"$contentSha","sealed_sha256":"$sealedSha"}""",
         )
         record
     }
