@@ -51,6 +51,11 @@ If a feature doesn't move one of those decisions, reconsider whether it belongs.
 5. **Never silently modify an estimate.** Detectors and scores *recommend with reasoning*; the contractor accepts or rejects each item. Overrides are always allowed and leave an audit trail.
 6. **Offline-first, zero data loss.** Field reality has no signal. Proper Room migrations, never destructive.
 
+## Hard product constraints (non-negotiable, values-level)
+
+- **No interest-based lending or financing anywhere in Wireway Pro — ever.** Do NOT build, integrate, scaffold, or surface client financing, pay-over-time lending, interest-bearing loans, or any third-party consumer-credit product (Wisetack, Affirm, and the like are prohibited). This is a firm decision by the owner and overrides any roadmap, pricing, or partner suggestion to the contrary.
+- **Interest-free money movement only.** "Pay over time" is allowed ONLY as interest-free arrangements the contractor controls on existing rails: deposits, milestone/progress draws, and split payments with **zero interest, zero finance charge, zero APR**. Never route to a lender, never present a financing offer, never compute or display interest.
+
 ---
 
 ## The new systems (sequenced, not simultaneous)
@@ -101,7 +106,7 @@ Build rules (this is a trust artifact above all):
 
 **NEXT (Gate 2–3):** Labor Confidence · Crew Reality Simulator · AHJ standard seeded on the home jurisdiction (adopted-edition flag first) · deeper material manager, advanced calculators.
 
-**LATER (Gate 3, earned):** Wireway Intelligence · Bid IQ **Stage 2** (comparative verdict) · AHJ standard spreading county-by-county · payments/financing depth. These require data or external partners — scaffold now, activate when the signal or the account exists; never fake them.
+**LATER (Gate 3, earned):** Wireway Intelligence · Bid IQ **Stage 2** (comparative verdict) · AHJ standard spreading county-by-county · interest-free payment-plan depth (deposits, milestone draws, split payments — NEVER lending or interest, per Hard product constraints) · native bookkeeping. These require data or (for accounting sync) an external account — scaffold now, activate when the signal or account exists; never fake them.
 
 ---
 
