@@ -42,6 +42,9 @@ object DatabaseModule {
                 WirewayDatabase.MIGRATION_5_6,
                 WirewayDatabase.MIGRATION_6_7,
                 WirewayDatabase.MIGRATION_7_8,
+                // v8 → v9 lives WITH the e-signature module (self-contained) so its
+                // schema travels with it; the DDL is additive (two new tables only).
+                com.wirewaypro.app.esign.data.EsignSchema.MIGRATION_8_9,
             )
             // NEVER a blanket destructive fallback — data loss is unacceptable
             // (it once wiped real user data on a sibling app). Every version step
@@ -83,4 +86,12 @@ object DatabaseModule {
 
     @Provides
     fun provideJurisdictionDao(db: WirewayDatabase): JurisdictionDao = db.jurisdictionDao()
+
+    @Provides
+    fun provideEsignRecordDao(db: WirewayDatabase): com.wirewaypro.app.esign.data.EsignRecordDao =
+        db.esignRecordDao()
+
+    @Provides
+    fun provideEsignAuditEventDao(db: WirewayDatabase): com.wirewaypro.app.esign.data.EsignAuditEventDao =
+        db.esignAuditEventDao()
 }

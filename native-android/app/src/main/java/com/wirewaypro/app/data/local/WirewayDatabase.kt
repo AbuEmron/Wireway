@@ -28,8 +28,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         UserAssemblyEntity::class,
         CrewMemberEntity::class,
         JurisdictionEntity::class,
+        com.wirewaypro.app.esign.data.EsignRecordEntity::class,
+        com.wirewaypro.app.esign.data.EsignAuditEventEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false,
 )
 abstract class WirewayDatabase : RoomDatabase() {
@@ -43,6 +45,8 @@ abstract class WirewayDatabase : RoomDatabase() {
     abstract fun userAssemblyDao(): UserAssemblyDao
     abstract fun crewMemberDao(): CrewMemberDao
     abstract fun jurisdictionDao(): JurisdictionDao
+    abstract fun esignRecordDao(): com.wirewaypro.app.esign.data.EsignRecordDao
+    abstract fun esignAuditEventDao(): com.wirewaypro.app.esign.data.EsignAuditEventDao
 
     companion object {
         const val NAME = "wireway.db"

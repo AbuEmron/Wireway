@@ -135,4 +135,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindJurisdictionRepository(impl: JurisdictionRepositoryImpl): JurisdictionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindEsignRepository(
+        impl: com.wirewaypro.app.esign.data.EsignRepositoryImpl,
+    ): com.wirewaypro.app.esign.data.EsignRepository
 }

@@ -42,6 +42,8 @@ class SyncManager @Inject constructor(
     private val jobDrawDao: JobDrawDao,
     private val crewMemberDao: CrewMemberDao,
     private val jurisdictionDao: JurisdictionDao,
+    private val esignRecordDao: com.wirewaypro.app.esign.data.EsignRecordDao,
+    private val esignAuditEventDao: com.wirewaypro.app.esign.data.EsignAuditEventDao,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true }
@@ -117,6 +119,10 @@ class SyncManager @Inject constructor(
         "job_draws" -> if (item.mode == "delete") jobDrawDao.hardDelete(item.id) else jobDrawDao.markSynced(item.id)
         "crew_members" -> if (item.mode == "delete") crewMemberDao.hardDelete(item.id) else crewMemberDao.markSynced(item.id)
         "user_jurisdictions" -> if (item.mode == "delete") jurisdictionDao.hardDelete(item.id) else jurisdictionDao.markSynced(item.id)
+        // E-signature tables are append-only (insert only, never delete) — a
+        // successful replay just marks the local row synced.
+        "esign_records" -> esignRecordDao.markSynced(item.id)
+        "esign_audit_events" -> esignAuditEventDao.markSynced(item.id)
         else -> Unit
     }
 
@@ -127,6 +133,8 @@ class SyncManager @Inject constructor(
         "job_draws" -> jobDrawDao.markError(item.id)
         "crew_members" -> crewMemberDao.markError(item.id)
         "user_jurisdictions" -> jurisdictionDao.markError(item.id)
+        "esign_records" -> esignRecordDao.markError(item.id)
+        "esign_audit_events" -> esignAuditEventDao.markError(item.id)
         else -> Unit
     }
 }

@@ -10,6 +10,11 @@ import android.graphics.pdf.PdfDocument
 import com.wirewaypro.app.domain.model.BusinessInfo
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.RateMode
+import com.wirewaypro.app.esign.SignatureMethod
+import com.wirewaypro.app.esign.crypto.Sha256
+import com.wirewaypro.app.esign.pdf.SealInput
+import com.wirewaypro.app.esign.pdf.SealResult
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 
@@ -398,4 +403,207 @@ object QuotePdfGenerator {
         if (line.isNotEmpty()) out.add(line.toString())
         return out
     }
+
+    // ══ E-signature sealing ═══════════════════════════════════════════════════════
+    // Reuses the exact proposal rendering above so the SIGNED document is visually
+    // identical to the estimate the client reviewed — the signature is flattened
+    // onto the same proposal, then a Completion Certificate page is appended.
+    // See WIREWAY_ESIGN_CONSENT_FLOW.md (Screen 3) and the esign module.
+
+    /**
+     * Seal [input]'s signature into [quote]'s proposal PDF and append a Completion
+     * Certificate. Returns the sealed file plus its two hashes (see [SealResult]),
+     * or null on any error. Deterministic given the same inputs.
+     *
+     * Two renders: the signed proposal WITHOUT the certificate is hashed to produce
+     * the document fingerprint (printed on the certificate); the final file WITH the
+     * certificate is hashed to produce the tamper-check value stored in the audit
+     * record. Never watermarked — a signed legal document is never a "free" export.
+     */
+    fun generateSealed(
+        context: Context,
+        quote: QuoteDetail,
+        input: SealInput,
+        business: BusinessInfo? = null,
+        logo: Bitmap? = null,
+        accent: Int? = null,
+    ): SealResult? = runCatching {
+        val accentColor = accent ?: ACCENT
+        val signedBytes = renderSealedBytes(quote, input, business, logo, accentColor, includeCertificate = false, fingerprint = "")
+        val contentSha = Sha256.hex(signedBytes)
+        val sealedBytes = renderSealedBytes(quote, input, business, logo, accentColor, includeCertificate = true, fingerprint = contentSha)
+        val sealedSha = Sha256.hex(sealedBytes)
+
+        val dir = File(context.cacheDir, "exports").apply { mkdirs() }
+        val tag = quote.quoteNumber?.takeIf { it.isNotBlank() } ?: quote.id.take(8)
+        val file = File(dir, "signed-${tag.replace(Regex("[^A-Za-z0-9_-]"), "_")}.pdf")
+        file.writeBytes(sealedBytes)
+        SealResult(file, contentSha, sealedSha)
+    }.getOrNull()
+
+    private fun renderSealedBytes(
+        quote: QuoteDetail,
+        input: SealInput,
+        business: BusinessInfo?,
+        logo: Bitmap?,
+        accent: Int,
+        includeCertificate: Boolean,
+        fingerprint: String,
+    ): ByteArray {
+        val doc = PdfDocument()
+        val state = PageState(doc, accent, watermark = false)
+        state.start()
+
+        drawHeader(state, quote)
+        if (business != null) drawBusiness(state, business, logo)
+        drawClient(state, quote)
+        drawLineItems(state, quote)
+        drawTotals(state, quote)
+        drawNotes(state, quote)
+        drawTerms(state)
+        drawFlattenedSignature(state, input)
+        drawFooter(state)
+        doc.finishPage(state.page)
+
+        if (includeCertificate) drawCertificatePage(doc, accent, input, quote, fingerprint)
+
+        val out = ByteArrayOutputStream()
+        doc.writeTo(out)
+        doc.close()
+        return out.toByteArray()
+    }
+
+    /** The flattened signature block that replaces the blank signature lines. */
+    private fun drawFlattenedSignature(s: PageState, input: SealInput) {
+        s.ensure(130f)
+        wrap(
+            "Signed and accepted by ${input.signerName}.",
+            paint(INK, 10f),
+            RIGHT - MARGIN,
+        ).forEach { line ->
+            s.canvas.drawText(line, MARGIN, s.y + 11f, paint(INK, 10f, bold = true))
+            s.y += 14f
+        }
+        s.y += 8f
+
+        val boxTop = s.y
+        val sigEnd = MARGIN + 260f
+        val dateStart = sigEnd + 30f
+        val bmp = input.signatureBitmap
+        if (bmp != null && bmp.width > 0 && bmp.height > 0) {
+            // Scale the drawn signature into the box above the line (best-effort).
+            val maxW = 240f
+            val maxH = 56f
+            val scale = minOf(maxW / bmp.width, maxH / bmp.height)
+            val w = bmp.width * scale
+            val h = bmp.height * scale
+            val bmpPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+            s.canvas.drawBitmap(bmp, null, RectF(MARGIN, boxTop, MARGIN + w, boxTop + h), bmpPaint)
+            s.y = boxTop + maxH
+        } else {
+            // Typed signature: render the typed name in a script-like italic serif.
+            val typed = input.typedName?.takeIf { it.isNotBlank() } ?: input.signerName
+            val scriptPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = INK
+                textSize = 26f
+                typeface = Typeface.create(Typeface.SERIF, Typeface.ITALIC)
+            }
+            s.canvas.drawText(typed, MARGIN, boxTop + 34f, scriptPaint)
+            s.y = boxTop + 46f
+        }
+
+        // Signature + date underlines with labels (mirrors the blank-form layout).
+        s.canvas.drawLine(MARGIN, s.y, sigEnd, s.y, paint(INK, 1f).apply { strokeWidth = 1f })
+        s.canvas.drawLine(dateStart, s.y, RIGHT, s.y, paint(INK, 1f).apply { strokeWidth = 1f })
+        s.canvas.drawText(fmtDate(input.signedAtMillis), dateStart, s.y - 4f, paint(INK, 10f))
+        s.y += 12f
+        s.canvas.drawText("Signature (${input.method.label.lowercase()})", MARGIN, s.y + 9f, paint(MUTED, 9f))
+        s.canvas.drawText("Date", dateStart, s.y + 9f, paint(MUTED, 9f))
+        s.y += 16f
+        val id = listOfNotNull(input.signerName, input.signerEmail).joinToString("  •  ")
+        s.canvas.drawText(id, MARGIN, s.y + 9f, paint(MUTED, 9f))
+        s.y += 16f
+    }
+
+    /**
+     * The Completion Certificate — its own page, appended after the signed proposal.
+     * Fields per WIREWAY_ESIGN_CONSENT_FLOW.md Screen 3. Language stays honest:
+     * "electronic signature", never "notarized" or "certified".
+     */
+    private fun drawCertificatePage(
+        doc: PdfDocument,
+        accent: Int,
+        input: SealInput,
+        quote: QuoteDetail,
+        fingerprint: String,
+    ) {
+        val page = doc.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, doc.pages.size + 1).create())
+        val c = page.canvas
+        var y = MARGIN
+
+        c.drawText("Certificate of Electronic Signature", MARGIN, y + 20f, paint(INK, 18f, bold = true))
+        y += 30f
+        wrap(
+            "This page is part of the signed document and records how it was signed.",
+            paint(MUTED, 10f), RIGHT - MARGIN,
+        ).forEach { c.drawText(it, MARGIN, y + 10f, paint(MUTED, 10f)); y += 14f }
+        y += 6f
+        c.drawLine(MARGIN, y, RIGHT, y, paint(accent, 1f).apply { strokeWidth = 2f })
+        y += 20f
+
+        val docTitle = input.documentTitle.ifBlank {
+            (quote.quoteNumber?.let { "Proposal #$it" } ?: "Proposal") +
+                (quote.jobName?.takeIf { it.isNotBlank() }?.let { " — $it" } ?: "")
+        }
+        val method = if (input.method == SignatureMethod.TYPED) "Typed" else "Drawn on device"
+        val ip = input.ipAddress?.takeIf { it.isNotBlank() } ?: "Not recorded"
+        val signer = listOfNotNull(input.signerName, input.signerEmail).joinToString("  •  ")
+
+        val rows = listOf(
+            "Document" to docTitle,
+            "Document fingerprint (SHA-256)" to fingerprint,
+            "Signer" to signer,
+            "Consent to sign electronically" to "Given ${fmtTimestamp(input.consentGivenAtMillis)}",
+            "Signed" to fmtTimestamp(input.signedAtMillis),
+            "Signature method" to method,
+            "Identity check" to input.identityCheck,
+            "Signed on" to "${input.deviceModel}, Wireway ${input.appVersion}",
+            "Network address" to ip,
+            "Sealed by" to "Wireway electronic signature",
+        )
+        val labelP = paint(MUTED, 10f, bold = true)
+        val valueP = paint(INK, 11f)
+        val valueX = MARGIN + 190f
+        for ((label, value) in rows) {
+            c.drawText(label, MARGIN, y + 11f, labelP)
+            val lines = wrap(value, valueP, RIGHT - valueX)
+            lines.forEachIndexed { i, line -> c.drawText(line, valueX, y + 11f + i * 14f, valueP) }
+            y += maxOf(20f, lines.size * 14f + 6f)
+            c.drawLine(MARGIN, y - 4f, RIGHT, y - 4f, paint(HAIR, 1f).apply { strokeWidth = 1f })
+        }
+
+        y += 12f
+        wrap(
+            "This certificate and the document's fingerprint let anyone confirm the document " +
+                "hasn't changed since it was signed. To verify, open it in Wireway and choose " +
+                "\"Verify integrity.\" This is an electronic signature under the U.S. ESIGN Act / " +
+                "UETA — it is not a notarization.",
+            paint(MUTED, 9f), RIGHT - MARGIN,
+        ).forEach { c.drawText(it, MARGIN, y + 10f, paint(MUTED, 9f)); y += 13f }
+
+        c.drawText("Generated by Wireway Pro", MARGIN, BOTTOM + 18f, paint(MUTED, 9f))
+        doc.finishPage(page)
+    }
+
+    private fun fmtTimestamp(millis: Long): String = runCatching {
+        java.time.Instant.ofEpochMilli(millis)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a z"))
+    }.getOrDefault(millis.toString())
+
+    private fun fmtDate(millis: Long): String = runCatching {
+        java.time.Instant.ofEpochMilli(millis)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
+    }.getOrDefault("")
 }
