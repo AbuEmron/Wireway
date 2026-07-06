@@ -98,6 +98,7 @@ fun QuoteDetailScreen(
     onOpenInvoice: (String) -> Unit = {},
     onOpenSubscription: () -> Unit = {},
     onOpenJurisdiction: () -> Unit = {},
+    onSign: (String) -> Unit = {},
     viewModel: QuoteDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -240,6 +241,11 @@ fun QuoteDetailScreen(
                         }
                     }
                 }
+
+                // Wireway's own electronic signature (US ESIGN/UETA): consent flow,
+                // signature pad, sealed PDF + tamper-evident fingerprint. A stronger,
+                // sealed record than the simple typed acceptance above.
+                com.wirewaypro.app.ui.esign.EsignStatusCard(onSign = { onSign(quote.id) })
             }
 
             // Client financing (Elite): a real Wisetack offer on this estimate,

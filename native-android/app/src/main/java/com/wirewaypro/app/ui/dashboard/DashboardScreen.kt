@@ -415,6 +415,7 @@ fun DashboardScreen(
                     onBack = { navController.popBackStack() },
                     onEdit = { id -> navController.navigate(DashDest.quoteBuilder(id = id)) },
                     onPullList = { id -> navController.navigate(DashDest.pullList(id)) },
+                    onSign = { id -> navController.navigate(DashDest.esign(id)) },
                     onOpenInvoice = { id ->
                         // Replace the estimate detail with the new invoice's detail.
                         navController.navigate(DashDest.invoiceDetail(id)) {
@@ -438,6 +439,11 @@ fun DashboardScreen(
                 MaterialPullListScreen(
                     onBack = { navController.popBackStack() },
                     onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
+            }
+            composable(DashDest.ESIGN, arguments = idArg) {
+                com.wirewaypro.app.ui.esign.EsignFlowScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
 
