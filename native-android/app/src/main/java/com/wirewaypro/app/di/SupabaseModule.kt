@@ -4,6 +4,7 @@ import com.wirewaypro.app.BuildConfig
 import com.wirewaypro.app.data.assemblies.UserTemplateRepositoryImpl
 import com.wirewaypro.app.data.auth.AuthRepositoryImpl
 import com.wirewaypro.app.data.clients.ClientRepositoryImpl
+import com.wirewaypro.app.data.ahj.JurisdictionRepositoryImpl
 import com.wirewaypro.app.data.crew.CrewRepositoryImpl
 import com.wirewaypro.app.data.expenses.ExpenseRepositoryImpl
 import com.wirewaypro.app.data.financing.WisetackFinancingRepository
@@ -19,6 +20,7 @@ import com.wirewaypro.app.domain.repository.CrewRepository
 import com.wirewaypro.app.domain.repository.ExpenseRepository
 import com.wirewaypro.app.domain.repository.FinancingRepository
 import com.wirewaypro.app.domain.repository.JobRepository
+import com.wirewaypro.app.domain.repository.JurisdictionRepository
 import com.wirewaypro.app.domain.repository.MoneyRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
@@ -129,4 +131,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindUserTemplateRepository(impl: UserTemplateRepositoryImpl): UserTemplateRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindJurisdictionRepository(impl: JurisdictionRepositoryImpl): JurisdictionRepository
 }

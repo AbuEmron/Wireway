@@ -6,6 +6,7 @@ import com.wirewaypro.app.data.local.ClientDao
 import com.wirewaypro.app.data.local.CrewMemberDao
 import com.wirewaypro.app.data.local.JobDao
 import com.wirewaypro.app.data.local.JobDrawDao
+import com.wirewaypro.app.data.local.JurisdictionDao
 import com.wirewaypro.app.data.local.OverrideDao
 import com.wirewaypro.app.data.local.QuoteDao
 import com.wirewaypro.app.data.local.QuotePhotoDao
@@ -40,6 +41,7 @@ object DatabaseModule {
                 WirewayDatabase.MIGRATION_4_5,
                 WirewayDatabase.MIGRATION_5_6,
                 WirewayDatabase.MIGRATION_6_7,
+                WirewayDatabase.MIGRATION_7_8,
             )
             // NEVER a blanket destructive fallback — data loss is unacceptable
             // (it once wiped real user data on a sibling app). Every version step
@@ -78,4 +80,7 @@ object DatabaseModule {
 
     @Provides
     fun provideCrewMemberDao(db: WirewayDatabase): CrewMemberDao = db.crewMemberDao()
+
+    @Provides
+    fun provideJurisdictionDao(db: WirewayDatabase): JurisdictionDao = db.jurisdictionDao()
 }

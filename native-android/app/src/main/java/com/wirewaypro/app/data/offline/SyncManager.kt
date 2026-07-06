@@ -4,6 +4,7 @@ import com.wirewaypro.app.data.local.ClientDao
 import com.wirewaypro.app.data.local.CrewMemberDao
 import com.wirewaypro.app.data.local.JobDao
 import com.wirewaypro.app.data.local.JobDrawDao
+import com.wirewaypro.app.data.local.JurisdictionDao
 import com.wirewaypro.app.data.local.QuoteDao
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -40,6 +41,7 @@ class SyncManager @Inject constructor(
     private val clientDao: ClientDao,
     private val jobDrawDao: JobDrawDao,
     private val crewMemberDao: CrewMemberDao,
+    private val jurisdictionDao: JurisdictionDao,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true }
@@ -114,6 +116,7 @@ class SyncManager @Inject constructor(
         "clients" -> if (item.mode == "delete") clientDao.hardDelete(item.id) else clientDao.markSynced(item.id)
         "job_draws" -> if (item.mode == "delete") jobDrawDao.hardDelete(item.id) else jobDrawDao.markSynced(item.id)
         "crew_members" -> if (item.mode == "delete") crewMemberDao.hardDelete(item.id) else crewMemberDao.markSynced(item.id)
+        "user_jurisdictions" -> if (item.mode == "delete") jurisdictionDao.hardDelete(item.id) else jurisdictionDao.markSynced(item.id)
         else -> Unit
     }
 
@@ -123,6 +126,7 @@ class SyncManager @Inject constructor(
         "clients" -> clientDao.markError(item.id)
         "job_draws" -> jobDrawDao.markError(item.id)
         "crew_members" -> crewMemberDao.markError(item.id)
+        "user_jurisdictions" -> jurisdictionDao.markError(item.id)
         else -> Unit
     }
 }

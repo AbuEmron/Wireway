@@ -27,8 +27,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         QuotePhotoEntity::class,
         UserAssemblyEntity::class,
         CrewMemberEntity::class,
+        JurisdictionEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class WirewayDatabase : RoomDatabase() {
@@ -41,6 +42,7 @@ abstract class WirewayDatabase : RoomDatabase() {
     abstract fun quotePhotoDao(): QuotePhotoDao
     abstract fun userAssemblyDao(): UserAssemblyDao
     abstract fun crewMemberDao(): CrewMemberDao
+    abstract fun jurisdictionDao(): JurisdictionDao
 
     companion object {
         const val NAME = "wireway.db"
@@ -187,6 +189,33 @@ abstract class WirewayDatabase : RoomDatabase() {
                 db.execSQL(CREW_MEMBERS_CREATE_TABLE)
                 db.execSQL(CREW_MEMBERS_INDEX_USER)
                 db.execSQL(CREW_MEMBERS_INDEX_SYNC)
+            }
+        }
+
+        // ── v7 → v8: AHJ jurisdiction (additive) ───────────────────────────────
+        // The user's selected Authority Having Jurisdiction. The exact DDL is
+        // exposed as constants so a pure-JVM migration test runs the identical SQL
+        // Room runs (see JurisdictionMigrationTest). Column list + types MUST stay
+        // in lock-step with [JurisdictionEntity] — Room validates the schema on
+        // open and crashes on any drift (which is what we want).
+        const val JURISDICTIONS_CREATE_TABLE =
+            "CREATE TABLE IF NOT EXISTS `user_jurisdictions` (" +
+                "`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `stateCode` TEXT NOT NULL, " +
+                "`county` TEXT, `city` TEXT, `source` TEXT NOT NULL, `createdAt` TEXT, " +
+                "`payloadJson` TEXT NOT NULL, `syncStatus` TEXT NOT NULL, " +
+                "`deleted` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, " +
+                "`syncAttempts` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+        const val JURISDICTIONS_INDEX_USER =
+            "CREATE INDEX IF NOT EXISTS `index_user_jurisdictions_userId` ON `user_jurisdictions` (`userId`)"
+        const val JURISDICTIONS_INDEX_SYNC =
+            "CREATE INDEX IF NOT EXISTS `index_user_jurisdictions_syncStatus` ON `user_jurisdictions` (`syncStatus`)"
+
+        /** v7 → v8: add the AHJ jurisdiction table (additive; no existing table touched). */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(JURISDICTIONS_CREATE_TABLE)
+                db.execSQL(JURISDICTIONS_INDEX_USER)
+                db.execSQL(JURISDICTIONS_INDEX_SYNC)
             }
         }
     }
