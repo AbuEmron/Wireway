@@ -1,5 +1,6 @@
 package com.wirewaypro.app.ui.jobs
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,12 +21,17 @@ import com.wirewaypro.app.domain.repository.ExpenseRepository
 import com.wirewaypro.app.domain.repository.JobRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
 import com.wirewaypro.app.domain.repository.TimeEntryRepository
+import com.wirewaypro.app.ui.util.JobCostPdfGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 /** Editable draw fields (numeric values as text). id == null → a new draw. */
@@ -77,6 +83,9 @@ data class JobDetailUiState(
     val crewLog: CrewLogDraft? = null,
     /** Elite true job costing: estimate vs actuals + true profit (null for lower tiers). */
     val costing: JobCosting? = null,
+    /** A built job-cost PDF waiting to be shared, or null. */
+    val pdfToShare: File? = null,
+    val exportingPdf: Boolean = false,
 ) {
     /** Entries still on the clock for this job (multiple crew can be clocked in). */
     val runningEntries: List<TimeEntry> get() = timeEntries.filter { it.isRunning }
@@ -84,6 +93,7 @@ data class JobDetailUiState(
 
 @HiltViewModel
 class JobDetailViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val auth: AuthRepository,
     private val jobRepository: JobRepository,
     private val expenseRepository: ExpenseRepository,
@@ -276,6 +286,26 @@ class JobDetailViewModel @Inject constructor(
             reloadDraws()
         }
     }
+
+    /** Elite: export a job-cost report (labor + materials actuals vs estimate) PDF. */
+    fun exportJobCostPdf() {
+        val job = _state.value.job ?: return
+        val costing = _state.value.costing ?: return
+        val entries = _state.value.timeEntries
+        _state.update { it.copy(exportingPdf = true) }
+        viewModelScope.launch {
+            val file = withContext(Dispatchers.IO) {
+                JobCostPdfGenerator.generate(appContext, job, costing, entries)
+            }
+            if (file == null) {
+                _state.update { it.copy(exportingPdf = false, error = "Couldn't build the report.") }
+            } else {
+                _state.update { it.copy(exportingPdf = false, pdfToShare = file) }
+            }
+        }
+    }
+
+    fun pdfConsumed() = _state.update { it.copy(pdfToShare = null) }
 
     private suspend fun reloadDraws() {
         val draws = jobRepository.getJobDraws(jobId).getOrDefault(emptyList())

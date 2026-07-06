@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Schedule
@@ -69,6 +70,9 @@ fun JobDetailScreen(
 
     com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::load)
     androidx.compose.runtime.LaunchedEffect(state.deleted) { if (state.deleted) onBack() }
+    androidx.compose.runtime.LaunchedEffect(state.pdfToShare) {
+        state.pdfToShare?.let { shareJobCostPdf(context, it); viewModel.pdfConsumed() }
+    }
 
     DetailScaffold(
         title = state.job?.title ?: "Job",
@@ -299,6 +303,17 @@ fun JobDetailScreen(
                         state.costing?.let { c ->
                             Spacer(Modifier.padding(top = 12.dp))
                             EstimateVsActualBlock(c)
+                            if (!c.isEmpty) {
+                                Spacer(Modifier.padding(top = 12.dp))
+                                OutlinedButton(
+                                    onClick = viewModel::exportJobCostPdf,
+                                    enabled = !state.exportingPdf,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Icon(Icons.Outlined.Description, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                                    Text(if (state.exportingPdf) "Building report…" else "Export job cost report (PDF)")
+                                }
+                            }
                         }
                     }
                 }
@@ -741,6 +756,24 @@ private fun shareReviewRequest(context: android.content.Context, clientName: Str
         putExtra(android.content.Intent.EXTRA_TEXT, message)
     }
     context.startActivity(android.content.Intent.createChooser(intent, "Ask for a review"))
+}
+
+/** Shares the built job-cost report PDF via the system chooser (FileProvider). */
+private fun shareJobCostPdf(context: android.content.Context, file: java.io.File) {
+    runCatching {
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context, "${context.packageName}.fileprovider", file,
+        )
+        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(
+            android.content.Intent.createChooser(intent, "Share job cost report")
+                .apply { addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK) },
+        )
+    }
 }
 
 private fun shareDrawPayLink(context: android.content.Context, jobId: String) {
