@@ -58,6 +58,7 @@ fun ExpensesScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val batchState by batchViewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var selected by remember { mutableStateOf<Expense?>(null) }
     var pendingDelete by remember { mutableStateOf<Expense?>(null) }
     var showBatchCamera by remember { mutableStateOf(false) }
     RefreshOnReturn(viewModel::refresh)
@@ -122,9 +123,19 @@ fun ExpensesScreen(
             },
         ) {
             items(state.items, key = { it.id }) { expense ->
-                ExpenseRow(expense = expense, onClick = { pendingDelete = expense })
+                ExpenseRow(expense = expense, onClick = { selected = expense })
             }
         }
+    }
+
+    // Tapping a card opens read-only details; delete lives behind its own button
+    // here so it can't be triggered by an accidental tap on the row.
+    selected?.let { expense ->
+        ExpenseDetailDialog(
+            expense = expense,
+            onDelete = { selected = null; pendingDelete = expense },
+            onDismiss = { selected = null },
+        )
     }
 
     pendingDelete?.let { expense ->
@@ -180,4 +191,49 @@ private fun ExpenseRow(expense: Expense, onClick: () -> Unit) {
         subtitle = subtitle,
         footerStart = Format.date(expense.expenseDate),
     )
+}
+
+/** Read-only details for a tapped expense; delete sits behind its own button. */
+@Composable
+private fun ExpenseDetailDialog(
+    expense: Expense,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val title = expense.vendor?.takeIf { it.isNotBlank() }
+        ?: expense.description?.takeIf { it.isNotBlank() }
+        ?: ExpenseCategories.label(expense.category)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                ExpenseDetailLine("Amount", Format.money(expense.amount))
+                ExpenseDetailLine("Category", ExpenseCategories.label(expense.category))
+                expense.expenseDate?.let { ExpenseDetailLine("Date", Format.date(it)) }
+                expense.vendor?.takeIf { it.isNotBlank() }?.let { ExpenseDetailLine("Vendor", it) }
+                expense.description?.takeIf { it.isNotBlank() }?.let { ExpenseDetailLine("Notes", it) }
+                if (expense.receiptUrl != null) ExpenseDetailLine("Receipt", "📎 attached")
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        dismissButton = {
+            TextButton(onClick = onDelete) {
+                Text("Delete", color = MaterialTheme.colorScheme.error)
+            }
+        },
+    )
+}
+
+@Composable
+private fun ExpenseDetailLine(label: String, value: String) {
+    Column {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(value, style = MaterialTheme.typography.bodyLarge)
+    }
 }
