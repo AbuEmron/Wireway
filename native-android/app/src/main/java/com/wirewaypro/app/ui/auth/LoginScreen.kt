@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -28,10 +29,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.ui.components.GradientButton
 import com.wirewaypro.app.ui.components.WirewayLogoBadge
+import com.wirewaypro.app.ui.components.riseIn
 import com.wirewaypro.app.ui.theme.BrandGradients
 
 /**
@@ -39,10 +42,11 @@ import com.wirewaypro.app.ui.theme.BrandGradients
  * logo badge anchors the screen, the brand tagline sets the tone, and the primary
  * CTA is the gradient sign-in button. Loading + error states are driven by
  * [LoginViewModel]; a successful sign-in routes to the dashboard via the session
- * observer.
+ * observer. [onCreateAccount] toggles across to the Sign Up screen.
  */
 @Composable
 fun LoginScreen(
+    onCreateAccount: () -> Unit = {},
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -60,7 +64,7 @@ fun LoginScreen(
         Spacer(Modifier.height(48.dp))
 
         // Logo badge over a soft radial brand glow.
-        Box(contentAlignment = Alignment.Center) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.riseIn(0)) {
             Box(
                 modifier = Modifier
                     .height(140.dp)
@@ -72,13 +76,14 @@ fun LoginScreen(
 
         Spacer(Modifier.height(20.dp))
         Text(
-            text = "Wireway",
-            style = MaterialTheme.typography.displayMedium,
+            text = "WIREWAY",
+            style = MaterialTheme.typography.displayMedium.copy(letterSpacing = 2.sp),
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.riseIn(1),
         )
         Text(
-            text = "Powered by Precision",
+            text = "Electrical estimating · Powered by Precision",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium,
@@ -102,7 +107,7 @@ fun LoginScreen(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next,
             ),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().riseIn(2),
         )
         Spacer(Modifier.height(14.dp))
 
@@ -119,7 +124,7 @@ fun LoginScreen(
                 imeAction = ImeAction.Done,
             ),
             keyboardActions = KeyboardActions(onDone = { viewModel.signIn() }),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().riseIn(3),
         )
 
         if (state.error != null) {
@@ -137,8 +142,17 @@ fun LoginScreen(
             onClick = viewModel::signIn,
             enabled = state.canSubmit,
             loading = state.isSubmitting,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().riseIn(4),
         )
-        Spacer(Modifier.height(48.dp))
+
+        Spacer(Modifier.height(10.dp))
+        TextButton(onClick = onCreateAccount, enabled = !state.isSubmitting) {
+            Text(
+                text = "New to Wireway? Create an account",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Spacer(Modifier.height(40.dp))
     }
 }

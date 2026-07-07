@@ -44,7 +44,26 @@ class TimeEntryRepositoryImpl @Inject constructor(
             .map { it.toDomain() }
     }
 
-    override suspend fun start(userId: String, jobId: String?, rate: Double): Result<TimeEntry> = runCatching {
+    override suspend fun getForJob(userId: String, jobId: String): Result<List<TimeEntry>> = runCatching {
+        entries()
+            .select {
+                filter {
+                    eq("user_id", userId)
+                    eq("job_id", jobId)
+                }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<TimeEntryDto>()
+            .map { it.toDomain() }
+    }
+
+    override suspend fun start(
+        userId: String,
+        jobId: String?,
+        rate: Double,
+        crewMemberId: String?,
+        workerName: String?,
+    ): Result<TimeEntry> = runCatching {
         val payload = buildJsonObject {
             put("id", UUID.randomUUID().toString())
             put("user_id", userId)
@@ -52,6 +71,8 @@ class TimeEntryRepositoryImpl @Inject constructor(
             put("clock_in", Instant.now().toString())
             put("rate", rate)
             put("is_running", true)
+            put("crew_member_id", crewMemberId)
+            put("worker_name", workerName)
         }
         entries().insert(payload) { select() }.decodeSingle<TimeEntryDto>().toDomain()
     }
@@ -77,6 +98,8 @@ class TimeEntryRepositoryImpl @Inject constructor(
         hours: Double,
         rate: Double,
         notes: String?,
+        crewMemberId: String?,
+        workerName: String?,
     ): Result<TimeEntry> = runCatching {
         val payload = buildJsonObject {
             put("id", UUID.randomUUID().toString())
@@ -86,6 +109,8 @@ class TimeEntryRepositoryImpl @Inject constructor(
             put("rate", rate)
             put("is_running", false)
             put("notes", notes)
+            put("crew_member_id", crewMemberId)
+            put("worker_name", workerName)
         }
         entries().insert(payload) { select() }.decodeSingle<TimeEntryDto>().toDomain()
     }

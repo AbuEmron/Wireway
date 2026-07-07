@@ -27,7 +27,9 @@ class SyncWorker @AssistedInject constructor(
     override suspend fun doWork(): Result =
         try {
             syncManager.flush()
-            if (queue.all().isEmpty()) Result.success() else Result.retry()
+            // Done once nothing is left that CAN be flushed — parked (failed) writes
+            // stay in the queue for a manual retry, so don't spin WorkManager on them.
+            if (queue.hasFlushable()) Result.retry() else Result.success()
         } catch (e: Exception) {
             Result.retry()
         }

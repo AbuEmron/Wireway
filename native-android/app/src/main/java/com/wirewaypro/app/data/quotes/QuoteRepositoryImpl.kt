@@ -8,6 +8,9 @@ import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.model.QuoteSummary
 import com.wirewaypro.app.domain.repository.QuoteRepository
 import com.wirewaypro.app.domain.util.IsoDate
+import com.wirewaypro.app.data.local.QuoteDao
+import com.wirewaypro.app.data.local.QuoteEntity
+import com.wirewaypro.app.data.local.SyncStatus
 import com.wirewaypro.app.data.offline.NetworkMonitor
 import com.wirewaypro.app.data.offline.OfflineQueue
 import com.wirewaypro.app.data.offline.QueuedSave
@@ -17,6 +20,8 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Count
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
@@ -35,31 +40,82 @@ class QuoteRepositoryImpl @Inject constructor(
     private val client: SupabaseClient,
     private val queue: OfflineQueue,
     private val network: NetworkMonitor,
+    private val dao: QuoteDao,
+    private val draftStore: QuoteDraftStore,
+    private val overrideTrail: OverrideTrail,
+    private val photoStore: QuotePhotoStore,
 ) : QuoteRepository {
 
     private fun quotes() = client.postgrest.from("quotes")
 
-    private suspend fun fetchSummaries(userId: String): List<QuoteSummary> =
-        quotes()
-            .select(Columns.list(*QUOTE_LIST_COLUMNS.toTypedArray())) {
+    private val json = Json { ignoreUnknownKeys = true }
+
+    override fun pendingSyncCount() = dao.pendingCount()
+
+    /** Builds the local row from the exact push payload, tagged with a sync state. */
+    private fun localEntity(
+        userId: String,
+        payload: JsonObject,
+        syncStatus: String,
+        updatedAt: Long,
+        createdAt: String?,
+    ): QuoteEntity =
+        json.decodeFromJsonElement(QuoteDto.serializer(), payload)
+            .toEntity(userId, updatedAt = updatedAt, syncStatus = syncStatus)
+            .copy(createdAt = createdAt, deleted = false)
+
+    /**
+     * Reconciles the local cache with Supabase. Best-effort: if the network is
+     * down (or a read fails) the local rows are left untouched, so reads still
+     * return the last-known data offline. Pulls FULL rows (not the slim list
+     * projection) so the detail screen and offline edits have everything.
+     *
+     * Last-write-wins guard: rows with a local change still waiting to push
+     * (syncStatus != synced, incl. delete tombstones) are NEVER overwritten or
+     * pruned by the server copy — the contractor's unsynced edit always wins
+     * until it's pushed. Everything else is mirrored: upsert server rows, drop
+     * locals the server no longer has.
+     */
+    private suspend fun refresh(userId: String) {
+        if (!network.isOnline()) return
+        val rows = quotes()
+            .select {
                 filter { eq("user_id", userId) }
                 order("created_at", Order.DESCENDING)
                 limit(200)
             }
             .decodeList<QuoteDto>()
-            .map { it.toSummary() }
+        val now = System.currentTimeMillis()
+        val pendingIds = dao.pending().mapTo(HashSet()) { it.id }
+        dao.upsertAll(
+            rows.filter { it.id !in pendingIds }.map { it.toEntity(userId, updatedAt = now) },
+        )
+        // Prune rows deleted on another device — but keep unsynced local rows
+        // (a local-only create isn't on the server yet; don't lose it).
+        val serverIds = rows.mapTo(HashSet()) { it.id }
+        dao.allIds(userId).forEach { id ->
+            if (id !in serverIds && id !in pendingIds) dao.hardDelete(id)
+        }
+    }
 
-    override suspend fun getEstimates(userId: String): Result<List<QuoteSummary>> =
-        runCatching { fetchSummaries(userId).filter { !it.isInvoice } }
+    override suspend fun getEstimates(userId: String): Result<List<QuoteSummary>> = runCatching {
+        runCatching { refresh(userId) } // offline → fall through to the cache
+        dao.observeEstimates(userId).first().map { it.toSummary() }
+    }
 
-    override suspend fun getInvoices(userId: String): Result<List<QuoteSummary>> =
-        runCatching { fetchSummaries(userId).filter { it.isInvoice } }
+    override suspend fun getInvoices(userId: String): Result<List<QuoteSummary>> = runCatching {
+        runCatching { refresh(userId) }
+        dao.observeInvoices(userId).first().map { it.toSummary() }
+    }
 
     override suspend fun getQuote(quoteId: String): Result<QuoteDetail> = runCatching {
-        quotes()
-            .select { filter { eq("id", quoteId) } }
-            .decodeSingleOrNull<QuoteDto>()
-            ?.toDetail()
+        // Cached locally → read-through (works offline). Not cached yet (e.g. a
+        // deep link before any list load) → fall back to a direct server read.
+        dao.getById(quoteId)?.takeIf { !it.deleted }?.toDetail()
+            ?: quotes()
+                .select { filter { eq("id", quoteId) } }
+                .decodeSingleOrNull<QuoteDto>()
+                ?.toDetail()
             ?: error("Quote not found.")
     }
 
@@ -116,6 +172,8 @@ class QuoteRepositoryImpl @Inject constructor(
             put("invoice_paid", input.invoicePaid)
             put("tax_enabled", input.taxEnabled)
             put("tax_rate", input.taxRate)
+            // deposit_percent is an INTEGER column — whole percent or null.
+            put("deposit_percent", input.depositPercent)
             put("entries", entriesJson)
             put("custom_items", customItemsJson)
             put("total_material", totals.totalMaterial)
@@ -127,6 +185,15 @@ class QuoteRepositoryImpl @Inject constructor(
             put("status", "draft")
         }
 
+        val now = System.currentTimeMillis()
+
+        // 1) Write-through: persist to Room FIRST so the edit survives an app kill
+        //    or crash and is instantly readable, even before it reaches the server.
+        //    Preserve the server createdAt on edits so ordering doesn't jump.
+        val createdAt = if (input.id != null) dao.getById(rowId)?.createdAt else null
+        dao.upsert(localEntity(userId, payload, SyncStatus.PENDING, updatedAt = now, createdAt = createdAt))
+
+        // 2) Try to push now if we're online.
         if (network.isOnline()) {
             try {
                 val saved = if (input.id == null) {
@@ -137,15 +204,22 @@ class QuoteRepositoryImpl @Inject constructor(
                         select()
                     }.decodeSingle<QuoteDto>()
                 }
+                // Reflect server truth (createdAt, totals) back into Room, now synced.
+                dao.upsert(saved.toEntity(userId, updatedAt = now, syncStatus = SyncStatus.SYNCED))
                 return@runCatching saved.toDetail()
             } catch (e: Exception) {
-                // Genuine error (bad data, auth) → surface it; only a dropped
-                // connection falls through to the offline queue.
-                if (!isConnectivityError(e)) throw e
+                // Genuine error (bad data, auth) → flag the local row so it isn't
+                // silently lost, then surface it. Only a dropped connection falls
+                // through to the offline queue.
+                if (!isConnectivityError(e)) {
+                    dao.markError(rowId)
+                    throw e
+                }
             }
         }
 
-        // Offline (or the connection dropped mid-save) — hold it and sync later.
+        // 3) Offline (or the connection dropped mid-save) — the row stays PENDING in
+        //    Room; enqueue the push so the existing queue/WorkManager syncs it later.
         queue.enqueue(
             QueuedSave(
                 id = rowId,
@@ -153,7 +227,7 @@ class QuoteRepositoryImpl @Inject constructor(
                 mode = "upsert",
                 payload = payload.toString(),
                 userId = userId,
-                createdAt = System.currentTimeMillis(),
+                createdAt = now,
             )
         )
         optimisticDetail(input, rowId, quoteNumber, totals)
@@ -200,7 +274,69 @@ class QuoteRepositoryImpl @Inject constructor(
     )
 
     override suspend fun deleteQuote(userId: String, quoteId: String): Result<Unit> = runCatching {
-        quotes().delete { filter { eq("id", quoteId); eq("user_id", userId) } }
+        val now = System.currentTimeMillis()
+        if (network.isOnline()) {
+            try {
+                quotes().delete { filter { eq("id", quoteId); eq("user_id", userId) } }
+                // PostgREST deletes are fire-and-forget (0 rows affected is still
+                // 2xx) — confirm the row is gone so a blocked delete (e.g. RLS)
+                // surfaces as an error instead of the quote reappearing on the
+                // next refresh.
+                val remaining = quotes()
+                    .select(Columns.list("id")) {
+                        filter { eq("id", quoteId); eq("user_id", userId) }
+                        count(Count.EXACT)
+                    }
+                    .countOrNull() ?: 0L
+                if (remaining > 0L) error("The server didn't accept the delete.")
+                // A queued (unsynced) save for this row would re-insert it on the
+                // next flush — the delete must displace it.
+                queue.remove(quoteId)
+                dao.hardDelete(quoteId)
+                draftStore.clear(quoteId)
+                overrideTrail.clear(quoteId)
+                photoStore.clearFor(quoteId)
+                return@runCatching
+            } catch (e: Exception) {
+                if (!isConnectivityError(e)) throw e
+            }
+        }
+        // Offline — tombstone locally (hidden from lists immediately) and queue the
+        // delete so it's pushed when connectivity returns. Enqueue replaces any
+        // queued save for the same id, so a pending edit can't resurrect the row.
+        dao.getById(quoteId)?.let {
+            dao.upsert(it.copy(deleted = true, syncStatus = SyncStatus.PENDING, updatedAt = now))
+        }
+        queue.enqueue(
+            QueuedSave(
+                id = quoteId,
+                table = "quotes",
+                mode = "delete",
+                payload = "{}",
+                userId = userId,
+                createdAt = now,
+            )
+        )
+        draftStore.clear(quoteId)
+        overrideTrail.clear(quoteId)
+        photoStore.clearFor(quoteId)
+    }
+
+    override suspend fun markAccepted(
+        userId: String,
+        quoteId: String,
+        signedName: String,
+    ): Result<QuoteDetail> = runCatching {
+        val payload = buildJsonObject {
+            put("status", "accepted")
+            put("sig_name", signedName)
+            put("sig_date", java.time.LocalDate.now().toString())
+            put("signed_at", Instant.now().toString())
+        }
+        quotes().update(payload) {
+            filter { eq("id", quoteId); eq("user_id", userId) }
+            select()
+        }.decodeSingle<QuoteDto>().toDetail()
     }
 
     override suspend fun setInvoicePaid(

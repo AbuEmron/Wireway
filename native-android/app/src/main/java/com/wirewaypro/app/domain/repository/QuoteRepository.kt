@@ -3,8 +3,12 @@ package com.wirewaypro.app.domain.repository
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.QuoteInput
 import com.wirewaypro.app.domain.model.QuoteSummary
+import kotlinx.coroutines.flow.Flow
 
 interface QuoteRepository {
+    /** Live count of quotes with local changes still waiting to sync (pending or errored). */
+    fun pendingSyncCount(): Flow<Int>
+
     /** Quotes that are NOT in invoice mode (estimates), newest first. */
     suspend fun getEstimates(userId: String): Result<List<QuoteSummary>>
 
@@ -25,6 +29,12 @@ interface QuoteRepository {
     suspend fun deleteQuote(userId: String, quoteId: String): Result<Unit>
 
     /** Marks an invoice paid/unpaid (sets invoice_paid, paid_at, status). */
+    /**
+     * Marks an estimate accepted with a typed client signature (same fields the
+     * web accept page writes: sig_name / sig_date / signed_at + status).
+     */
+    suspend fun markAccepted(userId: String, quoteId: String, signedName: String): Result<QuoteDetail>
+
     suspend fun setInvoicePaid(userId: String, quoteId: String, paid: Boolean): Result<QuoteDetail>
 
     /** Sets (or clears) an invoice's due date. */

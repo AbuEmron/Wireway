@@ -25,15 +25,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wirewaypro.app.domain.model.FreeLimits
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.ui.components.ConfirmDialog
 import com.wirewaypro.app.ui.components.FormField
 import com.wirewaypro.app.ui.components.SaveTopBar
 import com.wirewaypro.app.ui.components.SectionCard
+import com.wirewaypro.app.ui.components.UpgradePrompt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClientEditScreen(
     onClose: () -> Unit,
+    onOpenSubscription: () -> Unit = {},
     viewModel: ClientEditViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -87,6 +91,17 @@ fun ClientEditScreen(
 
             if (state.error != null) {
                 Text(state.error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+
+            // Free hit the saved-client ceiling on Save — the Pro moment.
+            if (state.clientCapReached) {
+                UpgradePrompt(
+                    hook = "Your client list is growing",
+                    detail = "Free includes ${FreeLimits.MAX_CLIENTS} saved clients and you've used them all. " +
+                        "Pro is unlimited — clients, quotes, invoices.",
+                    tier = Tier.PRO,
+                    onUpgrade = onOpenSubscription,
+                )
             }
         }
     }

@@ -1,19 +1,37 @@
 package com.wirewaypro.app.ui.jobs
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wirewaypro.app.data.entitlements.TierService
+import com.wirewaypro.app.domain.model.CrewMember
 import com.wirewaypro.app.domain.model.Job
+import com.wirewaypro.app.domain.model.JobCosting
 import com.wirewaypro.app.domain.model.JobDraw
 import com.wirewaypro.app.domain.model.JobDrawInput
+import com.wirewaypro.app.domain.model.JobProfitability
+import com.wirewaypro.app.domain.model.MoneyMath
+import com.wirewaypro.app.domain.model.TimeEntry
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.repository.AuthRepository
+import com.wirewaypro.app.data.prefs.SettingsPrefs
+import com.wirewaypro.app.domain.repository.CrewRepository
+import com.wirewaypro.app.domain.repository.ExpenseRepository
 import com.wirewaypro.app.domain.repository.JobRepository
+import com.wirewaypro.app.domain.repository.QuoteRepository
+import com.wirewaypro.app.domain.repository.TimeEntryRepository
+import com.wirewaypro.app.ui.util.JobCostPdfGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 /** Editable draw fields (numeric values as text). id == null → a new draw. */
@@ -31,19 +49,59 @@ data class DrawDraft(
     }
 }
 
+/**
+ * Editor for logging a crew member's hours against this job. [crewMemberId] null
+ * until a crew member is chosen; [hours] as text. Labor cost = hours × the chosen
+ * crew member's cost rate, computed deterministically at save.
+ */
+data class CrewLogDraft(
+    val crewMemberId: String? = null,
+    val hours: String = "",
+    val notes: String = "",
+)
+
 data class JobDetailUiState(
     val isLoading: Boolean = true,
     val job: Job? = null,
     val draws: List<JobDraw> = emptyList(),
+    val profitability: JobProfitability? = null,
+    val reviewLink: String = "",
     val error: String? = null,
     val editingDraw: DrawDraft? = null,
     val deleted: Boolean = false,
-)
+    // Defaults to ELITE so the upgrade moment never flashes for paying users
+    // before the real tier resolves.
+    val tier: Tier = Tier.ELITE,
+    /** The job's contract total ("you bid"), set for Elite's bid-vs-actual rows. */
+    val estimateTotal: Double? = null,
+    // ── Elite crew + time (only populated for Elite) ─────────────────────────
+    /** Active crew for the "log hours" picker. */
+    val crew: List<CrewMember> = emptyList(),
+    /** All time entries tagged to this job (running + completed), newest first. */
+    val timeEntries: List<TimeEntry> = emptyList(),
+    /** The open "log crew hours" editor, or null. */
+    val crewLog: CrewLogDraft? = null,
+    /** Elite true job costing: estimate vs actuals + true profit (null for lower tiers). */
+    val costing: JobCosting? = null,
+    /** A built job-cost PDF waiting to be shared, or null. */
+    val pdfToShare: File? = null,
+    val exportingPdf: Boolean = false,
+) {
+    /** Entries still on the clock for this job (multiple crew can be clocked in). */
+    val runningEntries: List<TimeEntry> get() = timeEntries.filter { it.isRunning }
+}
 
 @HiltViewModel
 class JobDetailViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val auth: AuthRepository,
     private val jobRepository: JobRepository,
+    private val expenseRepository: ExpenseRepository,
+    private val timeEntryRepository: TimeEntryRepository,
+    private val crewRepository: CrewRepository,
+    private val quoteRepository: QuoteRepository,
+    private val settingsPrefs: SettingsPrefs,
+    private val tierService: TierService,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -52,8 +110,18 @@ class JobDetailViewModel @Inject constructor(
     private val _state = MutableStateFlow(JobDetailUiState())
     val state: StateFlow<JobDetailUiState> = _state.asStateFlow()
 
+    // Estimate basis for job costing, loaded once per job from the linked quote.
+    // Labor is compared in HOURS (the estimate's labor dollars are a bill rate,
+    // not a cost — see JobCosting); materials in cost dollars.
+    private var estLaborHours = 0.0
+    private var estMaterialCost = 0.0
+    private var hasEstimate = false
+
     init {
         load()
+        viewModelScope.launch {
+            settingsPrefs.reviewLink.collect { link -> _state.update { it.copy(reviewLink = link) } }
+        }
     }
 
     fun load() {
@@ -69,12 +137,180 @@ class JobDetailViewModel @Inject constructor(
             }
             val draws = jobRepository.getJobDraws(jobId).getOrDefault(emptyList())
             _state.update { it.copy(isLoading = false, job = job, draws = draws, error = null) }
+            refreshProfitability(draws)
+
+            // Elite's bid-vs-actual: the job's contract total is the bid, so
+            // "Did I make money?" can line it up against real costs. Lower
+            // tiers see the contextual Elite moment instead.
+            val tier = tierService.current()
+            _state.update {
+                it.copy(tier = tier, estimateTotal = if (tier.atLeast(Tier.ELITE)) job.total else null)
+            }
+            // Elite: load the crew roster + the estimate basis for true costing.
+            if (tier.atLeast(Tier.ELITE)) {
+                val userId = auth.currentUserId()
+                val crew = userId?.let { crewRepository.getCrew(it).getOrDefault(emptyList()) }
+                    ?.filter { it.active }.orEmpty()
+                _state.update { it.copy(crew = crew) }
+                loadEstimateBasis(job)
+                // Rebuild costing now that the estimate basis is loaded.
+                _state.value.profitability?.let { buildCosting(it) }
+            }
         }
     }
+
+    /**
+     * Pulls the estimate basis from the job's linked quote: estimated labor HOURS
+     * (quote total_hours) and estimated material COST (quote total_material). No
+     * linked quote → no estimate side (the card shows actuals only, never a fake $0).
+     */
+    private suspend fun loadEstimateBasis(job: Job) {
+        val quoteId = job.quoteId
+        if (quoteId.isNullOrBlank()) {
+            hasEstimate = false
+            estLaborHours = 0.0
+            estMaterialCost = 0.0
+            return
+        }
+        val quote = quoteRepository.getQuote(quoteId).getOrNull()
+        if (quote == null) {
+            hasEstimate = false
+            return
+        }
+        estLaborHours = quote.totalHours ?: 0.0
+        estMaterialCost = quote.totalMaterial ?: 0.0
+        hasEstimate = quote.totalHours != null || quote.totalMaterial != null
+    }
+
+    /** Builds the Elite [JobCosting] from the estimate basis + recorded actuals. */
+    private fun buildCosting(p: JobProfitability) {
+        _state.update {
+            it.copy(
+                costing = JobCosting(
+                    estimatedLaborHours = estLaborHours,
+                    actualLaborHours = p.laborHours,
+                    actualLaborCost = p.laborCost,
+                    estimatedMaterialCost = estMaterialCost,
+                    actualMaterialCost = p.materials,
+                    collected = p.collected,
+                    hasEstimate = hasEstimate,
+                ),
+            )
+        }
+    }
+
+    /**
+     * "Did I make money?" — paid draws (net) minus job-tagged expenses and
+     * completed time entries. Best-effort: failures just leave the card as-is.
+     */
+    private suspend fun refreshProfitability(draws: List<JobDraw>) {
+        val userId = auth.currentUserId() ?: return
+        val expenses = expenseRepository.getExpensesForJob(userId, jobId).getOrDefault(emptyList())
+        val allEntries = timeEntryRepository.getForJob(userId, jobId).getOrDefault(emptyList())
+        // Only COMPLETED entries contribute real labor cost; running timers don't
+        // count until they're stopped (hours are still accruing).
+        val completed = allEntries.filter { !it.isRunning }
+        val profitability = JobProfitability(
+            collected = MoneyMath.round2(draws.filter { it.status == "paid" }.sumOf { it.net }),
+            materials = MoneyMath.round2(expenses.sumOf { it.amount }),
+            laborHours = MoneyMath.round2(completed.sumOf { it.hours ?: 0.0 }),
+            laborCost = MoneyMath.round2(completed.sumOf { it.laborCost }),
+        )
+        _state.update { it.copy(profitability = profitability, timeEntries = allEntries) }
+        // Keep the Elite costing card in step with freshly-logged actuals.
+        if (_state.value.tier.atLeast(Tier.ELITE)) buildCosting(profitability)
+    }
+
+    // ── Elite: log crew hours against this job ────────────────────────────────
+    fun openCrewLog() = _state.update {
+        it.copy(crewLog = CrewLogDraft(crewMemberId = it.crew.firstOrNull()?.id))
+    }
+
+    fun updateCrewLog(transform: (CrewLogDraft) -> CrewLogDraft) = _state.update {
+        it.copy(crewLog = it.crewLog?.let(transform))
+    }
+
+    fun closeCrewLog() = _state.update { it.copy(crewLog = null) }
+
+    /** Saves a manual crew-hours entry: labor cost = hours × that crew member's cost rate. */
+    fun saveCrewLog() {
+        val userId = auth.currentUserId() ?: return
+        val draft = _state.value.crewLog ?: return
+        val member = _state.value.crew.firstOrNull { it.id == draft.crewMemberId } ?: return
+        val hours = draft.hours.trim().toDoubleOrNull() ?: return
+        if (hours <= 0.0) return
+        viewModelScope.launch {
+            timeEntryRepository.addManual(
+                userId = userId,
+                jobId = jobId,
+                hours = hours,
+                rate = member.hourlyCostRate, // deterministic cost rate snapshot
+                notes = draft.notes.trim().ifBlank { null },
+                crewMemberId = member.id,
+                workerName = member.name,
+            )
+            _state.update { it.copy(crewLog = null) }
+            reloadDraws()
+        }
+    }
+
+    /** Clocks a crew member in on this job (rate snapshotted from the roster). */
+    fun clockInCrew(crewMemberId: String) {
+        val userId = auth.currentUserId() ?: return
+        val member = _state.value.crew.firstOrNull { it.id == crewMemberId } ?: return
+        viewModelScope.launch {
+            timeEntryRepository.start(
+                userId = userId,
+                jobId = jobId,
+                rate = member.hourlyCostRate,
+                crewMemberId = member.id,
+                workerName = member.name,
+            )
+            reloadDraws()
+        }
+    }
+
+    /** Clocks a running crew entry out; hours computed from clock-in feed job costing. */
+    fun clockOutEntry(entry: TimeEntry) {
+        val userId = auth.currentUserId() ?: return
+        viewModelScope.launch {
+            timeEntryRepository.stop(userId, entry)
+            reloadDraws()
+        }
+    }
+
+    fun deleteTimeEntry(entryId: String) {
+        val userId = auth.currentUserId() ?: return
+        viewModelScope.launch {
+            timeEntryRepository.delete(userId, entryId)
+            reloadDraws()
+        }
+    }
+
+    /** Elite: export a job-cost report (labor + materials actuals vs estimate) PDF. */
+    fun exportJobCostPdf() {
+        val job = _state.value.job ?: return
+        val costing = _state.value.costing ?: return
+        val entries = _state.value.timeEntries
+        _state.update { it.copy(exportingPdf = true) }
+        viewModelScope.launch {
+            val file = withContext(Dispatchers.IO) {
+                JobCostPdfGenerator.generate(appContext, job, costing, entries)
+            }
+            if (file == null) {
+                _state.update { it.copy(exportingPdf = false, error = "Couldn't build the report.") }
+            } else {
+                _state.update { it.copy(exportingPdf = false, pdfToShare = file) }
+            }
+        }
+    }
+
+    fun pdfConsumed() = _state.update { it.copy(pdfToShare = null) }
 
     private suspend fun reloadDraws() {
         val draws = jobRepository.getJobDraws(jobId).getOrDefault(emptyList())
         _state.update { it.copy(draws = draws) }
+        refreshProfitability(draws)
     }
 
     // ── Draw editor ─────────────────────────────────────────────────────────────

@@ -242,6 +242,44 @@ class MoneyRepositoryImpl @Inject constructor(
         (listOf(header) + qbRows).joinToString("\n") { r -> r.joinToString(",") { csvCell(it) } }
     }
 
+    /**
+     * Tax-ready P&L rollup built from the same ledger the accountant CSV uses:
+     * a month-by-month matrix — Income, then each expense category (incl. the
+     * mileage deduction rows), then Net profit. One import-ready sheet at tax
+     * time instead of a raw ledger.
+     */
+    override suspend fun buildTaxSummaryCsv(userId: String, year: Int): Result<String> = runCatching {
+        val rows = gatherLedgerRows(userId, year)
+        val months = (1..12).map { String.format(java.util.Locale.US, "%d-%02d", year, it) }
+        fun monthOf(date: String): String? = date.take(7).takeIf { it in months }
+
+        val income = DoubleArray(12)
+        val byCategory = sortedMapOf<String, DoubleArray>()
+        rows.forEach { r ->
+            val m = monthOf(r.getOrElse(0) { "" }) ?: return@forEach
+            val idx = m.substring(5).toInt() - 1
+            val amount = r.getOrElse(5) { "0" }.toDoubleOrNull() ?: 0.0
+            if (amount >= 0) {
+                income[idx] += amount
+            } else {
+                val cat = r.getOrElse(3) { "" }.ifBlank { r.getOrElse(1) { "Other" } }
+                byCategory.getOrPut(cat) { DoubleArray(12) }[idx] += -amount
+            }
+        }
+
+        fun line(label: String, values: DoubleArray, sign: Int = 1): List<String> =
+            listOf(label) + values.map { MoneyMath.round2(sign * it).toString() } +
+                MoneyMath.round2(sign * values.sum()).toString()
+
+        val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+        val out = mutableListOf(listOf("Category") + monthNames + "Total")
+        out += line("Income", income)
+        byCategory.forEach { (cat, values) -> out += line("Expense: $cat", values, sign = -1) }
+        val net = DoubleArray(12) { i -> income[i] - byCategory.values.sumOf { it[i] } }
+        out += line("Net profit", net)
+        out.joinToString("\n") { r -> r.joinToString(",") { csvCell(it) } }
+    }
+
     /** Gathers every money movement for the year as [Date, Type, Name, Category, Job, Amount, Memo] rows, sorted by date. */
     private suspend fun gatherLedgerRows(userId: String, year: Int): List<List<String>> {
         val ys = "$year-01-01"; val ye = "$year-12-31"

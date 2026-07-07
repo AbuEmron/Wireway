@@ -4,8 +4,12 @@ import com.wirewaypro.app.domain.model.Job
 import com.wirewaypro.app.domain.model.JobDraw
 import com.wirewaypro.app.domain.model.JobDrawInput
 import com.wirewaypro.app.domain.model.JobInput
+import kotlinx.coroutines.flow.Flow
 
 interface JobRepository {
+    /** Live count of jobs with local changes still waiting to sync. */
+    fun pendingSyncCount(): Flow<Int>
+
     /** The user's jobs, newest scheduled first. */
     suspend fun getJobs(userId: String): Result<List<Job>>
 

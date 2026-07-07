@@ -19,6 +19,9 @@ data class Job(
     val status: String?,        // scheduled | in_progress | complete | cancelled
     val total: Double?,
     val createdAt: String?,
+    /** The estimate this job was won from, if any — the basis for job costing. */
+    val quoteId: String? = null,
+    val syncState: SyncState = SyncState.SYNCED,
 )
 
 /** Everything the job editor can write. Mirrors the `jobs` columns. */

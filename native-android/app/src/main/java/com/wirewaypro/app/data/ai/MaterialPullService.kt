@@ -1,6 +1,7 @@
 package com.wirewaypro.app.data.ai
 
 import com.wirewaypro.app.domain.catalog.SupplyHouses
+import com.wirewaypro.app.domain.model.PriceBasis
 import com.wirewaypro.app.domain.model.PullItem
 import com.wirewaypro.app.domain.model.PullListResult
 import com.wirewaypro.app.domain.model.PullSection
@@ -62,7 +63,9 @@ class MaterialPullService @Inject constructor(
         }
 
         val body = buildJsonObject {
-            put("max_tokens", 4096)
+            // Generous budget (the backend caps at 8192) so a full web-searched
+            // pull list closes its JSON instead of truncating mid-object.
+            put("max_tokens", 8192)
             put("web_search", true)
             put("system", systemPrompt())
             putJsonArray("messages") {
@@ -82,13 +85,12 @@ class MaterialPullService @Inject constructor(
         }
         val raw = response.claudeBodyOrThrow(json)
         val text = extractText(raw).ifBlank { raw }
-        parse(text) ?: error("The AI returned an unexpected response. [${text.take(180)}]")
+        // Clean failure state — never dump the raw model text at the user.
+        parse(text) ?: error("Couldn't read the price list — tap Try Again.")
     }
 
     private fun parse(text: String): PullListResult? {
-        val cleaned = text.replace("```json", "").replace("```", "")
-        val objText = balancedBlock(cleaned, '{', '}') ?: return null
-        val root = runCatching { json.parseToJsonElement(objText).jsonObject }.getOrNull() ?: return null
+        val root = extractJsonRoot(text) ?: return null
         val sectionsArr = root["sections"] as? JsonArray ?: return null
 
         val sections = sectionsArr.mapNotNull { el ->
@@ -121,15 +123,33 @@ class MaterialPullService @Inject constructor(
 
         val explicitPrice = (obj["price"] as? JsonPrimitive)?.doubleOrNull
         val cheapest = deduped.minByOrNull { it.price }
+        val unit = (obj["unit"] as? JsonPrimitive)?.content
+        val packageSize = (obj["packageSize"] as? JsonPrimitive)?.doubleOrNull?.takeIf { it > 0 }
+        // Deterministic basis resolution. When the model doesn't state one: a stated
+        // package size means per-package; a counted unit (ea/box) keeps the classic
+        // qty × price; footage with no basis is UNKNOWN — the total shows as
+        // "confirm", never feet × coil-price.
+        val basis = when ((obj["basis"] as? JsonPrimitive)?.content?.lowercase()?.trim()) {
+            "per_foot", "per_ft" -> PriceBasis.PER_FOOT
+            "per_package", "per_coil", "per_roll", "per_spool", "per_box" -> PriceBasis.PER_PACKAGE
+            "per_unit", "per_each", "each", "ea" -> PriceBasis.PER_UNIT
+            else -> when {
+                packageSize != null -> PriceBasis.PER_PACKAGE
+                PullItem.isLengthUnit(unit) -> PriceBasis.UNKNOWN
+                else -> PriceBasis.PER_UNIT
+            }
+        }
         return PullItem(
             name = name,
             spec = (obj["spec"] as? JsonPrimitive)?.content,
             qty = qty,
-            unit = (obj["unit"] as? JsonPrimitive)?.content,
+            unit = unit,
             price = explicitPrice ?: cheapest?.price,
             bestStore = (obj["bestStore"] as? JsonPrimitive)?.content ?: cheapest?.store,
             prices = deduped,
             live = (obj["live"] as? JsonPrimitive)?.booleanOrNull ?: false,
+            basis = basis,
+            packageSize = packageSize,
         )
     }
 
@@ -144,8 +164,29 @@ class MaterialPullService @Inject constructor(
             .orEmpty()
     }.getOrDefault("")
 
-    private fun balancedBlock(s: String, open: Char, close: Char): String? {
-        val start = s.indexOf(open)
+    /**
+     * Robustly pull the pull-list JSON object out of a model reply even when it's
+     * wrapped in preamble/narration ("Key findings: …") or markdown fences. Scans
+     * each '{' as a candidate start and returns the first balanced, parseable block
+     * that actually carries "sections" — tolerant of leading prose and stray braces.
+     */
+    private fun extractJsonRoot(text: String): JsonObject? {
+        val cleaned = text.replace("```json", "").replace("```", "")
+        var from = 0
+        while (true) {
+            val start = cleaned.indexOf('{', from)
+            if (start == -1) return null
+            balancedBlock(cleaned, '{', '}', start)?.let { block ->
+                runCatching { json.parseToJsonElement(block).jsonObject }.getOrNull()
+                    ?.takeIf { it["sections"] is JsonArray }
+                    ?.let { return it }
+            }
+            from = start + 1
+        }
+    }
+
+    private fun balancedBlock(s: String, open: Char, close: Char, from: Int = 0): String? {
+        val start = s.indexOf(open, from)
         if (start == -1) return null
         var depth = 0
         var inStr = false
@@ -183,12 +224,24 @@ class MaterialPullService @Inject constructor(
         3. MANDATORY LIVE PRICING via web search, localized to the job's area. Your memorized prices for copper wire, cable, panels, and breakers are YEARS out of date and too LOW — NEVER price those from memory. Before answering you MUST web-search CURRENT prices at the local PUBLIC big-box stores for that area — Home Depot AND Lowe's at minimum, plus Menards / Grainger / Ferguson where they serve that area — for: (a) every wire/cable coil or spool (NM-B/Romex, THHN, MC, UF); (b) every panel/load center; (c) every breaker, especially AFCI/GFCI/dual-function; (d) EV chargers, disconnects, and any item worth roughly ${'$'}25 or more. Prioritize the most expensive items first.
         4. For each item you actually found prices for, return a "prices" array of {"store": name, "price": number} for ONLY the stores you really searched, set "price" to the LOWEST, "bestStore" to that store, and "live": true. Commodity smalls (wire nuts, staples, straps, plates, boxes under ~${'$'}20) may use typical current prices biased slightly HIGH — leave their "prices" empty and "live": false. Do not fill in prices you did not find.
         5. Wire quantities in feet with 10-15% slack, rounded to purchasable amounts (25/50/100/250 ft).
+        5b. PRICE BASIS — CRITICAL, the app multiplies deterministically and must know what each price is PER. Every item gets a "basis" field:
+           - "per_unit": the price is for ONE of the counted units (ea, box, roll) and qty counts those units.
+           - "per_foot": a true cut-by-the-foot price; qty is in feet.
+           - "per_package": the price is for one coil/spool/carton covering MULTIPLE of the item's units; you MUST also set "packageSize" = how many units one package covers (a 250-ft spool of THHN → basis "per_package", packageSize 250; qty stays the FEET NEEDED).
+           Big-box wire/cable (NM-B/Romex, THHN, MC, UF) is almost always sold as coils/spools — price it per_package with the coil length, NEVER per_foot with a coil price. Getting this wrong shows the customer a total that's 25-250x too high.
         6. Skip materials for services marked [client supplies materials] but mention them in "notes".
         7. Consolidate shared consumables (wire nuts, staples, tape) into a final section "Consumables & Rough-In".
         8. In "notes" (1-3 sentences): state that these prices are live-searched estimates to confirm in the cart and roughly how current they are; flag anything client-supplied; name items better bought at a local electrical distributor than big-box (CED, Graybar, Rexel, Platt, WESCO, Border States, City Electric, etc. — they often beat big-box on wire and breakers but need a trade account); and any bulk-buy savings. If live prices were hard to find for this area, say so plainly.
 
-        Respond ONLY with JSON, no markdown fences:
-        {"sections":[{"service":"...","items":[{"name":"...","spec":"...","qty":1,"unit":"ea","price":0.00,"bestStore":"Home Depot","prices":[{"store":"Home Depot","price":0.00},{"store":"Lowe's","price":0.00}],"live":true}]}],"notes":"..."}
+        OUTPUT FORMAT — CRITICAL (the app parses your reply as JSON, nothing else):
+        - Do your web searches first, then make your FINAL reply ONLY the JSON object below.
+        - Your reply must START with '{' and END with '}'. Absolutely nothing before or after it.
+        - Do NOT write any preamble, narration, reasoning, "Key findings", running commentary, summaries, bullet lists, or markdown fences. Put anything you want to tell the contractor inside the "notes" field.
+        - Keep the JSON compact (no pretty-printing) so the whole object fits in one reply and is never cut off. Any text outside the JSON, or a cut-off object, breaks the app.
+
+        The JSON shape:
+        {"sections":[{"service":"...","items":[{"name":"...","spec":"...","qty":1,"unit":"ea","basis":"per_unit","packageSize":null,"price":0.00,"bestStore":"Home Depot","prices":[{"store":"Home Depot","price":0.00},{"store":"Lowe's","price":0.00}],"live":true}]}],"notes":"..."}
+        Example wire line: {"name":"10/3 NM-B Romex","spec":"10 AWG 3-conductor w/ ground","qty":25,"unit":"ft","basis":"per_package","packageSize":25,"price":75.00,"bestStore":"Home Depot","prices":[{"store":"Home Depot","price":75.00}],"live":true} — the app computes ceil(25/25) x 75 = one 25-ft coil, 75.00.
     """.trimIndent()
 
     companion object {

@@ -37,6 +37,7 @@ data class JobDto(
         status = status,
         total = total,
         createdAt = createdAt,
+        quoteId = quoteId,
     )
 }
 
@@ -44,11 +45,17 @@ data class JobDto(
 @Serializable
 data class JobDrawDto(
     val id: String,
+    // user_id / job_id / invoiced_at aren't on the domain model, but are carried
+    // so the local offline cache round-trips the full row without loss (an upsert
+    // replays every column).
+    @SerialName("user_id") val userId: String? = null,
+    @SerialName("job_id") val jobId: String? = null,
     val label: String = "",
     val amount: Double = 0.0,
     @SerialName("retainage_pct") val retainagePct: Double = 0.0,
     val status: String = "pending",
     @SerialName("due_date") val dueDate: String? = null,
+    @SerialName("invoiced_at") val invoicedAt: String? = null,
     @SerialName("paid_at") val paidAt: String? = null,
     @SerialName("sort_order") val sortOrder: Int = 0,
 ) {

@@ -29,7 +29,11 @@ class SettingsPrefs @Inject constructor(
     private val notificationsKey = booleanPreferencesKey("notifications_enabled")
     private val hourlyRateKey = doublePreferencesKey("default_hourly_rate")
     private val flatRateKey = doublePreferencesKey("default_flat_rate")
+    private val regionalRateKey = doublePreferencesKey("regional_default_rate")
     private val themeModeKey = stringPreferencesKey("theme_mode")
+    private val reviewLinkKey = stringPreferencesKey("review_link")
+    private val brandColorKey = stringPreferencesKey("brand_color_hex")
+    private val financingLinkKey = stringPreferencesKey("financing_link")
 
     val notificationsEnabled: Flow<Boolean> =
         context.settingsDataStore.data.map { it[notificationsKey] ?: true }
@@ -42,9 +46,27 @@ class SettingsPrefs @Inject constructor(
     val defaultHourlyRate: Flow<Double> =
         context.settingsDataStore.data.map { it[hourlyRateKey] ?: DEFAULT_HOURLY_RATE }
 
+    /**
+     * The contractor's hourly rate ONLY if they've explicitly set one — null when
+     * unset (no [DEFAULT_HOURLY_RATE] fallback). Lets new-quote seeding tell a real
+     * saved rate apart from the national default so it can fall back to a regional
+     * rate instead of a blind $85.
+     */
+    val rawDefaultHourlyRate: Flow<Double?> =
+        context.settingsDataStore.data.map { it[hourlyRateKey] }
+
     /** Contractor's typical flat-rate baseline (e.g. a service-call minimum). 0 = unset. */
     val defaultFlatRate: Flow<Double> =
         context.settingsDataStore.data.map { it[flatRateKey] ?: 0.0 }
+
+    /**
+     * Cached typical billed rate for the contractor's region (derived offline from
+     * their company address via [com.wirewaypro.app.domain.pricing.RegionalLaborRates]).
+     * 0 = unknown. New quotes use this when the contractor hasn't set a personal
+     * rate, so a first estimate opens location-aware instead of a flat national $85.
+     */
+    val regionalDefaultRate: Flow<Double> =
+        context.settingsDataStore.data.map { it[regionalRateKey] ?: 0.0 }
 
     suspend fun setNotificationsEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { it[notificationsKey] = enabled }
@@ -56,6 +78,44 @@ class SettingsPrefs @Inject constructor(
 
     suspend fun setDefaultFlatRate(rate: Double) {
         context.settingsDataStore.edit { it[flatRateKey] = rate }
+    }
+
+    /** Cache the region's typical billed rate (0 to clear). */
+    suspend fun setRegionalDefaultRate(rate: Double) {
+        context.settingsDataStore.edit { it[regionalRateKey] = rate }
+    }
+
+    /** Public review link (Google Business, Yelp, ...) used in review requests. */
+    val reviewLink: Flow<String> =
+        context.settingsDataStore.data.map { it[reviewLinkKey] ?: "" }
+
+    suspend fun setReviewLink(link: String) {
+        context.settingsDataStore.edit { it[reviewLinkKey] = link.trim() }
+    }
+
+    /**
+     * Contractor's chosen proposal accent color as a "#RRGGBB" hex string; "" =
+     * the default brand blue. Rendered into quote/invoice PDFs so proposals carry
+     * the shop's brand.
+     */
+    val brandColorHex: Flow<String> =
+        context.settingsDataStore.data.map { it[brandColorKey] ?: "" }
+
+    suspend fun setBrandColor(hex: String) {
+        context.settingsDataStore.edit { it[brandColorKey] = hex.trim() }
+    }
+
+    /**
+     * The contractor's client-financing application link from their own financing
+     * partner (e.g. Wisetack). "" = not offered. When set, proposals invite the
+     * client to apply for pay-over-time — surfaced only because the contractor
+     * supplied a real partner link, never faked.
+     */
+    val financingLink: Flow<String> =
+        context.settingsDataStore.data.map { it[financingLinkKey] ?: "" }
+
+    suspend fun setFinancingLink(link: String) {
+        context.settingsDataStore.edit { it[financingLinkKey] = link.trim() }
     }
 
     /** Persist the light/dark preference (store the [ThemeMode] enum name). */

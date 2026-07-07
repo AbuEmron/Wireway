@@ -33,13 +33,14 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        // `.native` so this dev build installs ALONGSIDE the Capacitor app
-        // (com.wirewaypro.app) instead of replacing it.
-        applicationId = "com.wirewaypro.app.native"
+        // The native app IS the Play app now (replaces the wrapped build on the
+        // testing track). Debug builds append ".native.dev" below so they still
+        // install alongside the Play build during development.
+        applicationId = "com.wirewaypro.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 20260706   // Date-based; supersedes the wrapped build (1) and native (2)
+        versionName = "1.1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -67,25 +68,46 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        // Play upload key (PWABuilder-generated; Play App Signing re-signs with the
+        // app key). Values come ONLY from env vars — in CI from repo secrets, locally
+        // from the owner's shell. Nothing secret is ever committed.
+        create("upload") {
+            val ksFile = System.getenv("WIREWAY_KEYSTORE_FILE")
+            if (!ksFile.isNullOrBlank()) {
+                storeFile = file(ksFile)
+                storePassword = System.getenv("WIREWAY_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("WIREWAY_KEY_ALIAS")
+                keyPassword = System.getenv("WIREWAY_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         debug {
-            // Distinct id during dev so debug + release can also coexist.
-            applicationIdSuffix = ".dev"
+            // Keeps the historical debug package (com.wirewaypro.app.native.dev)
+            // so existing dev installs keep updating in place.
+            applicationIdSuffix = ".native.dev"
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("debug")
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Minification stays OFF for the first Play builds: R8 has never been
+            // exercised against supabase-kt/ktor/serialization here, and a silent
+            // reflection break in the field would violate never-lose-data. Turn on
+            // later with a real device pass.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // TODO(phase: release): wire upload-key signing like the Capacitor app
-            // (keystore.properties) before shipping to Play. Debug-signed for now.
-            signingConfig = signingConfigs.getByName("debug")
+            // Upload-key signed when WIREWAY_KEYSTORE_FILE is set (CI secrets or
+            // the owner's shell); falls back to debug signing for local checks.
+            signingConfig = if (System.getenv("WIREWAY_KEYSTORE_FILE").isNullOrBlank()) {
+                signingConfigs.getByName("debug")
+            } else {
+                signingConfigs.getByName("upload")
+            }
         }
     }
 
@@ -147,6 +169,11 @@ dependencies {
     // Offline queue
     implementation(libs.androidx.datastore.preferences)
 
+    // Room — local offline-first database (source of truth for core entities)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
     // Home-screen widget (Glance)
     implementation(libs.androidx.glance.appwidget)
 
@@ -184,6 +211,9 @@ dependencies {
 
     // Test
     testImplementation(libs.junit)
+    // Pure-JVM SQLite so the Room migration SQL can be exercised in unit tests
+    // (no emulator needed) — see WirewayMigrationTest / CrewMigrationTest.
+    testImplementation("org.xerial:sqlite-jdbc:3.45.1.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

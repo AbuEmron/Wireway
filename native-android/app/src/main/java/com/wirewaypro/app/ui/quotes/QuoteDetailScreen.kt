@@ -9,15 +9,31 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -25,6 +41,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,23 +52,38 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import com.wirewaypro.app.data.local.QuotePhotoEntity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.domain.model.QuoteDetail
+import com.wirewaypro.app.domain.model.QuoteExpiry
 import com.wirewaypro.app.domain.model.QuoteLineItem
 import com.wirewaypro.app.domain.model.RateMode
+import com.wirewaypro.app.domain.model.Tier
+import com.wirewaypro.app.ui.components.AnimatedMoneyText
 import com.wirewaypro.app.ui.components.ConfirmDialog
 import com.wirewaypro.app.ui.components.DetailScaffold
+import com.wirewaypro.app.ui.components.FormField
+import com.wirewaypro.app.ui.components.GradientButton
 import com.wirewaypro.app.ui.components.InfoRow
+import com.wirewaypro.app.ui.components.MorphingCard
+import com.wirewaypro.app.ui.components.SectionEyebrow
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.StatusChip
+import com.wirewaypro.app.ui.components.UpgradePrompt
 import com.wirewaypro.app.ui.components.WirewayDatePickerDialog
 import com.wirewaypro.app.ui.util.Format
 import java.io.File
+import java.time.LocalDate
 
 /**
  * Read + light-write detail for a `quotes` row. Used for BOTH estimates and
@@ -62,6 +95,10 @@ fun QuoteDetailScreen(
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
     onPullList: (String) -> Unit = {},
+    onOpenInvoice: (String) -> Unit = {},
+    onOpenSubscription: () -> Unit = {},
+    onOpenJurisdiction: () -> Unit = {},
+    onSign: (String) -> Unit = {},
     viewModel: QuoteDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -71,11 +108,48 @@ fun QuoteDetailScreen(
 
     var confirmDelete by remember { mutableStateOf(false) }
     var editDueDate by remember { mutableStateOf(false) }
+    var acceptOpen by remember { mutableStateOf(false) }
+
+    // Job-walk site photos: snap with the in-app camera (same framing/torch as
+    // the takeoff capture) or pick from the gallery, stored on-device; tap a
+    // thumbnail to open the full-screen gallery.
+    var showSiteCamera by remember { mutableStateOf(false) }
+    var galleryIndex by remember { mutableStateOf<Int?>(null) }
+    val siteCameraPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) showSiteCamera = true }
+    val pickSitePhoto = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri -> uri?.let(viewModel::addPhoto) }
+
+    if (showSiteCamera) {
+        com.wirewaypro.app.ui.expenses.CameraCapture(
+            onCaptured = { uri -> viewModel.addPhoto(uri); showSiteCamera = false },
+            onClose = { showSiteCamera = false },
+        )
+        return
+    }
+    galleryIndex?.let { idx ->
+        SitePhotoGallery(
+            photos = state.photos,
+            initialIndex = idx,
+            onRemove = { viewModel.removePhoto(it) },
+            onClose = { galleryIndex = null },
+        )
+        return
+    }
 
     com.wirewaypro.app.ui.components.RefreshOnReturn(viewModel::load)
     LaunchedEffect(state.deleted) { if (state.deleted) onBack() }
     LaunchedEffect(state.pdfToShare) {
         state.pdfToShare?.let { sharePdf(context, it); viewModel.pdfConsumed() }
+    }
+    LaunchedEffect(state.createdInvoiceId) {
+        state.createdInvoiceId?.let { onOpenInvoice(it); viewModel.createdInvoiceConsumed() }
+    }
+    LaunchedEffect(state.duplicatedId) {
+        // Open the fresh copy in the builder so the contractor can tweak it.
+        state.duplicatedId?.let { onEdit(it); viewModel.duplicatedConsumed() }
     }
 
     DetailScaffold(
@@ -117,6 +191,10 @@ fun QuoteDetailScreen(
 
             Header(quote = quote, kind = kind)
 
+            // Honest AHJ coverage: what code this is checked against + the amendment
+            // gap. Never a "compliant" claim. Broadly available (not tier-gated).
+            com.wirewaypro.app.ui.ahj.AhjCoverageCard(onEdit = onOpenJurisdiction)
+
             if (quote.isInvoice) {
                 SectionCard(title = "Invoice") {
                     InfoRow("Status", if (quote.invoicePaid) "Paid" else "Unpaid")
@@ -141,6 +219,69 @@ fun QuoteDetailScreen(
                 }
             }
 
+            if (!quote.isInvoice) {
+                SectionCard(title = "Acceptance") {
+                    if (quote.sigName != null) {
+                        InfoRow("Accepted by", quote.sigName!!)
+                        quote.signedAt?.let { InfoRow("On", Format.date(it.take(10))) }
+                        quote.depositDue?.let { dep -> InfoRow("Deposit due now", Format.money(dep)) }
+                    } else {
+                        Text(
+                            "Client ready to go? Have them accept right on your phone \u2014 it stamps their name, the date and the time onto this estimate.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.padding(top = 10.dp))
+                        Button(
+                            onClick = { acceptOpen = true },
+                            enabled = !state.busy,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Client accepts \u2014 sign in person")
+                        }
+                    }
+                }
+
+                // Wireway's own electronic signature (US ESIGN/UETA): consent flow,
+                // signature pad, sealed PDF + tamper-evident fingerprint. A stronger,
+                // sealed record than the simple typed acceptance above.
+                com.wirewaypro.app.ui.esign.EsignStatusCard(onSign = { onSign(quote.id) })
+            }
+
+            // Client financing (Elite): a real Wisetack offer on this estimate,
+            // or the Pro→Elite moment. Free isn't shown this — they already get
+            // the Pro prompt below; never stack two walls on one screen.
+            if (!quote.isInvoice) {
+                when {
+                    state.tier.atLeast(Tier.ELITE) -> FinancingSection(
+                        state = state,
+                        onOffer = viewModel::offerFinancing,
+                        onWithdraw = viewModel::stopOfferingFinancing,
+                        onShare = { url -> shareFinancingLink(context, url) },
+                    )
+                    state.tier == Tier.PRO -> UpgradePrompt(
+                        hook = "Close bigger jobs with monthly payments",
+                        detail = "Elite adds client financing: your customer applies in " +
+                            "minutes and pays over time — you still get paid in full.",
+                        tier = Tier.ELITE,
+                        onUpgrade = onOpenSubscription,
+                    )
+                }
+            }
+
+            // The Free→Pro moment (WIREWAY_PRICING_TIERS.md): this is where the
+            // contractor sends the document, and Free exports go out watermarked
+            // without their logo.
+            if (state.tier == Tier.FREE) {
+                UpgradePrompt(
+                    hook = "Send it clean, with your logo",
+                    detail = "Free PDFs carry a Wireway watermark. Pro puts your " +
+                        "logo and colors on every ${kind.lowercase()} — no watermark.",
+                    tier = Tier.PRO,
+                    onUpgrade = onOpenSubscription,
+                )
+            }
+
             if (quote.clientName != null || quote.clientEmail != null || quote.clientPhone != null) {
                 SectionCard(title = "Client") {
                     quote.clientName?.let { InfoRow("Name", it) }
@@ -151,8 +292,112 @@ fun QuoteDetailScreen(
             }
 
             if (quote.lineItems.isNotEmpty()) {
-                SectionCard(title = "Line items") {
-                    quote.lineItems.forEach { LineItemRow(it) }
+                // The mockup's expandable estimate-item rows: one open at a time,
+                // tap morphs the card open on a spring to show the line's math.
+                var expandedItem by remember { mutableStateOf(-1) }
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SectionEyebrow("Line items")
+                    quote.lineItems.forEachIndexed { idx, item ->
+                        MorphingCard(
+                            expanded = expandedItem == idx,
+                            onToggle = { expandedItem = if (expandedItem == idx) -1 else idx },
+                            header = {
+                                val prefix = if (item.kind == "mileage") "🚗 " else ""
+                                Text(
+                                    text = "$prefix${item.label}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (item.amount != null) {
+                                    Text(
+                                        text = Format.money(item.amount),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 8.dp),
+                                    )
+                                }
+                            },
+                            body = {
+                                InfoRow("Quantity", trimNum(item.quantity))
+                                val amount = item.amount
+                                if (amount != null && item.quantity > 0 && item.quantity != 1.0) {
+                                    InfoRow("Per unit", Format.money(amount / item.quantity))
+                                }
+                                if (item.kind == "mileage") {
+                                    InfoRow("Type", "Mileage")
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+            // Manual-override audit trail (doctrine): calculated/seeded numbers
+            // the contractor changed, kept so the estimate stays defensible.
+            if (state.overrides.isNotEmpty()) {
+                SectionCard(title = "Adjusted from calculated") {
+                    state.overrides.forEach { o ->
+                        val hours = o.field.startsWith("Labor hrs") || o.field.startsWith("Qty")
+                        InfoRow(
+                            o.field,
+                            if (hours) "${trimNum(o.original)} → ${trimNum(o.overridden)}"
+                            else "${Format.money(o.original)} → ${Format.money(o.overridden)}",
+                        )
+                    }
+                    Spacer(Modifier.padding(top = 6.dp))
+                    Text(
+                        "Recorded automatically when a calculated number was changed — your call, on the record.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            // Job-walk site photos (flagship layer 1): snap while you walk, and
+            // they ride with the record — on this phone — for the bid and crew.
+            SectionCard(title = "Site photos") {
+                Text(
+                    if (state.photos.isEmpty()) "Snap the panel, the runs, the problem areas — photos stay with this ${kind.lowercase()} on your phone."
+                    else "${state.photos.size} photo${if (state.photos.size == 1) "" else "s"} on this ${kind.lowercase()} (stored on this phone).",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (state.photos.isNotEmpty()) {
+                    Spacer(Modifier.padding(top = 10.dp))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        itemsIndexed(state.photos, key = { _, p -> p.id }) { index, photo ->
+                            SitePhotoThumb(
+                                photo = photo,
+                                onOpen = { galleryIndex = index },
+                                onRemove = { viewModel.removePhoto(photo) },
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.padding(top = 10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                                PackageManager.PERMISSION_GRANTED
+                            if (granted) showSiteCamera = true else siteCameraPermission.launch(Manifest.permission.CAMERA)
+                        },
+                        enabled = !state.addingPhoto,
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Camera") }
+                    OutlinedButton(
+                        onClick = {
+                            pickSitePhoto.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                ),
+                            )
+                        },
+                        enabled = !state.addingPhoto,
+                        modifier = Modifier.weight(1f),
+                    ) { Text(if (state.addingPhoto) "Adding…" else "Gallery") }
                 }
             }
 
@@ -177,14 +422,23 @@ fun QuoteDetailScreen(
                 Spacer(Modifier.padding(top = 6.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(Modifier.padding(top = 6.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        Format.money(quote.total),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                    AnimatedMoneyText(
+                        value = quote.total ?: 0.0,
+                        style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
+                }
+                if (!quote.isInvoice) {
+                    quote.depositDue?.let { dep ->
+                        Spacer(Modifier.padding(top = 6.dp))
+                        InfoRow("Deposit to accept (${quote.depositPercent}%)", Format.money(dep))
+                    }
                 }
                 if (quote.rateMode == RateMode.HOURLY) {
                     Spacer(Modifier.padding(top = 6.dp))
@@ -197,12 +451,22 @@ fun QuoteDetailScreen(
                 }
             }
 
-            Button(
+            GradientButton(
+                text = if (quote.isInvoice) "Request payment" else "Send estimate",
                 onClick = { sharePayLink(context, quote.id, quote.quoteNumber, quote.isInvoice) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Icon(Icons.Outlined.Payments, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("Request payment (share pay link)")
+                Icon(
+                    Icons.Outlined.Send,
+                    contentDescription = null,
+                    tint = androidx.compose.ui.graphics.Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = if (quote.isInvoice) "Request payment" else "Send estimate",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = androidx.compose.ui.graphics.Color.White,
+                )
             }
             Text(
                 "Client pays by card or bank (ACH) — money goes straight to your connected account.",
@@ -216,6 +480,40 @@ fun QuoteDetailScreen(
             ) {
                 Icon(Icons.Outlined.ShoppingCart, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text("Material Pull List")
+            }
+
+            // "Same as last job" — copy this record into a fresh editable draft.
+            OutlinedButton(
+                onClick = viewModel::duplicate,
+                enabled = !state.busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Text("Duplicate ${kind.lowercase()}")
+            }
+
+            // Estimate → get-paid: spin up an invoice from this bid (keeps the estimate).
+            if (!quote.isInvoice) {
+                OutlinedButton(
+                    onClick = viewModel::convertToInvoice,
+                    enabled = !state.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Outlined.ReceiptLong, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Convert to invoice")
+                }
+            }
+
+            // Follow-up nudge for an open (unaccepted) estimate — a stale bid that
+            // never gets a reminder is a lost job.
+            if (!quote.isInvoice && quote.sigName == null) {
+                OutlinedButton(
+                    onClick = { shareFollowUp(context, quote) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Outlined.Send, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Follow up with client")
+                }
             }
 
             quote.notes?.takeIf { it.isNotBlank() }?.let { notes ->
@@ -232,6 +530,32 @@ fun QuoteDetailScreen(
             message = "This permanently deletes this record.",
             onConfirm = { confirmDelete = false; viewModel.delete() },
             onDismiss = { confirmDelete = false },
+        )
+    }
+
+    if (acceptOpen) {
+        var signedName by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { acceptOpen = false },
+            title = { Text("Accept this estimate") },
+            text = {
+                Column {
+                    Text(
+                        "By signing, " + (state.quote?.clientName ?: "the client") +
+                            " agrees to the work and price in this estimate" +
+                            (state.quote?.depositDue?.let { ", with a deposit of " + Format.money(it) + " due now." } ?: "."),
+                    )
+                    Spacer(Modifier.padding(top = 10.dp))
+                    FormField(signedName, { signedName = it }, "Client's full name (signature)")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.acceptInPerson(signedName); acceptOpen = false },
+                    enabled = signedName.trim().length >= 2,
+                ) { Text("Accept estimate") }
+            },
+            dismissButton = { TextButton(onClick = { acceptOpen = false }) { Text("Cancel") } },
         )
     }
 
@@ -258,10 +582,9 @@ private fun Header(quote: QuoteDetail, kind: String) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             StatusChip(status = if (quote.isInvoice && quote.invoicePaid) "paid" else quote.status)
             Spacer(Modifier.padding(start = 12.dp))
-            Text(
-                text = Format.money(quote.total),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+            AnimatedMoneyText(
+                value = quote.total ?: 0.0,
+                style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
         }
@@ -324,6 +647,41 @@ private fun sharePayLink(context: Context, quoteId: String, quoteNumber: String?
     }
 }
 
+/**
+ * Opens the share sheet with a friendly, pre-filled follow-up the contractor can
+ * send (text/email) to nudge a client toward accepting an open estimate. Tailors
+ * the validity line to whether the estimate is still valid or already lapsed, and
+ * includes the public quote link so the client can accept in one tap.
+ */
+private fun shareFollowUp(context: Context, quote: QuoteDetail) {
+    runCatching {
+        val hi = quote.clientName?.takeIf { it.isNotBlank() }?.let { "Hi $it, " } ?: "Hi, "
+        val num = quote.quoteNumber?.takeIf { it.isNotBlank() }?.let { " #$it" } ?: ""
+        val job = quote.jobName?.takeIf { it.isNotBlank() }?.let { " for $it" } ?: ""
+        val total = quote.total?.let { " (${Format.money(it)})" } ?: ""
+
+        val validThrough = runCatching { LocalDate.parse(quote.createdAt?.take(10)) }
+            .getOrNull()?.plusDays(QuoteExpiry.VALID_DAYS)
+        val validity = when {
+            validThrough == null -> ""
+            validThrough.isBefore(LocalDate.now()) ->
+                " It expired on ${Format.date(validThrough.toString())}, but I'd be glad to refresh it for you."
+            else -> " It's valid through ${Format.date(validThrough.toString())}."
+        }
+
+        val url = "https://www.wireway.cc/quote/${quote.id}"
+        val text = "${hi}just following up on your estimate$num$job$total.$validity " +
+            "You can review and accept it here:\n$url\n\nHappy to answer any questions — thanks!"
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        context.startActivity(
+            Intent.createChooser(intent, "Follow up").apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
+        )
+    }
+}
+
 /** Opens the system share sheet for a generated PDF file. */
 private fun sharePdf(context: Context, file: File) {
     runCatching {
@@ -336,5 +694,144 @@ private fun sharePdf(context: Context, file: File) {
         context.startActivity(
             Intent.createChooser(intent, "Share PDF").apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
         )
+    }
+}
+
+@Composable
+private fun SitePhotoThumb(photo: QuotePhotoEntity, onOpen: () -> Unit, onRemove: () -> Unit) {
+    val bitmap = remember(photo.path) {
+        runCatching {
+            BitmapFactory.decodeFile(photo.path, BitmapFactory.Options().apply { inSampleSize = 2 })
+                ?.asImageBitmap()
+        }.getOrNull()
+    }
+    if (bitmap != null) {
+        Box {
+            Image(
+                bitmap = bitmap,
+                contentDescription = "Site photo — tap to view",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable(onClick = onOpen),
+            )
+            IconButton(onClick = onRemove, modifier = Modifier.align(Alignment.TopEnd).size(28.dp)) {
+                Icon(
+                    Icons.Outlined.Delete,
+                    contentDescription = "Remove photo",
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
+}
+
+private fun shareFinancingLink(context: Context, url: String) {
+    runCatching {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "Apply for financing for this project — it takes a few minutes: $url")
+        }
+        context.startActivity(
+            Intent.createChooser(intent, "Share financing link").apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
+        )
+    }
+}
+
+/**
+ * Elite client financing on an estimate. Three honest states: not connected
+ * (setup, never a dead toggle), connected with no offer (the "Offer financing"
+ * switch), and a live offer (status + provider-reported "as low as" + share).
+ * Nothing here invents a number — amounts and statuses are provider-reported.
+ */
+@Composable
+private fun FinancingSection(
+    state: QuoteDetailUiState,
+    onOffer: () -> Unit,
+    onWithdraw: () -> Unit,
+    onShare: (String) -> Unit,
+) {
+    val setup = state.financingSetup
+    val offer = state.financingOffer
+    val uriHandler = LocalUriHandler.current
+    SectionCard(title = "Client financing") {
+        when {
+            setup == null -> Text(
+                "Checking financing availability…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            !setup.connected -> {
+                Text(
+                    "Let customers pay over time while you get paid in full — powered by " +
+                        "Wisetack. Your financing account isn't connected yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.padding(top = 10.dp))
+                val connectUrl = setup.connectUrl
+                if (connectUrl != null) {
+                    Button(onClick = { uriHandler.openUri(connectUrl) }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Connect Wisetack")
+                    }
+                } else {
+                    Text(
+                        "Financing setup for your account is coming online — you'll connect " +
+                            "Wisetack right here once it's ready.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            else -> {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Offer financing", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            if (offer != null) "On — the pay-over-time option rides on this proposal."
+                            else "Adds a pay-over-time option to this estimate's proposal.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (state.financingBusy) {
+                        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                    } else {
+                        Switch(
+                            checked = offer != null,
+                            onCheckedChange = { on -> if (on) onOffer() else onWithdraw() },
+                        )
+                    }
+                }
+                if (offer != null) {
+                    Spacer(Modifier.padding(top = 8.dp))
+                    InfoRow("Status", offer.status.label)
+                    offer.asLowAsMonthly?.let { m ->
+                        InfoRow("As low as", "${Format.money(m)}/mo (provider-quoted)")
+                    }
+                    Spacer(Modifier.padding(top = 8.dp))
+                    OutlinedButton(
+                        onClick = { onShare(offer.applicationUrl) },
+                        enabled = !state.financingBusy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Share application link")
+                    }
+                }
+                state.financingError?.let { message ->
+                    Spacer(Modifier.padding(top = 6.dp))
+                    Text(
+                        message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        }
     }
 }

@@ -17,6 +17,7 @@ data class TimeEntryDto(
     @SerialName("is_running") val isRunning: Boolean = false,
     val notes: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("crew_member_id") val crewMemberId: String? = null,
 ) {
     fun toDomain(): TimeEntry = TimeEntry(
         id = id,
@@ -29,5 +30,6 @@ data class TimeEntryDto(
         isRunning = isRunning,
         notes = notes,
         createdAt = createdAt,
+        crewMemberId = crewMemberId,
     )
 }

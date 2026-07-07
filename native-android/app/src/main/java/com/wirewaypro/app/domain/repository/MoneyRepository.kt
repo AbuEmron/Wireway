@@ -19,4 +19,7 @@ interface MoneyRepository {
 
     /** QuickBooks Online bank-import CSV (Date, Description, Amount) for a tax year. */
     suspend fun buildQuickBooksCsv(userId: String, year: Int): Result<String>
+
+    /** Tax-ready P&L: income + expenses by category, by month, with net profit. */
+    suspend fun buildTaxSummaryCsv(userId: String, year: Int): Result<String>
 }

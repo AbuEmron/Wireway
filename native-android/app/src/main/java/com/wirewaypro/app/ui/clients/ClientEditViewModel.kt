@@ -3,7 +3,10 @@ package com.wirewaypro.app.ui.clients
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wirewaypro.app.data.entitlements.TierService
 import com.wirewaypro.app.domain.model.ClientInput
+import com.wirewaypro.app.domain.model.FreeLimits
+import com.wirewaypro.app.domain.model.Tier
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ClientRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,12 +26,15 @@ data class ClientEditUiState(
     val phone: String = "",
     val error: String? = null,
     val saved: Boolean = false,
+    /** True when a Free user hit the saved-client ceiling — the Pro moment. */
+    val clientCapReached: Boolean = false,
 )
 
 @HiltViewModel
 class ClientEditViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val clientRepository: ClientRepository,
+    private val tierService: TierService,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -83,8 +89,16 @@ class ClientEditViewModel @Inject constructor(
             email = s.email.ifBlank { null },
             phone = s.phone.ifBlank { null },
         )
-        _state.update { it.copy(isSaving = true, error = null) }
+        _state.update { it.copy(isSaving = true, error = null, clientCapReached = false) }
         viewModelScope.launch {
+            // Free ceiling on NEW clients only — edits always save.
+            if (clientId == null && !tierService.current().atLeast(Tier.PRO)) {
+                val saved = clientRepository.getClients(userId).getOrNull()?.size ?: 0
+                if (saved >= FreeLimits.MAX_CLIENTS) {
+                    _state.update { it.copy(isSaving = false, clientCapReached = true) }
+                    return@launch
+                }
+            }
             clientRepository.saveClient(userId, input)
                 .onSuccess { _state.update { it.copy(isSaving = false, saved = true) } }
                 .onFailure { _state.update { it.copy(isSaving = false, error = "Couldn't save. Try again.") } }

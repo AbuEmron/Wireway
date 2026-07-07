@@ -1,9 +1,13 @@
 package com.wirewaypro.app.di
 
 import com.wirewaypro.app.BuildConfig
+import com.wirewaypro.app.data.assemblies.UserTemplateRepositoryImpl
 import com.wirewaypro.app.data.auth.AuthRepositoryImpl
 import com.wirewaypro.app.data.clients.ClientRepositoryImpl
+import com.wirewaypro.app.data.ahj.JurisdictionRepositoryImpl
+import com.wirewaypro.app.data.crew.CrewRepositoryImpl
 import com.wirewaypro.app.data.expenses.ExpenseRepositoryImpl
+import com.wirewaypro.app.data.financing.WisetackFinancingRepository
 import com.wirewaypro.app.data.jobs.JobRepositoryImpl
 import com.wirewaypro.app.data.money.MoneyRepositoryImpl
 import com.wirewaypro.app.data.profile.ProfileRepositoryImpl
@@ -12,13 +16,17 @@ import com.wirewaypro.app.data.timetracking.TimeEntryRepositoryImpl
 import com.wirewaypro.app.data.trips.TripRepositoryImpl
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ClientRepository
+import com.wirewaypro.app.domain.repository.CrewRepository
 import com.wirewaypro.app.domain.repository.ExpenseRepository
+import com.wirewaypro.app.domain.repository.FinancingRepository
 import com.wirewaypro.app.domain.repository.JobRepository
+import com.wirewaypro.app.domain.repository.JurisdictionRepository
 import com.wirewaypro.app.domain.repository.MoneyRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
 import com.wirewaypro.app.domain.repository.QuoteRepository
 import com.wirewaypro.app.domain.repository.TimeEntryRepository
 import com.wirewaypro.app.domain.repository.TripRepository
+import com.wirewaypro.app.domain.repository.UserTemplateRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -98,6 +106,10 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindCrewRepository(impl: CrewRepositoryImpl): CrewRepository
+
+    @Binds
+    @Singleton
     abstract fun bindExpenseRepository(impl: ExpenseRepositoryImpl): ExpenseRepository
 
     @Binds
@@ -111,4 +123,22 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindTimeEntryRepository(impl: TimeEntryRepositoryImpl): TimeEntryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFinancingRepository(impl: WisetackFinancingRepository): FinancingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserTemplateRepository(impl: UserTemplateRepositoryImpl): UserTemplateRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindJurisdictionRepository(impl: JurisdictionRepositoryImpl): JurisdictionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindEsignRepository(
+        impl: com.wirewaypro.app.esign.data.EsignRepositoryImpl,
+    ): com.wirewaypro.app.esign.data.EsignRepository
 }

@@ -44,6 +44,19 @@ class ExpenseRepositoryImpl @Inject constructor(
             .map { it.toDomain() }
     }
 
+    override suspend fun getExpensesForJob(userId: String, jobId: String): Result<List<Expense>> = runCatching {
+        expenses()
+            .select {
+                filter {
+                    eq("user_id", userId)
+                    eq("job_id", jobId)
+                }
+                order("expense_date", Order.DESCENDING)
+            }
+            .decodeList<ExpenseDto>()
+            .map { it.toDomain() }
+    }
+
     override suspend fun addExpense(
         userId: String,
         input: ExpenseInput,

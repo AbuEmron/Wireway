@@ -9,7 +9,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 /** Top-level navigation graph routes. */
 object Routes {
+    /** Signed-out landing screen — the auth graph's entry point. */
+    const val WELCOME = "welcome"
     const val LOGIN = "login"
+    const val SIGNUP = "signup"
     const val DASHBOARD = "dashboard"
 }
 
@@ -31,46 +34,60 @@ enum class HomeTab(
  */
 object DashDest {
     const val JOBS = "jobs"
-    const val JOBS_CALENDAR = "jobs_calendar"
+    const val SCHEDULE = "schedule"
     const val CLIENTS = "clients"
     const val EXPENSES = "expenses"
     const val ADD_EXPENSE = "add_expense"
     const val MILEAGE = "mileage"
     const val TIME_TRACKING = "time_tracking"
+    const val CREW = "crew"
     const val NEC = "nec"
     const val LOAD_ADVISOR = "load_advisor"
+    const val TOOLS = "tools"
+    const val CALC_WIRE_SIZE = "calc_wire_size"
+    const val CALC_VOLTAGE_DROP = "calc_voltage_drop"
+    const val CALC_CONDUIT_FILL = "calc_conduit_fill"
+    const val CALC_BOX_FILL = "calc_box_fill"
+    const val CALC_DERATING = "calc_derating"
+    const val MATERIAL_DB = "material_db"
+    const val LABOR_CALC = "labor_calc"
     const val MONEY = "money"
     const val TAKEOFF = "takeoff"
     const val AI_QUOTE_BUILDER = "ai_quote_builder"
+    const val ASSEMBLIES = "assemblies"
     const val BANK = "bank"
     const val SUBSCRIPTION = "subscription"
     const val PROFILE_EDIT = "profile_edit"
     const val GET_PAID = "get_paid"
+    const val JURISDICTION = "jurisdiction"
 
     const val JOB_DETAIL = "job/{id}"
     const val ESTIMATE_DETAIL = "estimate/{id}"
     const val INVOICE_DETAIL = "invoice/{id}"
     const val PULL_LIST = "pull_list/{id}"
+    const val ESIGN = "esign/{id}"
 
     // Create / edit routes (query args; blank id = create).
     const val QUOTE_BUILDER = "quote_builder?id={id}&invoice={invoice}"
-    const val JOB_EDIT = "job_edit?id={id}&quoteId={quoteId}"
+    const val JOB_EDIT = "job_edit?id={id}&quoteId={quoteId}&date={date}"
     const val CLIENT_EDIT = "client_edit?id={id}"
 
     const val ARG_ID = "id"
     const val ARG_INVOICE = "invoice"
     const val ARG_QUOTE_ID = "quoteId"
+    const val ARG_DATE = "date"
 
     fun jobDetail(id: String) = "job/$id"
     fun estimateDetail(id: String) = "estimate/$id"
     fun invoiceDetail(id: String) = "invoice/$id"
     fun pullList(id: String) = "pull_list/$id"
+    fun esign(id: String) = "esign/$id"
 
     fun quoteBuilder(id: String? = null, invoice: Boolean = false) =
         "quote_builder?id=${id.orEmpty()}&invoice=$invoice"
 
-    fun jobEdit(id: String? = null, quoteId: String? = null) =
-        "job_edit?id=${id.orEmpty()}&quoteId=${quoteId.orEmpty()}"
+    fun jobEdit(id: String? = null, quoteId: String? = null, date: String? = null) =
+        "job_edit?id=${id.orEmpty()}&quoteId=${quoteId.orEmpty()}&date=${date.orEmpty()}"
 
     fun clientEdit(id: String? = null) = "client_edit?id=${id.orEmpty()}"
 }

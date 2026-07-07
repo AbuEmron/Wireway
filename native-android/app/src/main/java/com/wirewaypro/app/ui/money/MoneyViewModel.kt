@@ -16,6 +16,9 @@ import kotlinx.coroutines.launch
 import java.time.YearMonth
 import javax.inject.Inject
 
+/** Which export the user tapped, so the spinner renders only on that one button. */
+enum class MoneyExport { ACCOUNTANT, QUICKBOOKS, TAX }
+
 data class MoneyUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
@@ -23,10 +26,14 @@ data class MoneyUiState(
     val aging: AgingReport? = null,
     val pnl: JobPnlReport? = null,
     val error: String? = null,
-    val exporting: Boolean = false,
+    val exportingWhich: MoneyExport? = null, // non-null while THAT export is building
     val csvExport: String? = null, // one-shot: non-null when ready for the share sheet
-    val qbExport: String? = null,  // one-shot: QuickBooks CSV ready for the share sheet
-)
+    val qbExport: String? = null,
+    val taxExport: String? = null, // one-shot: tax-ready P&L CSV for the share sheet
+) {
+    /** Any export in progress — used to disable the other buttons. */
+    val isExporting: Boolean get() = exportingWhich != null
+}
 
 @HiltViewModel
 class MoneyViewModel @Inject constructor(
@@ -67,11 +74,11 @@ class MoneyViewModel @Inject constructor(
 
     fun exportCsv() {
         val userId = auth.currentUserId() ?: return
-        _state.update { it.copy(exporting = true) }
+        _state.update { it.copy(exportingWhich = MoneyExport.ACCOUNTANT) }
         viewModelScope.launch {
             moneyRepository.buildAccountantCsv(userId, year)
-                .onSuccess { csv -> _state.update { it.copy(exporting = false, csvExport = csv) } }
-                .onFailure { _state.update { it.copy(exporting = false, error = "Couldn't build the CSV export.") } }
+                .onSuccess { csv -> _state.update { it.copy(exportingWhich = null, csvExport = csv) } }
+                .onFailure { _state.update { it.copy(exportingWhich = null, error = "Couldn't build the CSV export.") } }
         }
     }
 
@@ -81,13 +88,26 @@ class MoneyViewModel @Inject constructor(
     /** Builds a QuickBooks Online bank-import CSV and hands it to the share sheet. */
     fun exportQuickBooks() {
         val userId = auth.currentUserId() ?: return
-        _state.update { it.copy(exporting = true) }
+        _state.update { it.copy(exportingWhich = MoneyExport.QUICKBOOKS) }
         viewModelScope.launch {
             moneyRepository.buildQuickBooksCsv(userId, year)
-                .onSuccess { csv -> _state.update { it.copy(exporting = false, qbExport = csv) } }
-                .onFailure { _state.update { it.copy(exporting = false, error = "Couldn't build the QuickBooks export.") } }
+                .onSuccess { csv -> _state.update { it.copy(exportingWhich = null, qbExport = csv) } }
+                .onFailure { _state.update { it.copy(exportingWhich = null, error = "Couldn't build the QuickBooks export.") } }
         }
     }
 
     fun qbConsumed() = _state.update { it.copy(qbExport = null) }
+
+    /** Builds the tax-ready P&L summary CSV and hands it to the share sheet. */
+    fun exportTaxSummary() {
+        val userId = auth.currentUserId() ?: return
+        _state.update { it.copy(exportingWhich = MoneyExport.TAX) }
+        viewModelScope.launch {
+            moneyRepository.buildTaxSummaryCsv(userId, year)
+                .onSuccess { csv -> _state.update { it.copy(exportingWhich = null, taxExport = csv) } }
+                .onFailure { _state.update { it.copy(exportingWhich = null, error = "Couldn't build the tax summary.") } }
+        }
+    }
+
+    fun taxConsumed() = _state.update { it.copy(taxExport = null) }
 }

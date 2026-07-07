@@ -2,10 +2,13 @@ package com.wirewaypro.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wirewaypro.app.data.offline.isConnectivityError
 import com.wirewaypro.app.data.prefs.DEFAULT_HOURLY_RATE
 import com.wirewaypro.app.data.prefs.SettingsPrefs
 import com.wirewaypro.app.domain.model.ProfileInput
 import com.wirewaypro.app.domain.model.UserProfile
+import com.wirewaypro.app.domain.pricing.RateBand
+import com.wirewaypro.app.domain.pricing.RegionalLaborRates
 import com.wirewaypro.app.domain.repository.AuthRepository
 import com.wirewaypro.app.domain.repository.ProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,9 +32,19 @@ data class ProfileEditUiState(
     val companyWebsite: String = "",
     val hourlyRate: String = "",
     val flatRate: String = "",
+    val reviewLink: String = "",
+    /** The contractor's client-financing application link; "" = financing not offered. */
+    val financingLink: String = "",
+    /** Proposal accent color as "#RRGGBB"; "" = default brand blue. */
+    val brandColor: String = "",
+    val rateSuggestion: RateBand? = null,
     val notificationsEnabled: Boolean = true,
     val logoUrl: String = "",
     val uploadingLogo: Boolean = false,
+    /** Why the last logo upload failed (real cause, not a generic shrug). */
+    val logoError: String? = null,
+    /** True when the failed image is still held in memory and can be re-sent. */
+    val logoRetryAvailable: Boolean = false,
     val error: String? = null,
     val saved: Boolean = false,
 ) {
@@ -62,14 +75,28 @@ class ProfileEditViewModel @Inject constructor(
             val notify = settingsPrefs.notificationsEnabled.first()
             val hourly = settingsPrefs.defaultHourlyRate.first()
             val flat = settingsPrefs.defaultFlatRate.first()
+            val review = settingsPrefs.reviewLink.first()
+            val financing = settingsPrefs.financingLink.first()
+            val brand = settingsPrefs.brandColorHex.first()
             val profile = profileRepository.getProfile(userId).getOrNull()
-            apply(profile, notify, hourly, flat)
+            apply(profile, notify, hourly, flat, review, brand, financing)
+            // Cache the region's typical rate so new quotes can default to it offline.
+            cacheRegionalRate(RegionalLaborRates.forState(RegionalLaborRates.detectState(profile?.companyAddress)))
         }
     }
 
-    private fun apply(p: UserProfile?, notify: Boolean, hourly: Double, flat: Double) = _state.update {
+    /** Persist the region's typical billed rate for offline use by the quote builder. */
+    private fun cacheRegionalRate(band: RateBand?) {
+        viewModelScope.launch {
+            settingsPrefs.setRegionalDefaultRate(band?.typical?.toDouble() ?: 0.0)
+        }
+    }
+
+    private fun apply(p: UserProfile?, notify: Boolean, hourly: Double, flat: Double, review: String = "", brand: String = "", financing: String = "") = _state.update {
         it.copy(
             isLoading = false,
+            brandColor = brand,
+            financingLink = financing,
             fullName = p?.fullName.orEmpty(),
             companyName = p?.companyName.orEmpty(),
             companyPhone = p?.companyPhone.orEmpty(),
@@ -79,19 +106,55 @@ class ProfileEditViewModel @Inject constructor(
             companyWebsite = p?.companyWebsite.orEmpty(),
             hourlyRate = if (hourly > 0) trimNum(hourly) else "",
             flatRate = if (flat > 0) trimNum(flat) else "",
+            reviewLink = review,
             notificationsEnabled = notify,
             logoUrl = p?.logoUrl.orEmpty(),
+            rateSuggestion = RegionalLaborRates.forState(RegionalLaborRates.detectState(p?.companyAddress)),
         )
     }
 
+    /** The last picked logo, kept so a failed upload can be retried without re-picking. */
+    private var pendingLogo: Pair<ByteArray, String?>? = null
+
     /** Uploads a picked business-logo image and stores its URL on the profile. */
-    fun uploadLogo(bytes: ByteArray) {
-        val userId = auth.currentUserId() ?: return
-        _state.update { it.copy(uploadingLogo = true, error = null) }
+    fun uploadLogo(bytes: ByteArray, mimeType: String?) {
+        pendingLogo = bytes to mimeType
+        val userId = auth.currentUserId()
+        if (userId == null) {
+            _state.update { it.copy(logoError = "Session expired — sign in again to upload.", logoRetryAvailable = true) }
+            return
+        }
+        _state.update { it.copy(uploadingLogo = true, logoError = null) }
         viewModelScope.launch {
-            profileRepository.uploadLogo(userId, bytes)
-                .onSuccess { url -> _state.update { it.copy(uploadingLogo = false, logoUrl = url) } }
-                .onFailure { _state.update { it.copy(uploadingLogo = false, error = "Couldn't upload the logo. Try again.") } }
+            profileRepository.uploadLogo(userId, bytes, mimeType)
+                .onSuccess { url ->
+                    pendingLogo = null
+                    _state.update { it.copy(uploadingLogo = false, logoUrl = url, logoError = null, logoRetryAvailable = false) }
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(uploadingLogo = false, logoError = logoErrorMessage(e), logoRetryAvailable = true)
+                    }
+                }
+        }
+    }
+
+    /** Re-sends the last picked image after a failure. */
+    fun retryLogoUpload() {
+        pendingLogo?.let { (bytes, mime) -> uploadLogo(bytes, mime) }
+    }
+
+    /** Turn the raw failure into something the contractor can act on. */
+    private fun logoErrorMessage(e: Throwable): String {
+        val m = e.message.orEmpty()
+        return when {
+            isConnectivityError(e) ->
+                "You're offline — logo upload needs a connection. Retry when you're back online."
+            "row-level security" in m || "403" in m || "401" in m || "Unauthorized" in m.lowercase() ->
+                "The server refused the upload (storage permissions). Sign out and back in, then retry."
+            "413" in m || "too large" in m.lowercase() ->
+                "That image is too large — pick a smaller one."
+            else -> "Logo upload failed: ${m.ifBlank { "unknown error" }}"
         }
     }
 
@@ -104,10 +167,23 @@ class ProfileEditViewModel @Inject constructor(
     fun setCompanyPhone(v: String) = _state.update { it.copy(companyPhone = v) }
     fun setCompanyEmail(v: String) = _state.update { it.copy(companyEmail = v) }
     fun setCompanyLicense(v: String) = _state.update { it.copy(companyLicense = v) }
-    fun setCompanyAddress(v: String) = _state.update { it.copy(companyAddress = v) }
+    fun setCompanyAddress(v: String) {
+        val band = RegionalLaborRates.forState(RegionalLaborRates.detectState(v))
+        _state.update { it.copy(companyAddress = v, rateSuggestion = band) }
+        cacheRegionalRate(band)
+    }
     fun setCompanyWebsite(v: String) = _state.update { it.copy(companyWebsite = v) }
     fun setHourlyRate(v: String) = _state.update { it.copy(hourlyRate = v) }
+
+    /** Applies the regional suggestion's typical rate to the hourly-rate field. */
+    fun useSuggestedRate() = _state.update { s ->
+        s.rateSuggestion?.let { s.copy(hourlyRate = it.typical.toString()) } ?: s
+    }
     fun setFlatRate(v: String) = _state.update { it.copy(flatRate = v) }
+    fun setReviewLink(v: String) = _state.update { it.copy(reviewLink = v) }
+    fun setFinancingLink(v: String) = _state.update { it.copy(financingLink = v) }
+    /** "" clears the custom accent (back to the default brand blue). */
+    fun setBrandColor(hex: String) = _state.update { it.copy(brandColor = hex) }
     fun setNotifications(v: Boolean) = _state.update { it.copy(notificationsEnabled = v) }
 
     fun save() {
@@ -126,11 +202,19 @@ class ProfileEditViewModel @Inject constructor(
             companyAddress = s.companyAddress.ifBlank { null },
             companyWebsite = s.companyWebsite.ifBlank { null },
         )
+        // A blank hourly rate falls back to the region's typical band (from the
+        // address) instead of a flat national $85, so entering an address alone
+        // yields a location-aware default rate.
+        val rateFallback = s.rateSuggestion?.typical?.toDouble() ?: DEFAULT_HOURLY_RATE
+
         _state.update { it.copy(isSaving = true, error = null) }
         viewModelScope.launch {
             settingsPrefs.setNotificationsEnabled(s.notificationsEnabled)
-            settingsPrefs.setDefaultHourlyRate(s.hourlyRate.toDoubleOrNull()?.takeIf { it > 0 } ?: DEFAULT_HOURLY_RATE)
+            settingsPrefs.setDefaultHourlyRate(s.hourlyRate.toDoubleOrNull()?.takeIf { it > 0 } ?: rateFallback)
             settingsPrefs.setDefaultFlatRate(s.flatRate.toDoubleOrNull()?.takeIf { it > 0 } ?: 0.0)
+            settingsPrefs.setReviewLink(s.reviewLink)
+            settingsPrefs.setFinancingLink(s.financingLink)
+            settingsPrefs.setBrandColor(s.brandColor)
             profileRepository.saveProfile(userId, input)
                 .onSuccess { _state.update { it.copy(isSaving = false, saved = true) } }
                 .onFailure { _state.update { it.copy(isSaving = false, error = "Couldn't save your profile. Try again.") } }

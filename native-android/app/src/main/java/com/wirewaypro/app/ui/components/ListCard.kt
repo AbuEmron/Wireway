@@ -31,11 +31,18 @@ fun ListCard(
     subtitle: String? = null,
     footerStart: String? = null,
     status: String? = null,
+    trailingChip: (@Composable () -> Unit)? = null,
+    footerBadge: (@Composable () -> Unit)? = null,
 ) {
+    val haptics = rememberWirewayHaptics()
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .pressScale(pressedScale = 0.98f)
+            .clickable {
+                haptics.tap()
+                onClick()
+            },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
@@ -70,7 +77,7 @@ fun ListCard(
                 )
             }
 
-            if (footerStart != null || status != null) {
+            if (footerStart != null || status != null || trailingChip != null || footerBadge != null) {
                 Spacer(Modifier.padding(top = 10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -82,7 +89,14 @@ fun ListCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    if (status != null) StatusChip(status = status)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        footerBadge?.invoke()
+                        trailingChip?.invoke()
+                        if (status != null) StatusChip(status = status)
+                    }
                 }
             }
         }

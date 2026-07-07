@@ -13,6 +13,7 @@ data class Client(
     val jobCount: Int?,
     val totalBilled: Double?,
     val createdAt: String?,
+    val syncState: SyncState = SyncState.SYNCED,
 )
 
 /** Editable client fields (name + optional contact). */

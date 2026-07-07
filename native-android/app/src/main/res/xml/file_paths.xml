@@ -4,4 +4,7 @@
     <cache-path name="receipts" path="receipts/" />
     <!-- Accountant CSV exports shared via the share sheet live in cache/exports/. -->
     <cache-path name="exports" path="exports/" />
+    <!-- Sealed e-signature PDFs live in the DURABLE files dir (never cache) so a
+         signed legal record survives cache eviction; shared via the share sheet. -->
+    <files-path name="esign" path="esign/" />
 </paths>

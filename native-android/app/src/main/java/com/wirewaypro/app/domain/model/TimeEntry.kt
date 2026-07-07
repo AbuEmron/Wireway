@@ -16,6 +16,13 @@ data class TimeEntry(
     val isRunning: Boolean,
     val notes: String?,
     val createdAt: String?,
+    /**
+     * The crew member these hours belong to, if logged against the roster.
+     * [workerName] and [rate] are snapshotted from that crew member at log time,
+     * so labor cost stays correct even if the crew member is later removed or
+     * their rate changes. Null for the owner's own untagged time.
+     */
+    val crewMemberId: String? = null,
 ) {
     /** Labor cost contribution (hours × cost rate). */
     val laborCost: Double get() = (hours ?: 0.0) * rate

@@ -18,6 +18,7 @@ import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
+import com.wirewaypro.app.data.entitlements.PlayEntitlements
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,6 +51,7 @@ data class SubsUiState(
 @HiltViewModel
 class SubscriptionsViewModel @Inject constructor(
     @ApplicationContext context: Context,
+    private val entitlements: PlayEntitlements,
 ) : ViewModel() {
 
     // Three tiers (Pro / Teams / Elite), each with a monthly + yearly product. These
@@ -78,6 +80,8 @@ class SubscriptionsViewModel @Inject constructor(
             result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null -> {
                 // CRITICAL: acknowledge within 3 days or Google auto-refunds the purchase.
                 viewModelScope.launch { purchases.forEach { acknowledgeIfNeeded(it) } }
+                // Unlock gated features app-wide right away — no waiting on backend sync.
+                entitlements.refresh()
                 _state.update { it.copy(status = "Subscription active — thank you!") }
             }
             result.responseCode == BillingClient.BillingResponseCode.USER_CANCELED ->
@@ -105,6 +109,7 @@ class SubscriptionsViewModel @Inject constructor(
             val result = runCatching { billing.queryPurchasesAsync(params) }.getOrNull() ?: return@launch
             result.purchasesList.forEach { acknowledgeIfNeeded(it) }
             if (result.purchasesList.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }) {
+                entitlements.refresh()
                 _state.update { it.copy(status = "Subscription active") }
             }
         }

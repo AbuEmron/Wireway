@@ -4,16 +4,26 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -29,6 +39,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.wirewaypro.app.ui.bank.BankScreen
+import com.wirewaypro.app.ui.components.BottomBarTab
+import com.wirewaypro.app.ui.components.WirewayBottomBar
 import com.wirewaypro.app.ui.clients.ClientEditScreen
 import com.wirewaypro.app.ui.clients.ClientsScreen
 import com.wirewaypro.app.ui.expenses.AddExpenseScreen
@@ -36,25 +48,37 @@ import com.wirewaypro.app.ui.expenses.ExpensesScreen
 import com.wirewaypro.app.ui.getpaid.GetPaidScreen
 import com.wirewaypro.app.ui.jobs.JobDetailScreen
 import com.wirewaypro.app.ui.jobs.JobEditScreen
-import com.wirewaypro.app.ui.jobs.JobsCalendarScreen
 import com.wirewaypro.app.ui.jobs.JobsScreen
+import com.wirewaypro.app.ui.schedule.ScheduleScreen
 import com.wirewaypro.app.ui.load.LoadAdvisorScreen
 import com.wirewaypro.app.ui.mileage.MileageScreen
 import com.wirewaypro.app.ui.navigation.DashDest
+import com.wirewaypro.app.ui.navigation.WirewayTransitions
 import com.wirewaypro.app.ui.nec.NecReferenceScreen
+import com.wirewaypro.app.ui.crew.CrewScreen
 import com.wirewaypro.app.ui.timetracking.TimeTrackingScreen
 import com.wirewaypro.app.ui.navigation.HomeTab
+import com.wirewaypro.app.ui.quotes.AssembliesScreen
 import com.wirewaypro.app.ui.quotes.EstimatesScreen
 import com.wirewaypro.app.ui.quotes.InvoicesScreen
 import com.wirewaypro.app.ui.money.MoneyScreen
 import com.wirewaypro.app.ui.quotes.QuoteBuilderScreen
 import com.wirewaypro.app.ui.quotes.MaterialPullListScreen
+import com.wirewaypro.app.ui.ahj.JurisdictionPickerScreen
 import com.wirewaypro.app.ui.quotes.QuoteDetailScreen
 import com.wirewaypro.app.ui.settings.ProfileEditScreen
 import com.wirewaypro.app.ui.settings.SettingsScreen
 import com.wirewaypro.app.ui.subscription.SubscriptionsScreen
 import com.wirewaypro.app.ui.takeoff.AiEstimateMode
 import com.wirewaypro.app.ui.takeoff.TakeoffScreen
+import com.wirewaypro.app.ui.tools.BoxFillCalcScreen
+import com.wirewaypro.app.ui.tools.ConduitFillCalcScreen
+import com.wirewaypro.app.ui.tools.DeratingCalcScreen
+import com.wirewaypro.app.ui.tools.LaborCalcScreen
+import com.wirewaypro.app.ui.tools.MaterialDatabaseScreen
+import com.wirewaypro.app.ui.tools.ToolsScreen
+import com.wirewaypro.app.ui.tools.VoltageDropCalcScreen
+import com.wirewaypro.app.ui.tools.WireSizeCalcScreen
 
 /**
  * The authenticated shell. A nested NavHost drives the four bottom-nav tabs plus
@@ -62,6 +86,7 @@ import com.wirewaypro.app.ui.takeoff.TakeoffScreen
  * single Activity. The bottom bar is shown only on the top-level tabs; detail and
  * pushed screens get the full height and their own back-navigating top bar.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     intentRouter: IntentRouterViewModel = hiltViewModel(),
@@ -73,6 +98,13 @@ fun DashboardScreen(
 
     val tabRoutes = HomeTab.entries.map { it.route }.toSet()
     val showBottomBar = currentRoute in tabRoutes
+    // Home carries its own greeting header (mockup); the other tabs keep the bar.
+    val showTopBar = showBottomBar && currentRoute != HomeTab.HOME.route
+
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
+    val topBarTitle = HomeTab.entries.firstOrNull { it.route == currentRoute }?.label ?: "Wireway Pro"
 
     // Drive the nested NavHost from inbound intents (launcher shortcuts / share).
     val pendingRoute by intentRouter.pendingRoute.collectAsStateWithLifecycle()
@@ -83,32 +115,56 @@ fun DashboardScreen(
         }
     }
 
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = showBottomBar || drawerState.isOpen,
+        drawerContent = {
+            AppDrawerContent(
+                currentRoute = currentRoute,
+                onTab = { tab -> navController.navigateToTab(tab) },
+                onDestination = { route -> navController.navigate(route) { launchSingleTop = true } },
+                closeDrawer = { scope.launch { drawerState.close() } },
+            )
+        },
+    ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            if (showTopBar) {
+                CenterAlignedTopAppBar(
+                    title = { Text(topBarTitle) },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Outlined.Menu, contentDescription = "Open menu")
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                )
+            }
+        },
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp,
-                ) {
-                    HomeTab.entries.forEach { tab ->
-                        val selected = backStackEntry?.destination?.hierarchy
-                            ?.any { it.route == tab.route } == true
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = { navController.navigateToTab(tab) },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        )
-                    }
+                val barTabs = remember {
+                    HomeTab.entries.map { BottomBarTab(it.route, it.label, it.icon) }
                 }
+                WirewayBottomBar(
+                    tabs = barTabs,
+                    isSelected = { tab ->
+                        backStackEntry?.destination?.hierarchy
+                            ?.any { it.route == tab.route } == true
+                    },
+                    onTab = { tab ->
+                        HomeTab.entries.firstOrNull { it.route == tab.route }
+                            ?.let { navController.navigateToTab(it) }
+                    },
+                    onFab = {
+                        navController.navigate(DashDest.quoteBuilder(invoice = false)) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
         },
     ) { innerPadding ->
@@ -123,11 +179,23 @@ fun DashboardScreen(
         NavHost(
             navController = navController,
             startDestination = HomeTab.HOME.route,
+            // Shared-axis X everywhere; pop mirrors push, which also gives the
+            // predictive-back gesture its seek-and-settle preview.
+            enterTransition = WirewayTransitions.enter,
+            exitTransition = WirewayTransitions.exit,
+            popEnterTransition = WirewayTransitions.popEnter,
+            popExitTransition = WirewayTransitions.popExit,
             modifier = Modifier
                 .fillMaxSize()
                 .widthIn(max = 640.dp),
         ) {
-            composable(HomeTab.HOME.route) {
+            composable(
+                HomeTab.HOME.route,
+                enterTransition = WirewayTransitions.tabEnter,
+                exitTransition = WirewayTransitions.tabExit,
+                popEnterTransition = WirewayTransitions.tabEnter,
+                popExitTransition = WirewayTransitions.tabExit,
+            ) {
                 HomeScreen(
                     onOpenAiQuoteBuilder = { navController.navigate(DashDest.AI_QUOTE_BUILDER) },
                     onOpenJobs = { navController.navigate(DashDest.JOBS) },
@@ -139,26 +207,53 @@ fun DashboardScreen(
                     onOpenLoadAdvisor = { navController.navigate(DashDest.LOAD_ADVISOR) },
                     onOpenMoney = { navController.navigate(DashDest.MONEY) },
                     onOpenTakeoff = { navController.navigate(DashDest.TAKEOFF) },
+                    onOpenAssemblies = { navController.navigate(DashDest.ASSEMBLIES) },
                     onOpenBank = { navController.navigate(DashDest.BANK) },
                     onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                    onOpenTools = { navController.navigate(DashDest.TOOLS) },
+                    onOpenMaterialDb = { navController.navigate(DashDest.MATERIAL_DB) },
+                    onOpenLaborCalc = { navController.navigate(DashDest.LABOR_CALC) },
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                    onOpenEstimates = { navController.navigateToTab(HomeTab.ESTIMATES) },
+                    onOpenEstimateDetail = { id -> navController.navigate(DashDest.estimateDetail(id)) },
+                    onOpenJurisdiction = { navController.navigate(DashDest.JURISDICTION) },
                 )
             }
-            composable(HomeTab.ESTIMATES.route) {
+            composable(
+                HomeTab.ESTIMATES.route,
+                enterTransition = WirewayTransitions.tabEnter,
+                exitTransition = WirewayTransitions.tabExit,
+                popEnterTransition = WirewayTransitions.tabEnter,
+                popExitTransition = WirewayTransitions.tabExit,
+            ) {
                 EstimatesScreen(
                     onOpenEstimate = { id -> navController.navigate(DashDest.estimateDetail(id)) },
                     onAdd = { navController.navigate(DashDest.quoteBuilder(invoice = false)) },
                 )
             }
-            composable(HomeTab.INVOICES.route) {
+            composable(
+                HomeTab.INVOICES.route,
+                enterTransition = WirewayTransitions.tabEnter,
+                exitTransition = WirewayTransitions.tabExit,
+                popEnterTransition = WirewayTransitions.tabEnter,
+                popExitTransition = WirewayTransitions.tabExit,
+            ) {
                 InvoicesScreen(
                     onOpenInvoice = { id -> navController.navigate(DashDest.invoiceDetail(id)) },
                     onAdd = { navController.navigate(DashDest.quoteBuilder(invoice = true)) },
                 )
             }
-            composable(HomeTab.SETTINGS.route) {
+            composable(
+                HomeTab.SETTINGS.route,
+                enterTransition = WirewayTransitions.tabEnter,
+                exitTransition = WirewayTransitions.tabExit,
+                popEnterTransition = WirewayTransitions.tabEnter,
+                popExitTransition = WirewayTransitions.tabExit,
+            ) {
                 SettingsScreen(
                     onEditProfile = { navController.navigate(DashDest.PROFILE_EDIT) },
                     onGetPaid = { navController.navigate(DashDest.GET_PAID) },
+                    onJurisdiction = { navController.navigate(DashDest.JURISDICTION) },
                 )
             }
 
@@ -167,13 +262,14 @@ fun DashboardScreen(
                     onBack = { navController.popBackStack() },
                     onOpenJob = { id -> navController.navigate(DashDest.jobDetail(id)) },
                     onAdd = { navController.navigate(DashDest.jobEdit()) },
-                    onOpenCalendar = { navController.navigate(DashDest.JOBS_CALENDAR) },
+                    onOpenCalendar = { navController.navigate(DashDest.SCHEDULE) },
                 )
             }
-            composable(DashDest.JOBS_CALENDAR) {
-                JobsCalendarScreen(
+            composable(DashDest.SCHEDULE) {
+                ScheduleScreen(
                     onBack = { navController.popBackStack() },
                     onOpenJob = { id -> navController.navigate(DashDest.jobDetail(id)) },
+                    onAddForDate = { date -> navController.navigate(DashDest.jobEdit(date = date)) },
                 )
             }
             composable(DashDest.CLIENTS) {
@@ -199,13 +295,63 @@ fun DashboardScreen(
                 MileageScreen(onBack = { navController.popBackStack() })
             }
             composable(DashDest.TIME_TRACKING) {
-                TimeTrackingScreen(onBack = { navController.popBackStack() })
+                TimeTrackingScreen(
+                    onBack = { navController.popBackStack() },
+                    onManageCrew = { navController.navigate(DashDest.CREW) },
+                )
+            }
+            composable(DashDest.CREW) {
+                CrewScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
             }
             composable(DashDest.NEC) {
-                NecReferenceScreen(onBack = { navController.popBackStack() })
+                NecReferenceScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
             }
             composable(DashDest.LOAD_ADVISOR) {
                 LoadAdvisorScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.TOOLS) {
+                ToolsScreen(
+                    onBack = { navController.popBackStack() },
+                    onWireSize = { navController.navigate(DashDest.CALC_WIRE_SIZE) },
+                    onVoltageDrop = { navController.navigate(DashDest.CALC_VOLTAGE_DROP) },
+                    onConduitFill = { navController.navigate(DashDest.CALC_CONDUIT_FILL) },
+                    onBoxFill = { navController.navigate(DashDest.CALC_BOX_FILL) },
+                    onDerating = { navController.navigate(DashDest.CALC_DERATING) },
+                    onMaterialDb = { navController.navigate(DashDest.MATERIAL_DB) },
+                    onLaborCalc = { navController.navigate(DashDest.LABOR_CALC) },
+                    onNec = { navController.navigate(DashDest.NEC) },
+                    onLoadAdvisor = { navController.navigate(DashDest.LOAD_ADVISOR) },
+                )
+            }
+            composable(DashDest.CALC_WIRE_SIZE) {
+                WireSizeCalcScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.CALC_VOLTAGE_DROP) {
+                VoltageDropCalcScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.CALC_CONDUIT_FILL) {
+                ConduitFillCalcScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.CALC_BOX_FILL) {
+                BoxFillCalcScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.CALC_DERATING) {
+                DeratingCalcScreen(onBack = { navController.popBackStack() })
+            }
+            composable(DashDest.MATERIAL_DB) {
+                MaterialDatabaseScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
+            }
+            composable(DashDest.LABOR_CALC) {
+                LaborCalcScreen(onBack = { navController.popBackStack() })
             }
             composable(DashDest.TAKEOFF) {
                 TakeoffScreen(
@@ -216,6 +362,17 @@ fun DashboardScreen(
                             popUpTo(DashDest.TAKEOFF) { inclusive = true }
                         }
                     },
+                )
+            }
+            composable(DashDest.ASSEMBLIES) {
+                AssembliesScreen(
+                    onBack = { navController.popBackStack() },
+                    onPicked = {
+                        navController.navigate(DashDest.quoteBuilder(invoice = false)) {
+                            popUpTo(DashDest.ASSEMBLIES) { inclusive = true }
+                        }
+                    },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
                 )
             }
             composable(DashDest.AI_QUOTE_BUILDER) {
@@ -241,12 +398,16 @@ fun DashboardScreen(
             composable(DashDest.GET_PAID) {
                 GetPaidScreen(onBack = { navController.popBackStack() })
             }
+            composable(DashDest.JURISDICTION) {
+                JurisdictionPickerScreen(onBack = { navController.popBackStack() })
+            }
 
             val idArg = listOf(navArgument(DashDest.ARG_ID) { type = NavType.StringType })
             composable(DashDest.JOB_DETAIL, arguments = idArg) {
                 JobDetailScreen(
                     onBack = { navController.popBackStack() },
                     onEdit = { id -> navController.navigate(DashDest.jobEdit(id)) },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
                 )
             }
             composable(DashDest.ESTIMATE_DETAIL, arguments = idArg) {
@@ -254,6 +415,15 @@ fun DashboardScreen(
                     onBack = { navController.popBackStack() },
                     onEdit = { id -> navController.navigate(DashDest.quoteBuilder(id = id)) },
                     onPullList = { id -> navController.navigate(DashDest.pullList(id)) },
+                    onSign = { id -> navController.navigate(DashDest.esign(id)) },
+                    onOpenInvoice = { id ->
+                        // Replace the estimate detail with the new invoice's detail.
+                        navController.navigate(DashDest.invoiceDetail(id)) {
+                            popUpTo(DashDest.ESTIMATE_DETAIL) { inclusive = true }
+                        }
+                    },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                    onOpenJurisdiction = { navController.navigate(DashDest.JURISDICTION) },
                 )
             }
             composable(DashDest.INVOICE_DETAIL, arguments = idArg) {
@@ -261,10 +431,20 @@ fun DashboardScreen(
                     onBack = { navController.popBackStack() },
                     onEdit = { id -> navController.navigate(DashDest.quoteBuilder(id = id)) },
                     onPullList = { id -> navController.navigate(DashDest.pullList(id)) },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                    onOpenJurisdiction = { navController.navigate(DashDest.JURISDICTION) },
                 )
             }
             composable(DashDest.PULL_LIST, arguments = idArg) {
-                MaterialPullListScreen(onBack = { navController.popBackStack() })
+                MaterialPullListScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
+            }
+            composable(DashDest.ESIGN, arguments = idArg) {
+                com.wirewaypro.app.ui.esign.EsignFlowScreen(
+                    onBack = { navController.popBackStack() },
+                )
             }
 
             // ── Create / edit screens ───────────────────────────────────────────
@@ -278,22 +458,30 @@ fun DashboardScreen(
                     navArgument(DashDest.ARG_INVOICE) { type = NavType.BoolType; defaultValue = false },
                 ),
             ) {
-                QuoteBuilderScreen(onClose = { navController.popBackStack() })
+                QuoteBuilderScreen(
+                    onClose = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
             }
             composable(
                 DashDest.JOB_EDIT,
                 arguments = listOf(
                     optionalId,
                     navArgument(DashDest.ARG_QUOTE_ID) { type = NavType.StringType; defaultValue = "" },
+                    navArgument(DashDest.ARG_DATE) { type = NavType.StringType; defaultValue = "" },
                 ),
             ) {
                 JobEditScreen(onClose = { navController.popBackStack() })
             }
             composable(DashDest.CLIENT_EDIT, arguments = listOf(optionalId)) {
-                ClientEditScreen(onClose = { navController.popBackStack() })
+                ClientEditScreen(
+                    onClose = { navController.popBackStack() },
+                    onOpenSubscription = { navController.navigate(DashDest.SUBSCRIPTION) },
+                )
             }
         }
         }
+    }
     }
 }
 

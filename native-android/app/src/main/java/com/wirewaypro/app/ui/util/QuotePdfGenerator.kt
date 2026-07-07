@@ -1,13 +1,20 @@
 package com.wirewaypro.app.ui.util
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.wirewaypro.app.domain.model.BusinessInfo
 import com.wirewaypro.app.domain.model.QuoteDetail
 import com.wirewaypro.app.domain.model.RateMode
+import com.wirewaypro.app.esign.SignatureMethod
+import com.wirewaypro.app.esign.crypto.Sha256
+import com.wirewaypro.app.esign.pdf.SealInput
+import com.wirewaypro.app.esign.pdf.SealResult
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 
@@ -36,19 +43,34 @@ object QuotePdfGenerator {
             "of work require a written change order. Permits and inspection fees are included " +
             "unless otherwise noted. Warranty: one (1) year on workmanship from date of completion."
 
-    fun generate(context: Context, quote: QuoteDetail, business: BusinessInfo? = null): File? = runCatching {
+    fun generate(
+        context: Context,
+        quote: QuoteDetail,
+        business: BusinessInfo? = null,
+        logo: Bitmap? = null,
+        accent: Int? = null,
+        financingLink: String? = null,
+        /** Provider-reported "as low as $/mo" — printed ONLY when the provider sent one. */
+        financingMonthly: Double? = null,
+        watermark: Boolean = false,
+    ): File? = runCatching {
         val doc = PdfDocument()
-        val state = PageState(doc)
+        val state = PageState(doc, accent ?: ACCENT, watermark)
         state.start()
 
         drawHeader(state, quote)
-        if (business != null) drawBusiness(state, business)
+        if (business != null) drawBusiness(state, business, logo)
         drawClient(state, quote)
         drawLineItems(state, quote)
         drawTotals(state, quote)
+        // Only for estimates the client hasn't yet accepted, and only when the
+        // contractor supplied a real financing link (never faked).
+        if (!quote.isInvoice) {
+            financingLink?.takeIf { it.isNotBlank() }?.let { drawFinancing(state, it, financingMonthly) }
+        }
         drawNotes(state, quote)
         drawTerms(state)
-        drawSignature(state, business)
+        drawSignature(state, business, quote)
         drawFooter(state)
 
         doc.finishPage(state.page)
@@ -63,7 +85,7 @@ object QuotePdfGenerator {
     }.getOrNull()
 
     // ── Page bookkeeping ───────────────────────────────────────────────────────
-    private class PageState(val doc: PdfDocument) {
+    private class PageState(val doc: PdfDocument, val accent: Int, val watermark: Boolean = false) {
         lateinit var page: PdfDocument.Page
         lateinit var canvas: Canvas
         var y = MARGIN
@@ -74,6 +96,8 @@ object QuotePdfGenerator {
             page = doc.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNo).create())
             canvas = page.canvas
             y = MARGIN
+            // Drawn first so the page content renders over it.
+            if (watermark) drawWatermark(canvas)
         }
 
         /** Ensure [need] points of vertical space; start a new page if not. */
@@ -98,7 +122,7 @@ object QuotePdfGenerator {
     // ── Sections ───────────────────────────────────────────────────────────────
     private fun drawHeader(s: PageState, q: QuoteDetail) {
         s.canvas.drawText("WIREWAY", MARGIN, s.y + 22f, paint(INK, 24f, bold = true))
-        s.canvas.drawText("PRO", MARGIN + 118f, s.y + 22f, paint(ACCENT, 16f, bold = true))
+        s.canvas.drawText("PRO", MARGIN + 118f, s.y + 22f, paint(s.accent, 16f, bold = true))
 
         val kind = if (q.isInvoice) "INVOICE" else "ESTIMATE"
         s.canvas.drawText(kind, RIGHT, s.y + 14f, paint(MUTED, 12f, bold = true, align = Paint.Align.RIGHT))
@@ -110,7 +134,8 @@ object QuotePdfGenerator {
         s.y += 16f
     }
 
-    private fun drawBusiness(s: PageState, business: BusinessInfo) {
+    private fun drawBusiness(s: PageState, business: BusinessInfo, logo: Bitmap? = null) {
+        val yTop = s.y
         val name = business.name?.takeIf { it.isNotBlank() }
         if (name != null) {
             s.canvas.drawText(name, MARGIN, s.y + 13f, paint(INK, 13f, bold = true))
@@ -127,11 +152,50 @@ object QuotePdfGenerator {
             s.canvas.drawText(line, MARGIN, s.y + 11f, paint(MUTED, 10f))
             s.y += 14f
         }
-        if (name != null || contact.isNotEmpty()) {
+        // Business logo, right-aligned beside the text block (best-effort).
+        val hasLogo = logo != null && logo.width > 0 && logo.height > 0
+        if (hasLogo) {
+            val maxW = 140f
+            val maxH = 56f
+            val scale = minOf(maxW / logo!!.width, maxH / logo.height)
+            val w = logo.width * scale
+            val h = logo.height * scale
+            val bmpPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+            s.canvas.drawBitmap(logo, null, RectF(RIGHT - w, yTop, RIGHT, yTop + h), bmpPaint)
+            if (yTop + h + 8f > s.y) s.y = yTop + h + 8f
+        }
+        if (name != null || contact.isNotEmpty() || hasLogo) {
             s.y += 8f
             rule(s)
             s.y += 14f
         }
+    }
+
+    private fun drawFinancing(s: PageState, link: String, monthly: Double? = null) {
+        s.ensure(48f)
+        s.canvas.drawText("FINANCING AVAILABLE", MARGIN, s.y + 10f, paint(s.accent, 9f, bold = true))
+        s.y += 18f
+        // "As low as $X/mo" is printed only when the financing provider reported
+        // it for this estimate — never computed here (a made-up payment figure
+        // is a trust and compliance problem).
+        monthly?.takeIf { it > 0 }?.let { m ->
+            val promo = paint(INK, 11f, bold = true)
+            s.ensure(16f)
+            s.canvas.drawText(
+                "As low as ${java.text.NumberFormat.getCurrencyInstance(java.util.Locale.US).format(m)}/mo for qualified customers.",
+                MARGIN, s.y + 10f, promo,
+            )
+            s.y += 16f
+        }
+        val p = paint(INK, 10f)
+        val text = "Prefer to spread this out? Flexible monthly payment options are available " +
+            "for this project — apply in minutes here: $link"
+        wrap(text, p, RIGHT - MARGIN).forEach { line ->
+            s.ensure(14f)
+            s.canvas.drawText(line, MARGIN, s.y + 10f, p)
+            s.y += 14f
+        }
+        s.y += 10f
     }
 
     private fun drawTerms(s: PageState) {
@@ -147,9 +211,25 @@ object QuotePdfGenerator {
         s.y += 8f
     }
 
-    private fun drawSignature(s: PageState, business: BusinessInfo?) {
+    private fun drawSignature(s: PageState, business: BusinessInfo?, q: QuoteDetail? = null) {
         s.ensure(70f)
         val who = business?.name?.takeIf { it.isNotBlank() } ?: "the contractor"
+        // Already accepted: print the recorded acceptance instead of blank lines.
+        val sig = q?.sigName?.takeIf { it.isNotBlank() }
+        if (sig != null) {
+            val date = q.signedAt?.take(10)
+            wrap(
+                "Accepted by $sig" + (date?.let { " on $it" } ?: "") +
+                    " \u2014 signature recorded in person in Wireway Pro.",
+                paint(INK, 10f),
+                RIGHT - MARGIN,
+            ).forEach { line ->
+                s.canvas.drawText(line, MARGIN, s.y + 11f, paint(INK, 10f, bold = true))
+                s.y += 14f
+            }
+            s.y += 10f
+            return
+        }
         wrap(
             "By signing below, you authorize $who to proceed with the work described above.",
             paint(INK, 10f),
@@ -251,8 +331,17 @@ object QuotePdfGenerator {
         s.canvas.drawLine(labelX, s.y, RIGHT, s.y, paint(HAIR, 1f).apply { strokeWidth = 1f })
         s.y += 12f
         s.canvas.drawText("TOTAL", labelX, s.y + 14f, paint(INK, 13f, bold = true, align = Paint.Align.RIGHT))
-        s.canvas.drawText(money(q.total), RIGHT, s.y + 14f, paint(ACCENT, 14f, bold = true, align = Paint.Align.RIGHT))
+        s.canvas.drawText(money(q.total), RIGHT, s.y + 14f, paint(s.accent, 14f, bold = true, align = Paint.Align.RIGHT))
         s.y += 28f
+        if (!q.isInvoice) {
+            q.depositDue?.let { dep ->
+                s.canvas.drawText(
+                    "Deposit due on acceptance (${q.depositPercent}%): ${money(dep)}",
+                    RIGHT, s.y + 6f, paint(MUTED, 10f, align = Paint.Align.RIGHT),
+                )
+                s.y += 20f
+            }
+        }
     }
 
     private fun drawNotes(s: PageState, q: QuoteDetail) {
@@ -275,6 +364,19 @@ object QuotePdfGenerator {
             BOTTOM + 18f,
             paint(MUTED, 9f),
         )
+    }
+
+    /**
+     * Free-plan watermark (WIREWAY_PRICING_TIERS.md): a light diagonal
+     * "MADE WITH WIREWAY" across every page. Pro exports never call this.
+     */
+    private fun drawWatermark(canvas: Canvas) {
+        val p = paint(0x140A0E14, 40f, bold = true, align = Paint.Align.CENTER)
+        canvas.save()
+        canvas.rotate(-35f, PAGE_W / 2f, PAGE_H / 2f)
+        canvas.drawText("MADE WITH WIREWAY", PAGE_W / 2f, PAGE_H / 2f, p)
+        canvas.drawText("wirewaypro.com", PAGE_W / 2f, PAGE_H / 2f + 34f, paint(0x140A0E14, 16f, align = Paint.Align.CENTER))
+        canvas.restore()
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
@@ -301,4 +403,207 @@ object QuotePdfGenerator {
         if (line.isNotEmpty()) out.add(line.toString())
         return out
     }
+
+    // ══ E-signature sealing ═══════════════════════════════════════════════════════
+    // Reuses the exact proposal rendering above so the SIGNED document is visually
+    // identical to the estimate the client reviewed — the signature is flattened
+    // onto the same proposal, then a Completion Certificate page is appended.
+    // See WIREWAY_ESIGN_CONSENT_FLOW.md (Screen 3) and the esign module.
+
+    /**
+     * Seal [input]'s signature into [quote]'s proposal PDF and append a Completion
+     * Certificate. Returns the sealed file plus its two hashes (see [SealResult]),
+     * or null on any error. Deterministic given the same inputs.
+     *
+     * Two renders: the signed proposal WITHOUT the certificate is hashed to produce
+     * the document fingerprint (printed on the certificate); the final file WITH the
+     * certificate is hashed to produce the tamper-check value stored in the audit
+     * record. Never watermarked — a signed legal document is never a "free" export.
+     */
+    fun generateSealed(
+        context: Context,
+        quote: QuoteDetail,
+        input: SealInput,
+        business: BusinessInfo? = null,
+        logo: Bitmap? = null,
+        accent: Int? = null,
+    ): SealResult? = runCatching {
+        val accentColor = accent ?: ACCENT
+        val signedBytes = renderSealedBytes(quote, input, business, logo, accentColor, includeCertificate = false, fingerprint = "")
+        val contentSha = Sha256.hex(signedBytes)
+        val sealedBytes = renderSealedBytes(quote, input, business, logo, accentColor, includeCertificate = true, fingerprint = contentSha)
+        val sealedSha = Sha256.hex(sealedBytes)
+
+        val dir = File(context.cacheDir, "exports").apply { mkdirs() }
+        val tag = quote.quoteNumber?.takeIf { it.isNotBlank() } ?: quote.id.take(8)
+        val file = File(dir, "signed-${tag.replace(Regex("[^A-Za-z0-9_-]"), "_")}.pdf")
+        file.writeBytes(sealedBytes)
+        SealResult(file, contentSha, sealedSha)
+    }.getOrNull()
+
+    private fun renderSealedBytes(
+        quote: QuoteDetail,
+        input: SealInput,
+        business: BusinessInfo?,
+        logo: Bitmap?,
+        accent: Int,
+        includeCertificate: Boolean,
+        fingerprint: String,
+    ): ByteArray {
+        val doc = PdfDocument()
+        val state = PageState(doc, accent, watermark = false)
+        state.start()
+
+        drawHeader(state, quote)
+        if (business != null) drawBusiness(state, business, logo)
+        drawClient(state, quote)
+        drawLineItems(state, quote)
+        drawTotals(state, quote)
+        drawNotes(state, quote)
+        drawTerms(state)
+        drawFlattenedSignature(state, input)
+        drawFooter(state)
+        doc.finishPage(state.page)
+
+        if (includeCertificate) drawCertificatePage(doc, accent, input, quote, fingerprint)
+
+        val out = ByteArrayOutputStream()
+        doc.writeTo(out)
+        doc.close()
+        return out.toByteArray()
+    }
+
+    /** The flattened signature block that replaces the blank signature lines. */
+    private fun drawFlattenedSignature(s: PageState, input: SealInput) {
+        s.ensure(130f)
+        wrap(
+            "Signed and accepted by ${input.signerName}.",
+            paint(INK, 10f),
+            RIGHT - MARGIN,
+        ).forEach { line ->
+            s.canvas.drawText(line, MARGIN, s.y + 11f, paint(INK, 10f, bold = true))
+            s.y += 14f
+        }
+        s.y += 8f
+
+        val boxTop = s.y
+        val sigEnd = MARGIN + 260f
+        val dateStart = sigEnd + 30f
+        val bmp = input.signatureBitmap
+        if (bmp != null && bmp.width > 0 && bmp.height > 0) {
+            // Scale the drawn signature into the box above the line (best-effort).
+            val maxW = 240f
+            val maxH = 56f
+            val scale = minOf(maxW / bmp.width, maxH / bmp.height)
+            val w = bmp.width * scale
+            val h = bmp.height * scale
+            val bmpPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+            s.canvas.drawBitmap(bmp, null, RectF(MARGIN, boxTop, MARGIN + w, boxTop + h), bmpPaint)
+            s.y = boxTop + maxH
+        } else {
+            // Typed signature: render the typed name in a script-like italic serif.
+            val typed = input.typedName?.takeIf { it.isNotBlank() } ?: input.signerName
+            val scriptPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = INK
+                textSize = 26f
+                typeface = Typeface.create(Typeface.SERIF, Typeface.ITALIC)
+            }
+            s.canvas.drawText(typed, MARGIN, boxTop + 34f, scriptPaint)
+            s.y = boxTop + 46f
+        }
+
+        // Signature + date underlines with labels (mirrors the blank-form layout).
+        s.canvas.drawLine(MARGIN, s.y, sigEnd, s.y, paint(INK, 1f).apply { strokeWidth = 1f })
+        s.canvas.drawLine(dateStart, s.y, RIGHT, s.y, paint(INK, 1f).apply { strokeWidth = 1f })
+        s.canvas.drawText(fmtDate(input.signedAtMillis), dateStart, s.y - 4f, paint(INK, 10f))
+        s.y += 12f
+        s.canvas.drawText("Signature (${input.method.label.lowercase()})", MARGIN, s.y + 9f, paint(MUTED, 9f))
+        s.canvas.drawText("Date", dateStart, s.y + 9f, paint(MUTED, 9f))
+        s.y += 16f
+        val id = listOfNotNull(input.signerName, input.signerEmail).joinToString("  •  ")
+        s.canvas.drawText(id, MARGIN, s.y + 9f, paint(MUTED, 9f))
+        s.y += 16f
+    }
+
+    /**
+     * The Completion Certificate — its own page, appended after the signed proposal.
+     * Fields per WIREWAY_ESIGN_CONSENT_FLOW.md Screen 3. Language stays honest:
+     * "electronic signature", never "notarized" or "certified".
+     */
+    private fun drawCertificatePage(
+        doc: PdfDocument,
+        accent: Int,
+        input: SealInput,
+        quote: QuoteDetail,
+        fingerprint: String,
+    ) {
+        val page = doc.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, doc.pages.size + 1).create())
+        val c = page.canvas
+        var y = MARGIN
+
+        c.drawText("Certificate of Electronic Signature", MARGIN, y + 20f, paint(INK, 18f, bold = true))
+        y += 30f
+        wrap(
+            "This page is part of the signed document and records how it was signed.",
+            paint(MUTED, 10f), RIGHT - MARGIN,
+        ).forEach { c.drawText(it, MARGIN, y + 10f, paint(MUTED, 10f)); y += 14f }
+        y += 6f
+        c.drawLine(MARGIN, y, RIGHT, y, paint(accent, 1f).apply { strokeWidth = 2f })
+        y += 20f
+
+        val docTitle = input.documentTitle.ifBlank {
+            (quote.quoteNumber?.let { "Proposal #$it" } ?: "Proposal") +
+                (quote.jobName?.takeIf { it.isNotBlank() }?.let { " — $it" } ?: "")
+        }
+        val method = if (input.method == SignatureMethod.TYPED) "Typed" else "Drawn on device"
+        val ip = input.ipAddress?.takeIf { it.isNotBlank() } ?: "Not recorded"
+        val signer = listOfNotNull(input.signerName, input.signerEmail).joinToString("  •  ")
+
+        val rows = listOf(
+            "Document" to docTitle,
+            "Document fingerprint (SHA-256)" to fingerprint,
+            "Signer" to signer,
+            "Consent to sign electronically" to "Given ${fmtTimestamp(input.consentGivenAtMillis)}",
+            "Signed" to fmtTimestamp(input.signedAtMillis),
+            "Signature method" to method,
+            "Identity check" to input.identityCheck,
+            "Signed on" to "${input.deviceModel}, Wireway ${input.appVersion}",
+            "Network address" to ip,
+            "Sealed by" to "Wireway electronic signature",
+        )
+        val labelP = paint(MUTED, 10f, bold = true)
+        val valueP = paint(INK, 11f)
+        val valueX = MARGIN + 190f
+        for ((label, value) in rows) {
+            c.drawText(label, MARGIN, y + 11f, labelP)
+            val lines = wrap(value, valueP, RIGHT - valueX)
+            lines.forEachIndexed { i, line -> c.drawText(line, valueX, y + 11f + i * 14f, valueP) }
+            y += maxOf(20f, lines.size * 14f + 6f)
+            c.drawLine(MARGIN, y - 4f, RIGHT, y - 4f, paint(HAIR, 1f).apply { strokeWidth = 1f })
+        }
+
+        y += 12f
+        wrap(
+            "This certificate and the document's fingerprint let anyone confirm the document " +
+                "hasn't changed since it was signed. To verify, open it in Wireway and choose " +
+                "\"Verify integrity.\" This is an electronic signature under the U.S. ESIGN Act / " +
+                "UETA — it is not a notarization.",
+            paint(MUTED, 9f), RIGHT - MARGIN,
+        ).forEach { c.drawText(it, MARGIN, y + 10f, paint(MUTED, 9f)); y += 13f }
+
+        c.drawText("Generated by Wireway Pro", MARGIN, BOTTOM + 18f, paint(MUTED, 9f))
+        doc.finishPage(page)
+    }
+
+    private fun fmtTimestamp(millis: Long): String = runCatching {
+        java.time.Instant.ofEpochMilli(millis)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a z"))
+    }.getOrDefault(millis.toString())
+
+    private fun fmtDate(millis: Long): String = runCatching {
+        java.time.Instant.ofEpochMilli(millis)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
+    }.getOrDefault("")
 }

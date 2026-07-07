@@ -31,8 +31,12 @@ import com.plaid.link.configuration.LinkTokenConfiguration
 import com.plaid.link.result.LinkExit
 import com.plaid.link.result.LinkSuccess
 import com.wirewaypro.app.domain.model.PlaidTxn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBalance
 import com.wirewaypro.app.ui.components.BackTopBar
+import com.wirewaypro.app.ui.components.EmptyState
 import com.wirewaypro.app.ui.components.ListCard
+import com.wirewaypro.app.ui.components.ListCardSkeleton
 import com.wirewaypro.app.ui.components.RefreshableList
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.util.Format
@@ -72,9 +76,12 @@ fun BankScreen(
 
     Scaffold(topBar = { BackTopBar(title = "Bank", onBack = onBack) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            SectionCard(title = "Connect a bank", modifier = Modifier.padding(16.dp)) {
+            SectionCard(title = if (state.connected) "Bank connected" else "Connect a bank", modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Link your business checking to auto-import transactions for job costing and bookkeeping.",
+                    if (state.connected)
+                        "\u2713 Connected" + (if (state.institutions.isNotEmpty()) ": " + state.institutions.joinToString(", ") else "") + ". Transactions import automatically for job costing and bookkeeping."
+                    else
+                        "Link your business checking to auto-import transactions for job costing and bookkeeping.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -85,7 +92,7 @@ fun BankScreen(
                         Spacer(Modifier.padding(start = 8.dp))
                         Text("Connecting…")
                     } else {
-                        Text("Connect a bank")
+                        Text(if (state.connected) "Connect another bank" else "Connect a bank")
                     }
                 }
                 state.status?.let {
@@ -106,6 +113,14 @@ fun BankScreen(
                     isEmpty = state.isEmpty,
                     emptyMessage = "No bank transactions yet. Connect a bank to import them.",
                     onRefresh = viewModel::refresh,
+                    skeleton = { ListCardSkeleton() },
+                    emptyContent = {
+                        EmptyState(
+                            icon = Icons.Outlined.AccountBalance,
+                            title = "No transactions yet",
+                            message = "Connect your business checking above and purchases import themselves — job costing without the shoebox of receipts.",
+                        )
+                    },
                 ) {
                     items(state.transactions, key = { it.id }) { txn ->
                         TxnRow(txn)

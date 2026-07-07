@@ -63,6 +63,27 @@ class ReminderWorker @AssistedInject constructor(
                         )
                     }
 
+                // Quote-expiry follow-ups: an estimate that's neither accepted nor
+                // dead gets a nudge at 7, 14, 21 and 28 days old — follow-ups win
+                // jobs, and after a month it stops nagging.
+                quoteRepository.getEstimates(userId).getOrNull().orEmpty()
+                    .filter { !it.isInvoice && (it.status ?: "draft") !in setOf("accepted", "paid", "completed", "declined") }
+                    .forEach { est ->
+                        val created = est.createdAt?.take(10) ?: return@forEach
+                        val age = runCatching {
+                            java.time.temporal.ChronoUnit.DAYS.between(LocalDate.parse(created), today)
+                        }.getOrNull() ?: return@forEach
+                        if (age in 7..28 && age % 7 == 0L) {
+                            add(
+                                Reminder(
+                                    key = "quote_followup:${est.id}:$todayStr",
+                                    title = "Follow up on your estimate",
+                                    body = "${est.clientName ?: est.quoteNumber ?: "Estimate"} \u2014 ${money(est.total)} is $age days old. A quick follow-up can close it.",
+                                ),
+                            )
+                        }
+                    }
+
                 jobRepository.getJobs(userId).getOrNull().orEmpty()
                     .filter { it.scheduledDate == tomorrowStr }
                     .forEach {
