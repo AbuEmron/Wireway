@@ -12,6 +12,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.wirewaypro.app.domain.model.AuthState
 import com.wirewaypro.app.ui.auth.LoginScreen
@@ -33,6 +34,7 @@ fun WirewayApp(
 ) {
     val authState by sessionViewModel.authState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
     // While the persisted session is still loading, hold on a splash spinner so
     // we don't flash the login screen at an already-signed-in user.
@@ -48,7 +50,21 @@ fun WirewayApp(
 
     // React to auth transitions that happen while the app is open. Signed-out
     // users land on Welcome (the auth entry point); Login/Sign Up branch off it.
-    LaunchedEffect(isAuthed) {
+    //
+    // Guard on the current destination so this only fires on a genuine auth
+    // *transition* — not on every recomposition or Activity recreation. Blindly
+    // navigating here would reset the restored back stack (and the dashboard's
+    // nested nav state) on an in-memory resume, sending the user back to the
+    // start screen. rememberNavController restores the previous screen/tab, and
+    // the NavHost's startDestination already lands a cold start on the right
+    // side, so we only correct a real mismatch (e.g. mid-session sign-in/out).
+    // A null route means the NavHost hasn't composed yet — leave it to the
+    // startDestination rather than force-navigating.
+    LaunchedEffect(isAuthed, currentRoute) {
+        val route = currentRoute ?: return@LaunchedEffect
+        val onAuthedSide = route == Routes.DASHBOARD
+        if (isAuthed == onAuthedSide) return@LaunchedEffect
+
         val target = if (isAuthed) Routes.DASHBOARD else Routes.WELCOME
         navController.navigate(target) {
             popUpTo(navController.graph.id) { inclusive = true }
