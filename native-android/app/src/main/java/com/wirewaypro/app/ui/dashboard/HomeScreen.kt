@@ -287,14 +287,15 @@ fun HomeScreen(
             }
         }
 
-        // Non-Elite: one upgrade nudge for AI Takeoff (monetization).
+        // Non-Elite: a teaser for AI Takeoff. Elite isn't publicly purchasable
+        // yet, so this reads as "coming soon", not a buy-now nudge.
         if (!isElite) {
             Column(Modifier.rise(5), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionEyebrow("Unlock more")
+                SectionEyebrow("Coming soon")
                 AiHeroCard(
                     icon = Icons.Outlined.PhotoCamera,
                     title = "AI Takeoff",
-                    subtitle = "Snap a plan photo or PDF — AI reads it and builds the estimate. Included with Elite.",
+                    subtitle = "Snap a plan photo or PDF — AI reads it and builds the estimate. Coming soon with Elite.",
                     onClick = onOpenSubscription,
                     locked = true,
                 )
@@ -645,7 +646,7 @@ private fun AiHeroCard(
                     if (locked) {
                         Spacer(Modifier.size(8.dp))
                         Text(
-                            text = "ELITE",
+                            text = "COMING SOON",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,

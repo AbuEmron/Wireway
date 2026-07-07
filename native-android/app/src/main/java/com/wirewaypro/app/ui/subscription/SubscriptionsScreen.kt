@@ -69,7 +69,9 @@ fun SubscriptionsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                EliteHero()
+                // Elite is not publicly purchasable yet — only Pro/Teams are shown
+                // as buyable plans. Internal testers get Elite via their server plan.
+                val purchasable = state.products.filter { it.tier != "Elite" }
 
                 if (!state.available) {
                     SectionCard(title = "Subscriptions unavailable") {
@@ -80,7 +82,7 @@ fun SubscriptionsScreen(
                         )
                     }
                 } else {
-                    state.products.forEach { product ->
+                    purchasable.forEach { product ->
                         SectionCard(title = product.title) {
                             if (product.price.isNotBlank()) {
                                 Text(
@@ -103,6 +105,10 @@ fun SubscriptionsScreen(
                     }
                 }
 
+                // Elite is fully built and live for internal testers, but not yet
+                // sold — present it as a teaser, never a purchase.
+                EliteComingSoonCard()
+
                 // Google Play requires the manage/cancel path to run through the Play
                 // subscription center — deep-link out to it rather than cancelling in-app.
                 // Shown regardless of load state so an existing subscriber always has a way out.
@@ -118,11 +124,12 @@ fun SubscriptionsScreen(
 }
 
 /**
- * The pitch: a gradient hero naming what Elite unlocks, as a checklist a
- * contractor can price against a single change order.
+ * Elite teaser. Elite is fully built and enabled for internal testers (server
+ * plan = 'elite'), but not yet publicly purchasable — so this is a "coming soon"
+ * card: a badge and a checklist of what's on the way, with NO purchase CTA.
  */
 @Composable
-private fun EliteHero() {
+private fun EliteComingSoonCard() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -144,12 +151,38 @@ private fun EliteHero() {
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
+                    modifier = Modifier.weight(1f),
+                )
+                // "Coming soon" status badge — deliberately not a button.
+                Text(
+                    text = "COMING SOON",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .drawBehind { drawRect(color = Color.White.copy(alpha = 0.22f)) }
+                        .padding(horizontal = 9.dp, vertical = 4.dp),
                 )
             }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "The business tier — here's what's on the way:",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.9f),
+            )
             Spacer(Modifier.height(12.dp))
-            EliteFeature("AI takeoff — estimate straight from the plans")
-            EliteFeature("Unlimited estimates & invoices")
-            EliteFeature("Bookkeeping: real profit per job, tax-time exports")
+            EliteFeature("Crew roster + time tracking")
+            EliteFeature("True job costing — actuals vs. estimate")
+            EliteFeature("AI blueprint takeoff — estimate from the plans")
+            EliteFeature("Advanced electrical calculators")
+            EliteFeature("Deep material manager")
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = "We'll let you know the moment it's ready.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.85f),
+            )
         }
     }
 }
