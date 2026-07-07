@@ -1,6 +1,5 @@
 package com.wirewaypro.app.esign.crypto
 
-import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
@@ -28,10 +27,13 @@ object SignatureCipher {
 
     /** Encrypt [plain] under [key]; returns a self-describing blob (see wire format). */
     fun encrypt(plain: ByteArray, key: SecretKey): ByteArray {
-        val iv = ByteArray(IV_LEN).also { SecureRandom().nextBytes(it) }
+        // Android Keystore forbids caller-provided IVs on encrypt: init WITHOUT a
+        // GCMParameterSpec and let the provider generate the IV, then read it back.
         val cipher = Cipher.getInstance(TRANSFORM).apply {
-            init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(TAG_BITS, iv))
+            init(Cipher.ENCRYPT_MODE, key)
         }
+        val iv = cipher.iv
+        require(iv.size == IV_LEN) { "Unexpected GCM IV length: ${iv.size}" }
         val ct = cipher.doFinal(plain)
         return ByteArray(1 + IV_LEN + ct.size).also { out ->
             out[0] = VERSION
