@@ -93,7 +93,7 @@ fun MoneyScreen(
                 title = "Money",
                 onBack = onBack,
                 actions = {
-                    if (state.exporting) {
+                    if (state.isExporting) {
                         CircularProgressIndicator(Modifier.padding(end = 16.dp).size(22.dp), strokeWidth = 2.dp)
                     } else {
                         IconButton(onClick = viewModel::exportCsv) {
@@ -125,7 +125,7 @@ fun MoneyScreen(
                     pnl = state.pnl,
                     monthLabel = monthLabel,
                     year = viewModel.year,
-                    exporting = state.exporting,
+                    exportingWhich = state.exportingWhich,
                     onExportCsv = viewModel::exportCsv,
                     onExportQuickBooks = viewModel::exportQuickBooks,
                     onExportTaxSummary = viewModel::exportTaxSummary,
@@ -142,11 +142,12 @@ private fun MoneyContent(
     pnl: JobPnlReport?,
     monthLabel: String,
     year: Int,
-    exporting: Boolean,
+    exportingWhich: MoneyExport?,
     onExportCsv: () -> Unit,
     onExportQuickBooks: () -> Unit,
     onExportTaxSummary: () -> Unit,
 ) {
+    val anyExporting = exportingWhich != null
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -293,22 +294,24 @@ private fun MoneyContent(
             GradientButton(
                 text = "Accountant CSV",
                 onClick = onExportCsv,
-                enabled = !exporting,
-                loading = exporting,
+                enabled = !anyExporting,
+                loading = exportingWhich == MoneyExport.ACCOUNTANT,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.size(10.dp))
             GradientButton(
                 text = "QuickBooks (CSV)",
                 onClick = onExportQuickBooks,
-                enabled = !exporting,
+                enabled = !anyExporting,
+                loading = exportingWhich == MoneyExport.QUICKBOOKS,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.size(10.dp))
             GradientButton(
                 text = "Tax-ready P&L (CSV)",
                 onClick = onExportTaxSummary,
-                enabled = !exporting,
+                enabled = !anyExporting,
+                loading = exportingWhich == MoneyExport.TAX,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.size(8.dp))
