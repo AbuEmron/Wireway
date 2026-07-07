@@ -6,6 +6,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,10 +28,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wirewaypro.app.Urls
 import com.wirewaypro.app.ui.components.WirewayLogomark
 import com.wirewaypro.app.ui.components.pressScale
 import com.wirewaypro.app.ui.components.rememberWirewayHaptics
@@ -63,6 +66,7 @@ fun WelcomeScreen(
         label = "welcome-sweep",
     )
     val haptics = rememberWirewayHaptics()
+    val context = LocalContext.current
 
     Box(
         modifier = Modifier
@@ -156,6 +160,34 @@ fun WelcomeScreen(
                     text = "I already have an account",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Legal footer — opens the hosted pages in the browser.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.riseIn(5),
+            ) {
+                Text(
+                    text = "Privacy Policy",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.clickable { Urls.open(context, Urls.PRIVACY) },
+                )
+                Text(
+                    text = "  ·  ",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 13.sp,
+                )
+                Text(
+                    text = "Terms of Service",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.clickable { Urls.open(context, Urls.TERMS) },
                 )
             }
 

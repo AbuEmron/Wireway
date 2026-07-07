@@ -24,10 +24,12 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
@@ -50,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wirewaypro.app.BuildConfig
+import com.wirewaypro.app.Urls
 import com.wirewaypro.app.ui.components.SectionCard
 import com.wirewaypro.app.ui.components.TabTopBar
 import com.wirewaypro.app.ui.components.pressScale
@@ -68,6 +72,7 @@ fun SettingsScreen(
 ) {
     val email by viewModel.email.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -106,6 +111,21 @@ fun SettingsScreen(
 
             SectionCard(title = "Appearance") {
                 ThemeSelector(selected = themeMode, onSelect = viewModel::setThemeMode)
+            }
+
+            SectionCard(title = "Legal") {
+                SettingsRow(
+                    icon = Icons.Outlined.PrivacyTip,
+                    title = "Privacy Policy",
+                    subtitle = "How we handle your data",
+                    onClick = { Urls.open(context, Urls.PRIVACY) },
+                )
+                SettingsRow(
+                    icon = Icons.Outlined.Description,
+                    title = "Terms of Service",
+                    subtitle = "The terms you agree to",
+                    onClick = { Urls.open(context, Urls.TERMS) },
+                )
             }
 
             OutlinedButton(
