@@ -65,7 +65,7 @@ jobs:
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wireway-native-debug-apk
           path: native-android/app/build/outputs/apk/debug/app-debug.apk
@@ -104,7 +104,7 @@ jobs:
 
       - name: Upload release AAB artifact
         if: steps.uploadkey.outputs.have == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wireway-native-release-aab
           path: native-android/app/build/outputs/bundle/release/app-release.aab
