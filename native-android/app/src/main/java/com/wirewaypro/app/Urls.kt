@@ -12,8 +12,13 @@ import android.net.Uri
  */
 object Urls {
     const val BASE = "https://www.wireway.cc"
-    const val PRIVACY = "$BASE/privacy"
-    const val TERMS = "$BASE/terms"
+    // Point at the actual static files (public/privacy.html, public/terms.html)
+    // so the policy renders directly instead of falling through to the SPA. This
+    // resolves on the live site today and stays valid after cleanUrls is enabled
+    // (where .html canonically redirects to the clean path), and matches the
+    // web footer, which also links the .html pages.
+    const val PRIVACY = "$BASE/privacy.html"
+    const val TERMS = "$BASE/terms.html"
 
     /**
      * Opens [url] in the user's browser (a Custom Tab if their default browser
