@@ -39,8 +39,8 @@ android {
         applicationId = "com.wirewaypro.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 20260706   // Date-based; supersedes the wrapped build (1) and native (2)
-        versionName = "1.1.2"
+        versionCode = 20260713   // Date-based; supersedes the wrapped build (1) and native (2)
+        versionName = "1.1.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

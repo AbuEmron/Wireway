@@ -1,5 +1,6 @@
 package com.wirewaypro.app.ui.quotes
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -48,6 +49,10 @@ fun CatalogPicker(
 ) {
     var query by remember { mutableStateOf("") }
     val q = query.trim().lowercase()
+
+    // Back/gesture inside the full-screen catalog returns to the template editor,
+    // not out of the whole Assemblies route.
+    BackHandler { onClose() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
