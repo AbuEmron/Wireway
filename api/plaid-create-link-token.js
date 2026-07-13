@@ -27,6 +27,17 @@ async function verifyUser(req) {
   } catch { return null; }
 }
 
+// Vercel usually parses JSON bodies into req.body, but fall back to parsing a
+// raw string so a native client sending a JSON string still works.
+function readBody(req) {
+  const b = req.body;
+  if (!b) return {};
+  if (typeof b === "string") {
+    try { return JSON.parse(b); } catch { return {}; }
+  }
+  return b;
+}
+
 function plaidClient() {
   const env = process.env.PLAID_ENV || "sandbox";
   const config = new Configuration({
@@ -58,13 +69,22 @@ module.exports = async function handler(req, res) {
 
   try {
     const client = plaidClient();
-    const response = await client.linkTokenCreate({
+    const linkRequest = {
       user: { client_user_id: user.id },
       client_name: "Wireway",
       products: [Products.Transactions],
       country_codes: [CountryCode.Us],
       language: "en",
-    });
+    };
+    // The native Android Plaid Link SDK requires the link_token to carry this
+    // app's android_package_name (also allowlist it in the Plaid dashboard).
+    // Web callers don't send it, so the token stays web-compatible when absent.
+    const body = readBody(req);
+    const androidPackageName =
+      typeof body.android_package_name === "string" ? body.android_package_name.trim() : "";
+    if (androidPackageName) linkRequest.android_package_name = androidPackageName;
+
+    const response = await client.linkTokenCreate(linkRequest);
     return res.status(200).json({ link_token: response.data.link_token });
   } catch (err) {
     console.error("Plaid link token error:", err?.response?.data || err.message);
