@@ -1,5 +1,6 @@
 package com.wirewaypro.app.ui.quotes
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -214,6 +215,10 @@ fun TemplateEditorScreen(
         )
         return
     }
+
+    // Back/gesture in the full-screen editor returns to the Job Templates list
+    // instead of popping the whole Assemblies route out to the Dashboard.
+    BackHandler { onClose() }
 
     androidx.compose.material3.Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
