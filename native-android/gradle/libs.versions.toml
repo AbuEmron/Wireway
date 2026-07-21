@@ -2,7 +2,9 @@
 # Bumping a library? Change it here, not in the module build files.
 [versions]
 # Build tooling
-agp = "8.7.3"
+# AGP 8.9.1 is the minimum that natively supports compileSdk 36 (Android 16).
+# It pairs with the Gradle 8.11.1 wrapper and JDK 17+ already used here.
+agp = "8.9.1"
 kotlin = "2.0.21"
 ksp = "2.0.21-1.0.28"
 hilt = "2.52"

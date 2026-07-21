@@ -30,7 +30,7 @@ fun secret(key: String, default: String = ""): String =
 
 android {
     namespace = "com.wirewaypro.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         // The native app IS the Play app now (replaces the wrapped build on the
@@ -38,9 +38,9 @@ android {
         // install alongside the Play build during development.
         applicationId = "com.wirewaypro.app"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 20260713   // Date-based; supersedes the wrapped build (1) and native (2)
-        versionName = "1.1.3"
+        targetSdk = 36           // Android 16 — Play requires apps target API 36+
+        versionCode = 20260721   // Date-based; supersedes 20260713 (v1.1.3)
+        versionName = "1.1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
